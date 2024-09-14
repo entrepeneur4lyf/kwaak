@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::borrow::{Borrow, Cow};
 use std::io;
+use std::process::exit;
 use std::time::Duration;
 
 use ratatui::Terminal;
@@ -107,22 +108,7 @@ pub async fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>) -
     let mut app = App::from_ui_tx(ui_tx.clone());
 
     // Spawn a blocking task to read input events
-    let ui_tx_clone = ui_tx.clone();
-    task::spawn_blocking(move || {
-        loop {
-            // Poll for input events
-            if event::poll(Duration::from_millis(REFRESH_RATE * 10)).unwrap() {
-                if let crossterm::event::Event::Key(key) = event::read().unwrap() {
-                    let _ = ui_tx_clone.send(UIEvent::Input(key));
-                }
-            }
-
-            // Send a tick event, ignore if the receiver is gone
-            let _ = ui_tx_clone.send(UIEvent::Tick);
-            // Sleep for the tick rate
-            std::thread::sleep(Duration::from_millis(REFRESH_RATE));
-        }
-    });
+    let handle = task::spawn(poll_ui_events(ui_tx.clone()));
 
     loop {
         // Draw the UI
@@ -149,5 +135,25 @@ pub async fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>) -
             break;
         }
     }
+
+    handle.abort();
+
     Ok(())
+}
+
+async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
+    loop {
+        // Poll for input events
+        if event::poll(Duration::from_millis(REFRESH_RATE * 10))? {
+            if let crossterm::event::Event::Key(key) = event::read()? {
+                let _ = ui_tx.send(UIEvent::Input(key));
+            }
+        }
+        // Send a tick event, ignore if the receiver is gone
+        let _ = ui_tx.send(UIEvent::Tick);
+
+        // Sleep for the tick rate
+        // Use tokio so it yields
+        tokio::time::sleep(Duration::from_millis(REFRESH_RATE)).await;
+    }
 }
