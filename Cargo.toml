@@ -4,3 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.88"
+crossterm = "0.28.1"
+ratatui = "0.28.1"
+tokio = { version = "1.40.0", features = ["full"] }
+strum = "0.26.3"
+strum_macros = "0.26.4"
