@@ -10,6 +10,7 @@ use crossterm::{
 };
 
 mod app;
+mod chat_message;
 mod commands;
 mod ui;
 
@@ -22,8 +23,10 @@ async fn main() -> Result<(), io::Error> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    // Create app and run it
-    let res = run_app(&mut terminal).await;
+    let mut app = App::default();
+    let _guard = commands::CommandHandler::start_with_ui_app(&mut app);
+
+    let res = run_app(&mut app, &mut terminal).await;
 
     // Restore terminal
     disable_raw_mode()?;

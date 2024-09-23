@@ -1,7 +1,5 @@
 use anyhow::Result;
-use std::borrow::{Borrow, Cow};
 use std::io;
-use std::process::exit;
 use std::time::Duration;
 
 use ratatui::Terminal;
@@ -11,57 +9,47 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use tokio::sync::mpsc;
 use tokio::task;
 
+use crate::chat_message::ChatMessage;
 use crate::commands::Command;
 use crate::ui;
 
 // Refresh rate in milliseconds
 const REFRESH_RATE: u64 = 10;
 
+/// Handles user and TUI interaction
 pub struct App {
     pub input: String,
-    pub messages: Vec<Message>,
+    pub messages: Vec<ChatMessage>,
     pub ui_tx: mpsc::UnboundedSender<UIEvent>,
+    pub ui_rx: mpsc::UnboundedReceiver<UIEvent>,
+    pub command_tx: Option<mpsc::UnboundedSender<Command>>,
     pub should_quit: bool,
 }
 
-pub enum Message {
-    User(String),
-    System(String),
-    Command(Command),
-}
+impl Default for App {
+    fn default() -> Self {
+        let (ui_tx, ui_rx) = mpsc::unbounded_channel();
 
-impl Message {
-    pub fn new_user(msg: impl Into<String>) -> Message {
-        Message::User(msg.into())
-    }
-
-    pub fn new_system(msg: impl Into<String>) -> Message {
-        Message::System(msg.into())
-    }
-
-    pub fn new_command(cmd: impl Into<Command>) -> Message {
-        Message::Command(cmd.into())
-    }
-}
-
-impl std::fmt::Display for Message {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Message::User(msg) => write!(f, "You: {}", msg),
-            Message::System(msg) => write!(f, "System: {}", msg),
-            Message::Command(cmd) => write!(f, "Command: {}", cmd),
+        Self {
+            input: String::new(),
+            messages: Vec::new(),
+            ui_tx,
+            ui_rx,
+            command_tx: None,
+            should_quit: false,
         }
     }
 }
 
 impl App {
-    pub fn from_ui_tx(ui_tx: mpsc::UnboundedSender<UIEvent>) -> App {
-        App {
-            input: String::new(),
-            messages: Vec::new(),
-            ui_tx,
-            should_quit: false,
-        }
+    async fn recv_messages(&mut self) -> Option<UIEvent> {
+        self.ui_rx.recv().await
+    }
+
+    fn send_message(&self, msg: UIEvent) -> Result<()> {
+        self.ui_tx.send(msg)?;
+
+        Ok(())
     }
 
     fn on_key(&mut self, key: KeyEvent) {
@@ -74,16 +62,25 @@ impl App {
             }
             KeyCode::Enter => {
                 if !self.input.is_empty() {
-                    if self.input.starts_with("/") {
+                    let message = if self.input.starts_with("/") {
                         if let Ok(cmd) = Command::parse(&self.input) {
-                            self.messages.push(Message::new_command(cmd.clone()));
-                            let _ = self.ui_tx.send(UIEvent::Command(cmd));
+                            // Send it to the handler
+                            self.command_tx
+                                .as_ref()
+                                .expect("Command tx not set")
+                                .send(cmd.clone())
+                                .unwrap();
+
+                            // Display the command as a message
+                            ChatMessage::new_command(cmd)
                         } else {
-                            self.messages.push(Message::new_system("Unknown command"));
+                            ChatMessage::new_system("Unknown command")
                         }
                     } else {
-                        self.messages.push(Message::new_user(&self.input));
-                    }
+                        ChatMessage::new_user(&self.input)
+                    };
+
+                    let _ = self.send_message(UIEvent::ChatMessage(message));
 
                     self.input.clear();
                 }
@@ -94,6 +91,10 @@ impl App {
             _ => {}
         }
     }
+
+    fn add_chat_message(&mut self, message: ChatMessage) {
+        self.messages.push(message);
+    }
 }
 
 // Event handling
@@ -101,21 +102,23 @@ pub enum UIEvent {
     Input(KeyEvent),
     Tick,
     Command(Command),
+    ChatMessage(ChatMessage),
 }
 
-pub async fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
-    let (ui_tx, mut ui_rx) = mpsc::unbounded_channel();
-    let mut app = App::from_ui_tx(ui_tx.clone());
-
+pub async fn run_app<B: ratatui::backend::Backend>(
+    app: &mut App,
+    terminal: &mut Terminal<B>,
+) -> io::Result<()> {
     // Spawn a blocking task to read input events
-    let handle = task::spawn(poll_ui_events(ui_tx.clone()));
+
+    let handle = task::spawn(poll_ui_events(app.ui_tx.clone()));
 
     loop {
         // Draw the UI
-        terminal.draw(|f| ui::ui(f, &app))?;
+        terminal.draw(|f| ui::ui(f, app))?;
 
         // Handle events
-        if let Some(event) = ui_rx.recv().await {
+        if let Some(event) = app.recv_messages().await {
             match event {
                 UIEvent::Input(key) => {
                     app.on_key(key);
@@ -128,6 +131,9 @@ pub async fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>) -
                         app.should_quit = true;
                     }
                 },
+                UIEvent::ChatMessage(message) => {
+                    app.add_chat_message(message);
+                }
             }
         }
 
