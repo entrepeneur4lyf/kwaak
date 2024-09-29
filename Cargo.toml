@@ -10,11 +10,14 @@ ratatui = "0.28.1"
 tokio = { version = "1.40.0", features = ["full"] }
 strum = "0.26.3"
 strum_macros = "0.26.4"
-swiftide = { version = "0.12.1", features = [
+swiftide = { version = "0.13.0", features = [
   "lancedb",
   "openai",
   "tree-sitter",
 ] }
+toml = "0.8.19"
+serde = { version = "1.0.210", features = ["derive"] }
+secrecy = { version = "0.10.2", features = ["serde"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

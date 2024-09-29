@@ -12,6 +12,7 @@ use crossterm::{
 mod app;
 mod chat_message;
 mod commands;
+mod config;
 mod ui;
 
 #[tokio::main]

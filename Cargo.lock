@@ -348,7 +348,7 @@ dependencies = [
  "rand",
  "reqwest",
  "reqwest-eventsource",
- "secrecy",
+ "secrecy 0.8.0",
  "serde",
  "serde_json",
  "thiserror",
@@ -2431,10 +2431,13 @@ dependencies = [
  "anyhow",
  "crossterm",
  "ratatui",
+ "secrecy 0.10.2",
+ "serde",
  "strum",
  "strum_macros",
  "swiftide",
  "tokio",
+ "toml",
 ]
 
 [[package]]
@@ -4204,6 +4207,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "secrecy"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba079fa568d52545cd70b334b2ce6f88f62b8fc2bda9290f48a0578388a49331"
+dependencies = [
+ "serde",
+ "zeroize",
+]
+
+[[package]]
 name = "security-framework"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4264,6 +4277,15 @@ dependencies = [
  "itoa",
  "memchr",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_spanned"
+version = "0.6.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb5b1b31579f3811bf615c144393417496f152e12ac8b7663bf664f4a815306d"
+dependencies = [
  "serde",
 ]
 
@@ -4539,9 +4561,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "swiftide"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41a21ada3f0b7ee8731f94b747dff486fa07455b177464abb37911d55ae86b10"
+checksum = "9d3a144cf7b7a4c87322802664e5014dc705241b4d81ef17f869514dc64d83b0"
 dependencies = [
  "swiftide-core",
  "swiftide-indexing",
@@ -4551,9 +4573,9 @@ dependencies = [
 
 [[package]]
 name = "swiftide-core"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14ca4bb7fc7aef7a00191647e75a85bf6f93895dd6666901e0f97cda69f65c9e"
+checksum = "b12be4b56b49c0db3445f0eef1bdbbd73ae0133c2e9d8a1b90db99dfb589854b"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4575,9 +4597,9 @@ dependencies = [
 
 [[package]]
 name = "swiftide-indexing"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e39ae093d1ac941913bf26d5b1dba764aad02ab0fb8c0ba2a78761e6b94995c1"
+checksum = "b62c385a800d41e1fc272645296739eff9da09a9328316ae6e191767f86ca5dd"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4601,9 +4623,9 @@ dependencies = [
 
 [[package]]
 name = "swiftide-integrations"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ee7f5d2855afd8a788b17d63f4399174010702eada5548765e1f12ce7b06dc5"
+checksum = "7a4c11d67b1c1e617272354538d34e19a60448584f9df64033c7dc9de1987056"
 dependencies = [
  "anyhow",
  "arrow-array",
@@ -4626,6 +4648,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tree-sitter",
+ "tree-sitter-java",
  "tree-sitter-javascript",
  "tree-sitter-python",
  "tree-sitter-ruby",
@@ -4635,9 +4658,9 @@ dependencies = [
 
 [[package]]
 name = "swiftide-macros"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58706048dff7d59fab5abda69d88a50633a2671ee5fc10b9d94e3ac256197ed6"
+checksum = "eef18845ac35667f10b396bab26a4c08b7fb64f71c056f5a81a6d80268d62ede"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -4647,9 +4670,9 @@ dependencies = [
 
 [[package]]
 name = "swiftide-query"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ddaf57bd7f2ad6b7314c488b1f8c2e5f4058b52d578d940d8d0ed496c354ea0"
+checksum = "535e09637ba688093ba34db37959bf93809c8fab10f38782cbbf13369d39155e"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5047,6 +5070,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml"
+version = "0.8.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1ed1f98e3fdc28d6d910e6737ae6ab1a93bf1985935a1193e68f93eeb68d24e"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit",
+]
+
+[[package]]
+name = "toml_datetime"
+version = "0.6.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.22.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b072cee73c449a636ffd6f32bd8de3a9f7119139aff882f44943ce2986dc5cf"
+dependencies = [
+ "indexmap 2.5.0",
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "winnow",
+]
+
+[[package]]
 name = "tower"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5114,6 +5171,16 @@ dependencies = [
  "cc",
  "regex",
  "regex-syntax",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-java"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b38b26736e6e97421760201f7a91c859f3b0d44382d48ac18aa963828f784ebf"
+dependencies = [
+ "cc",
  "tree-sitter-language",
 ]
 
@@ -5505,7 +5572,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5700,6 +5767,15 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+
+[[package]]
+name = "winnow"
+version = "0.6.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68a9bda4691f099d435ad181000724da8e5899daa10713c2d432552b9ccd3a6f"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "wyz"
