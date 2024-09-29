@@ -18,6 +18,8 @@ swiftide = { version = "0.13.0", features = [
 toml = "0.8.19"
 serde = { version = "1.0.210", features = ["derive"] }
 secrecy = { version = "0.10.2", features = ["serde"] }
+tracing = "0.1.40"
+async-openai = "0.24.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

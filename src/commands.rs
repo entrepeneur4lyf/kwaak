@@ -1,13 +1,21 @@
 use anyhow::Result;
 use tokio::sync::mpsc;
 
-use crate::app::{App, UIEvent};
+use crate::{
+    app::{App, UIEvent},
+    config::Config,
+    indexing,
+    repository::Repository,
+};
 
 /// Commands represent concrete actions from a user or in the backend
+///
+/// By default all commands can be triggered from the ui like `/<command>`
 #[derive(Debug, PartialEq, Eq, strum_macros::EnumString, strum_macros::Display, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Command {
     Quit,
+    IndexRepository,
 }
 
 impl Command {
@@ -20,21 +28,34 @@ impl Command {
     }
 }
 
-// Commands always flow via the CommandHandler
+/// Commands always flow via the CommandHandler
 pub struct CommandHandler {
+    /// Receives commands
     rx: mpsc::UnboundedReceiver<Command>,
     #[allow(dead_code)]
+    /// Sends commands
     tx: mpsc::UnboundedSender<Command>,
+    /// Sends UIEvents to the connected frontend
     ui_tx: mpsc::UnboundedSender<UIEvent>,
+    /// Repository to interact with
+    repository: Repository,
 }
 
 impl CommandHandler {
-    pub fn start_with_ui_app(app: &mut App) -> tokio::task::JoinHandle<()> {
+    pub fn start_with_ui_app(
+        app: &mut App,
+        config: impl Into<Config>,
+    ) -> tokio::task::JoinHandle<()> {
         let (tx, rx) = mpsc::unbounded_channel();
         let ui_tx = app.ui_tx.clone();
         app.command_tx = Some(tx.clone());
 
-        let handler = CommandHandler { rx, tx, ui_tx };
+        let handler = CommandHandler {
+            rx,
+            tx,
+            ui_tx,
+            repository: Repository::from_config(config),
+        };
 
         handler.start()
     }
@@ -42,15 +63,17 @@ impl CommandHandler {
     fn start(mut self) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             while let Some(cmd) = self.rx.recv().await {
-                // For now just forward all commands to the UI
                 self.handle_command(cmd).await.unwrap();
             }
         })
     }
 
+    /// TODO: Most commands should probably be handled in a tokio task
+    /// Maybe generalize tasks to make ui updates easier?
     async fn handle_command(&self, cmd: Command) -> Result<()> {
         match cmd {
             Command::Quit => self.ui_tx.send(UIEvent::Command(cmd))?,
+            Command::IndexRepository => indexing::index_repository(&self.repository).await?,
         }
 
         Ok(())

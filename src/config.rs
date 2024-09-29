@@ -1,16 +1,97 @@
-use secrecy::SecretString;
+use anyhow::{Context as _, Result};
+use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
-use swiftide::integrations::treesitter::SupportedLanguages;
+use swiftide::integrations;
+use swiftide::traits::SimplePrompt;
+use swiftide::{integrations::treesitter::SupportedLanguages, traits::EmbeddingModel};
 
 #[derive(Debug, Clone, Deserialize)]
-struct Config {
+pub struct Config {
     pub language: SupportedLanguages,
     pub llm: LLMConfigurations,
+}
+impl Config {
+    /// Loads the configuration file from the current path
+    pub(crate) async fn load() -> Result<Config> {
+        let file = tokio::fs::read("kwaak.toml").await?;
+
+        toml::from_str(std::str::from_utf8(&file)?).context("Failed to parse configuration")
+    }
+
+    pub fn indexing_provider(&self) -> &LLMConfiguration {
+        match &self.llm {
+            LLMConfigurations::Single(config) => config,
+            LLMConfigurations::Multiple { indexing, .. } => indexing,
+        }
+    }
+
+    pub fn embedding_provider(&self) -> &LLMConfiguration {
+        match &self.llm {
+            LLMConfigurations::Single(config) => config,
+            LLMConfigurations::Multiple { embedding, .. } => embedding,
+        }
+    }
+}
+
+impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> std::result::Result<Box<dyn EmbeddingModel>, Self::Error> {
+        let boxed = match self {
+            LLMConfiguration::OpenAI {
+                api_key,
+                prompt_model,
+                ..
+            } => Box::new(
+                integrations::openai::OpenAI::builder()
+                    .client(async_openai::Client::with_config(
+                        async_openai::config::OpenAIConfig::default()
+                            .with_api_key(api_key.expose_secret()),
+                    ))
+                    .default_prompt_model(
+                        prompt_model
+                            .as_ref()
+                            .ok_or(anyhow::anyhow!("Missing prompt model"))?,
+                    )
+                    .build()?,
+            ),
+            _ => unimplemented!(),
+        };
+
+        Ok(boxed)
+    }
+}
+
+impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
+    type Error = anyhow::Error;
+    fn try_into(self) -> std::result::Result<Box<dyn SimplePrompt>, Self::Error> {
+        let boxed = match self {
+            LLMConfiguration::OpenAI {
+                api_key,
+                prompt_model,
+                ..
+            } => Box::new(
+                integrations::openai::OpenAI::builder()
+                    .client(async_openai::Client::with_config(
+                        async_openai::config::OpenAIConfig::default()
+                            .with_api_key(api_key.expose_secret()),
+                    ))
+                    .default_prompt_model(
+                        prompt_model
+                            .as_ref()
+                            .ok_or(anyhow::anyhow!("Missing prompt model"))?,
+                    )
+                    .build()?,
+            ),
+            _ => unimplemented!(),
+        };
+        Ok(boxed)
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-enum LLMConfigurations {
+pub enum LLMConfigurations {
     Single(LLMConfiguration),
     Multiple {
         indexing: LLMConfiguration,
@@ -21,7 +102,7 @@ enum LLMConfigurations {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "provider")]
-enum LLMConfiguration {
+pub enum LLMConfiguration {
     OpenAI {
         api_key: SecretString,
         prompt_model: Option<String>,

@@ -130,6 +130,9 @@ pub async fn run_app<B: ratatui::backend::Backend>(
                     Command::Quit => {
                         app.should_quit = true;
                     }
+                    _ => {
+                        tracing::warn!("Unhandled command: {:?}", cmd);
+                    }
                 },
                 UIEvent::ChatMessage(message) => {
                     app.add_chat_message(message);
