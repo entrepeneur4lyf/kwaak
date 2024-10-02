@@ -7,6 +7,7 @@ use swiftide::integrations;
 use swiftide::traits::SimplePrompt;
 use swiftide::{integrations::treesitter::SupportedLanguages, traits::EmbeddingModel};
 
+// TODO: Improving parsing by enforcing invariants
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default = "default_project_name")]

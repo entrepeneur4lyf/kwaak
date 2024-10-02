@@ -14,7 +14,8 @@ swiftide = { version = "0.13.0", features = [
   "lancedb",
   "openai",
   "tree-sitter",
-] }
+  "redb",
+], path = "../swiftide/swiftide" }
 toml = "0.8.19"
 serde = { version = "1.0.210", features = ["derive"] }
 secrecy = { version = "0.10.2", features = ["serde"] }

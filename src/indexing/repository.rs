@@ -3,7 +3,6 @@ use crate::storage;
 use anyhow::Result;
 use swiftide::indexing::loaders;
 use swiftide::indexing::transformers;
-use swiftide::integrations;
 use swiftide::traits::EmbeddingModel;
 use swiftide::traits::SimplePrompt;
 
@@ -18,15 +17,17 @@ pub async fn index_repository(repository: &Repository) -> Result<()> {
     let embedding_provider: Box<dyn EmbeddingModel> =
         repository.config().embedding_provider().try_into()?;
     let lancedb = storage::build_lancedb(repository)?;
+    let redb = storage::build_redb(repository)?;
 
     swiftide::indexing::Pipeline::from_loader(loader)
+        .filter_cached(redb.build()?)
         .then_chunk(transformers::ChunkCode::try_for_language_and_chunk_size(
             repository.config().language,
             chunk_size,
         )?)
         .then(transformers::MetadataQACode::new(indexing_provider))
         .then_in_batch(transformers::Embed::new(embedding_provider))
-        .then_store_with(lancedb)
+        .then_store_with(lancedb.build()?)
         .run()
         .await
 }
