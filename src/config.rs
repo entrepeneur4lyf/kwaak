@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
 use secrecy::{ExposeSecret, SecretString};
@@ -8,18 +8,24 @@ use swiftide::traits::SimplePrompt;
 use swiftide::{integrations::treesitter::SupportedLanguages, traits::EmbeddingModel};
 
 // TODO: Improving parsing by enforcing invariants
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default = "default_project_name")]
     pub project_name: String,
     pub language: SupportedLanguages,
     pub llm: LLMConfigurations,
+    #[serde(default = "default_cache_dir")]
+    cache_dir: PathBuf,
+    #[serde(default = "default_log_dir")]
+    log_dir: PathBuf,
 }
 
 impl Config {
     /// Loads the configuration file from the current path
     pub(crate) async fn load() -> Result<Config> {
-        let file = tokio::fs::read("kwaak.toml").await?;
+        let file = tokio::fs::read("kwaak.toml")
+            .await
+            .context("Could not find `kwaak.toml` in current directory")?;
 
         toml::from_str(std::str::from_utf8(&file)?).context("Failed to parse configuration")
     }
@@ -38,10 +44,12 @@ impl Config {
         }
     }
 
-    pub fn cache_dir(&self) -> PathBuf {
-        let mut path = dirs::cache_dir().expect("Failed to get cache directory");
-        path.push("kwaak");
-        path
+    pub fn cache_dir(&self) -> &Path {
+        self.cache_dir.as_path()
+    }
+
+    pub fn log_dir(&self) -> &Path {
+        self.log_dir.as_path()
     }
 }
 
@@ -53,6 +61,26 @@ fn default_project_name() -> String {
         .expect("Failed to get current directory name")
         .to_string_lossy()
         .to_string()
+}
+
+fn default_cache_dir() -> PathBuf {
+    let mut path = dirs::cache_dir().expect("Failed to get cache directory");
+    path.push("kwaak");
+    path
+}
+
+fn default_log_dir() -> PathBuf {
+    let mut path = dirs::cache_dir().expect("Failed to get cache directory");
+    path.push("kwaak");
+    path.push("logs");
+
+    path
+}
+
+fn default_openai_api_key() -> SecretString {
+    std::env::var("OPENAI_API_KEY")
+        .map(SecretString::from)
+        .expect("Missing OPENAI_API_KEY environment variable or config")
 }
 
 impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
@@ -113,7 +141,7 @@ impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum LLMConfigurations {
     Single(LLMConfiguration),
@@ -124,10 +152,14 @@ pub enum LLMConfigurations {
     },
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "provider")]
 pub enum LLMConfiguration {
     OpenAI {
+        #[serde(
+            default = "default_openai_api_key",
+            serialize_with = "serde_hidden_secret"
+        )]
         api_key: SecretString,
         prompt_model: Option<OpenAIPromptModel>,
         embedding_model: Option<OpenAIEmbeddingModel>,
@@ -149,6 +181,14 @@ pub enum LLMConfiguration {
     //     vector_size: usize,
     // },
 }
+
+fn serde_hidden_secret<S>(_secret: &SecretString, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str("****")
+}
+
 impl LLMConfiguration {
     pub(crate) fn vector_size(&self) -> Result<i32> {
         match self {
@@ -179,7 +219,9 @@ pub enum OpenAIPromptModel {
     GPT4O,
 }
 
-#[derive(Debug, Clone, Deserialize, strum_macros::EnumString, strum_macros::Display)]
+#[derive(
+    Debug, Clone, Deserialize, Serialize, strum_macros::EnumString, strum_macros::Display, PartialEq,
+)]
 pub enum OpenAIEmbeddingModel {
     #[strum(serialize = "text-embedding-3-small")]
     #[serde(rename = "text-embedding-3-small")]
@@ -280,6 +322,19 @@ mod tests {
                 assert_eq!(prompt_model, &Some(OpenAIPromptModel::GPT4OMini));
             } else {
                 panic!("Expected OpenAI configuration for query");
+            }
+
+            if let LLMConfiguration::OpenAI {
+                api_key,
+                embedding_model,
+                ..
+            } = embedding
+            {
+                assert_eq!(api_key.expose_secret(), "other-test-key");
+                assert_eq!(
+                    embedding_model,
+                    &Some(OpenAIEmbeddingModel::TextEmbedding3Small)
+                );
             }
         } else {
             panic!("Expected multiple LLM configurations");

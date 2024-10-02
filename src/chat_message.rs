@@ -20,13 +20,3 @@ impl ChatMessage {
         ChatMessage::Command(cmd.into())
     }
 }
-
-impl std::fmt::Display for ChatMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ChatMessage::User(msg) => write!(f, "You: {}", msg),
-            ChatMessage::System(msg) => write!(f, "System: {}", msg),
-            ChatMessage::Command(cmd) => write!(f, "Command: {}", cmd),
-        }
-    }
-}

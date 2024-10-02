@@ -3,9 +3,10 @@ use tokio::sync::mpsc;
 
 use crate::{
     app::{App, UIEvent},
+    chat_message::ChatMessage,
     config::Config,
     indexing,
-    repository::Repository,
+    repository::{self, Repository},
 };
 
 /// Commands represent concrete actions from a user or in the backend
@@ -15,6 +16,7 @@ use crate::{
 #[strum(serialize_all = "snake_case")]
 pub enum Command {
     Quit,
+    ShowConfig,
     IndexRepository,
 }
 
@@ -42,10 +44,7 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub fn start_with_ui_app(
-        app: &mut App,
-        config: impl Into<Config>,
-    ) -> tokio::task::JoinHandle<()> {
+    pub fn start_with_ui_app(app: &mut App, repository: Repository) -> tokio::task::JoinHandle<()> {
         let (tx, rx) = mpsc::unbounded_channel();
         let ui_tx = app.ui_tx.clone();
         app.command_tx = Some(tx.clone());
@@ -54,7 +53,7 @@ impl CommandHandler {
             rx,
             tx,
             ui_tx,
-            repository: Repository::from_config(config),
+            repository,
         };
 
         handler.start()
@@ -72,8 +71,15 @@ impl CommandHandler {
     /// Maybe generalize tasks to make ui updates easier?
     async fn handle_command(&self, cmd: Command) -> Result<()> {
         match cmd {
-            Command::Quit => self.ui_tx.send(UIEvent::Command(cmd))?,
             Command::IndexRepository => indexing::index_repository(&self.repository).await?,
+            Command::ShowConfig => {
+                self.ui_tx
+                    .send(UIEvent::ChatMessage(ChatMessage::new_system(
+                        toml::to_string_pretty(self.repository.config())?,
+                    )))?
+            }
+            // Anything else we forward to the UI
+            _ => self.ui_tx.send(UIEvent::Command(cmd))?,
         }
 
         Ok(())

@@ -8,7 +8,7 @@ use crate::repository::Repository;
 
 pub fn build_lancedb(repository: &Repository) -> Result<LanceDBBuilder> {
     let config = repository.config();
-    let mut cache_dir = config.cache_dir();
+    let mut cache_dir = config.cache_dir().to_owned();
     cache_dir.push("lancedb");
 
     let embedding_provider = config.embedding_provider();
@@ -26,7 +26,7 @@ pub fn build_lancedb(repository: &Repository) -> Result<LanceDBBuilder> {
 
 pub fn build_redb(repository: &Repository) -> Result<RedbBuilder> {
     let config = repository.config();
-    let mut cache_dir = config.cache_dir();
+    let mut cache_dir = config.cache_dir().to_owned();
     cache_dir.push("redb");
 
     let redb_builder = Redb::builder()

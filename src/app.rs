@@ -53,6 +53,14 @@ impl App {
     }
 
     fn on_key(&mut self, key: KeyEvent) {
+        // Always quit on ctrl c
+        if key.modifiers == crossterm::event::KeyModifiers::CONTROL
+            && key.code == KeyCode::Char('c')
+        {
+            self.should_quit = true;
+            return;
+        }
+
         match key.code {
             KeyCode::Char(c) => {
                 self.input.push(c);
@@ -130,6 +138,7 @@ pub async fn run_app<B: ratatui::backend::Backend>(
                     Command::Quit => {
                         app.should_quit = true;
                     }
+
                     _ => {
                         tracing::warn!("Unhandled command: {:?}", cmd);
                     }

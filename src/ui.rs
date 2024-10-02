@@ -1,3 +1,4 @@
+use ratatui::prelude::*;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     text::Span,
@@ -5,6 +6,7 @@ use ratatui::{
 };
 
 use crate::app::App;
+use crate::chat_message::ChatMessage;
 
 pub fn ui(f: &mut ratatui::Frame, app: &App) {
     // Create the main layout (vertical)
@@ -31,7 +33,7 @@ pub fn ui(f: &mut ratatui::Frame, app: &App) {
     let messages: Vec<ListItem> = app
         .messages
         .iter()
-        .map(|m| ListItem::new(Span::raw(m.to_string())))
+        .map(|m| ListItem::new(format_chat_message(m)))
         .collect();
 
     let chat_messages =
@@ -55,7 +57,19 @@ pub fn ui(f: &mut ratatui::Frame, app: &App) {
     );
 
     // Commands display area
-    let commands =
-        Paragraph::new("/quit").block(Block::default().title("Commands").borders(Borders::ALL));
+    let commands = Paragraph::new("/quit /show_config")
+        .block(Block::default().title("Commands").borders(Borders::ALL));
     f.render_widget(commands, chunks[2]);
+}
+
+fn format_chat_message(message: &ChatMessage) -> Text {
+    let (prefix, content) = match message {
+        ChatMessage::User(msg) => ("You", msg.to_string()),
+        ChatMessage::System(msg) => ("System", msg.to_string()),
+        ChatMessage::Command(cmd) => ("Command", cmd.to_string()),
+    };
+    let prefix: Span = Span::styled(prefix, Style::default().fg(Color::Yellow));
+    let content: Text = Text::from(content);
+
+    Text::from(prefix) + content
 }

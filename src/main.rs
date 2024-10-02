@@ -18,10 +18,24 @@ mod config;
 mod indexing;
 mod repository;
 mod storage;
+mod tracing;
 mod ui;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Load configuration
+    let config = Config::load().await?;
+    let repository = repository::Repository::from_config(config);
+
+    println!("{}", repository.config().cache_dir().to_string_lossy());
+    std::fs::create_dir_all(repository.config().cache_dir())?;
+    std::fs::create_dir_all(repository.config().log_dir())?;
+
+    crate::tracing::init(&repository)?;
+
+    ::tracing::info!("Loaded configuration: {:?}", repository.config());
+
+    println!("{}", toml::to_string_pretty(repository.config())?);
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -29,9 +43,9 @@ async fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let config = Config::load().await?;
+    // Start the application
     let mut app = App::default();
-    let _guard = commands::CommandHandler::start_with_ui_app(&mut app, config);
+    let _guard = commands::CommandHandler::start_with_ui_app(&mut app, repository);
 
     let res = run_app(&mut app, &mut terminal).await;
 
