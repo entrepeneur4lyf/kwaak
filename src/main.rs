@@ -27,7 +27,6 @@ async fn main() -> Result<()> {
     let config = Config::load().await?;
     let repository = repository::Repository::from_config(config);
 
-    println!("{}", repository.config().cache_dir().to_string_lossy());
     std::fs::create_dir_all(repository.config().cache_dir())?;
     std::fs::create_dir_all(repository.config().log_dir())?;
 
@@ -35,7 +34,6 @@ async fn main() -> Result<()> {
 
     ::tracing::info!("Loaded configuration: {:?}", repository.config());
 
-    println!("{}", toml::to_string_pretty(repository.config())?);
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();

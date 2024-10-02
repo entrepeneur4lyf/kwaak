@@ -12,7 +12,15 @@ use crate::{
 /// Commands represent concrete actions from a user or in the backend
 ///
 /// By default all commands can be triggered from the ui like `/<command>`
-#[derive(Debug, PartialEq, Eq, strum_macros::EnumString, strum_macros::Display, Clone)]
+#[derive(
+    Debug,
+    PartialEq,
+    Eq,
+    strum_macros::EnumString,
+    strum_macros::Display,
+    strum_macros::EnumIter,
+    Clone,
+)]
 #[strum(serialize_all = "snake_case")]
 pub enum Command {
     Quit,
