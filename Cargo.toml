@@ -20,6 +20,7 @@ serde = { version = "1.0.210", features = ["derive"] }
 secrecy = { version = "0.10.2", features = ["serde"] }
 tracing = "0.1.40"
 async-openai = "0.24.1"
+dirs = "5.0.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

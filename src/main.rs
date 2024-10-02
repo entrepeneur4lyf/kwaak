@@ -17,6 +17,7 @@ mod commands;
 mod config;
 mod indexing;
 mod repository;
+mod storage;
 mod ui;
 
 #[tokio::main]

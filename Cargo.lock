@@ -2431,6 +2431,7 @@ dependencies = [
  "anyhow",
  "async-openai",
  "crossterm",
+ "dirs",
  "ratatui",
  "secrecy 0.10.2",
  "serde",

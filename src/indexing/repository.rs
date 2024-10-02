@@ -1,4 +1,5 @@
 use crate::repository::Repository;
+use crate::storage;
 use anyhow::Result;
 use swiftide::indexing::loaders;
 use swiftide::indexing::transformers;
@@ -12,17 +13,11 @@ pub async fn index_repository(repository: &Repository) -> Result<()> {
     // NOTE: Parameter to optimize on
     let chunk_size = 100..2048;
 
-    // TODO: Needs configuration and not set here
-    let lancedb = integrations::lancedb::LanceDB::builder()
-        .uri("/my/lancedb")
-        .vector_size(1536)
-        .table_name("swiftide_test")
-        .build()?;
-
     let indexing_provider: Box<dyn SimplePrompt> =
         repository.config().indexing_provider().try_into()?;
     let embedding_provider: Box<dyn EmbeddingModel> =
         repository.config().embedding_provider().try_into()?;
+    let lancedb = storage::build_lancedb(repository)?;
 
     swiftide::indexing::Pipeline::from_loader(loader)
         .then_chunk(transformers::ChunkCode::try_for_language_and_chunk_size(
