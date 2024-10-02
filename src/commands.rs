@@ -20,6 +20,7 @@ use crate::{
     strum_macros::Display,
     strum_macros::EnumIter,
     Clone,
+    Copy,
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Command {
@@ -70,9 +71,17 @@ impl CommandHandler {
     fn start(mut self) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             while let Some(cmd) = self.rx.recv().await {
-                self.handle_command(cmd).await.unwrap();
+                if let Err(error) = self.handle_command(cmd).await {
+                    tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
+                    self.send_system_message(format!("Failed to handle command: {error:#}"));
+                }
             }
         })
+    }
+
+    fn send_system_message(&self, msg: impl Into<String>) {
+        let msg = ChatMessage::new_system(msg);
+        let _ = self.ui_tx.send(msg.into());
     }
 
     /// TODO: Most commands should probably be handled in a tokio task
@@ -81,10 +90,7 @@ impl CommandHandler {
         match cmd {
             Command::IndexRepository => indexing::index_repository(&self.repository).await?,
             Command::ShowConfig => {
-                self.ui_tx
-                    .send(UIEvent::ChatMessage(ChatMessage::new_system(
-                        toml::to_string_pretty(self.repository.config())?,
-                    )))?
+                self.send_system_message(toml::to_string_pretty(self.repository.config())?)
             }
             // Anything else we forward to the UI
             _ => self.ui_tx.send(UIEvent::Command(cmd))?,
