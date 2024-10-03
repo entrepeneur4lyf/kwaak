@@ -1,8 +1,8 @@
 use std::io;
 
 use anyhow::Result;
-use app::{run_app, App};
 use config::Config;
+use frontend::App;
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crossterm::{
@@ -11,15 +11,14 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-mod app;
 mod chat_message;
 mod commands;
 mod config;
+mod frontend;
 mod indexing;
 mod repository;
 mod storage;
 mod tracing;
-mod ui;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -45,7 +44,7 @@ async fn main() -> Result<()> {
     let mut app = App::default();
     let _guard = commands::CommandHandler::start_with_ui_app(&mut app, repository);
 
-    let res = run_app(&mut app, &mut terminal).await;
+    let res = app.run(&mut terminal).await;
 
     // Restore terminal
     disable_raw_mode()?;

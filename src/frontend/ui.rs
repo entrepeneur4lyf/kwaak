@@ -4,11 +4,10 @@ use ratatui::{
     text::Span,
     widgets::{Block, Borders, List, ListItem, Paragraph},
 };
-use strum::IntoEnumIterator;
 
-use crate::app::App;
 use crate::chat_message::ChatMessage;
-use crate::commands::Command;
+
+use super::app::App;
 
 pub fn ui(f: &mut ratatui::Frame, app: &App) {
     // Create the main layout (vertical)
@@ -60,7 +59,8 @@ pub fn ui(f: &mut ratatui::Frame, app: &App) {
 
     // Commands display area
     let commands = Paragraph::new(
-        Command::iter()
+        app.supported_commands()
+            .iter()
             .map(|c| format!("/{c}"))
             .collect::<Vec<_>>()
             .join(" "),

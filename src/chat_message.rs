@@ -1,4 +1,4 @@
-use crate::{app::UIEvent, commands::Command};
+use crate::commands::Command;
 
 /// Represents a chat message that can be stored in the app
 pub enum ChatMessage {
@@ -18,11 +18,5 @@ impl ChatMessage {
 
     pub fn new_command(cmd: impl Into<Command>) -> ChatMessage {
         ChatMessage::Command(cmd.into())
-    }
-}
-
-impl From<ChatMessage> for UIEvent {
-    fn from(val: ChatMessage) -> Self {
-        UIEvent::ChatMessage(val)
     }
 }

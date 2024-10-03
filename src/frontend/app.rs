@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::io;
 use std::time::Duration;
+use strum::IntoEnumIterator as _;
 
 use ratatui::Terminal;
 
@@ -9,9 +10,9 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use tokio::sync::mpsc;
 use tokio::task;
 
-use crate::chat_message::ChatMessage;
-use crate::commands::Command;
-use crate::ui;
+use crate::{chat_message::ChatMessage, commands::Command};
+
+use super::{ui, UIEvent};
 
 // Refresh rate in milliseconds
 const REFRESH_RATE: u64 = 10;
@@ -46,6 +47,10 @@ impl App {
         self.ui_rx.recv().await
     }
 
+    pub fn supported_commands(&self) -> Vec<Command> {
+        Command::iter().collect()
+    }
+
     fn send_message(&self, msg: UIEvent) -> Result<()> {
         self.ui_tx.send(msg)?;
 
@@ -76,7 +81,7 @@ impl App {
                             self.command_tx
                                 .as_ref()
                                 .expect("Command tx not set")
-                                .send(cmd.clone())
+                                .send(cmd)
                                 .unwrap();
 
                             // Display the command as a message
@@ -103,60 +108,52 @@ impl App {
     fn add_chat_message(&mut self, message: ChatMessage) {
         self.messages.push(message);
     }
-}
 
-// Event handling
-pub enum UIEvent {
-    Input(KeyEvent),
-    Tick,
-    Command(Command),
-    ChatMessage(ChatMessage),
-}
+    pub async fn run<B: ratatui::backend::Backend>(
+        &mut self,
+        terminal: &mut Terminal<B>,
+    ) -> io::Result<()> {
+        // Spawn a blocking task to read input events
 
-pub async fn run_app<B: ratatui::backend::Backend>(
-    app: &mut App,
-    terminal: &mut Terminal<B>,
-) -> io::Result<()> {
-    // Spawn a blocking task to read input events
+        let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
 
-    let handle = task::spawn(poll_ui_events(app.ui_tx.clone()));
+        loop {
+            // Draw the UI
+            terminal.draw(|f| ui::ui(f, self))?;
 
-    loop {
-        // Draw the UI
-        terminal.draw(|f| ui::ui(f, app))?;
-
-        // Handle events
-        if let Some(event) = app.recv_messages().await {
-            match event {
-                UIEvent::Input(key) => {
-                    app.on_key(key);
-                }
-                UIEvent::Tick => {
-                    // Handle periodic tasks if necessary
-                }
-                UIEvent::Command(cmd) => match cmd {
-                    Command::Quit => {
-                        app.should_quit = true;
+            // Handle events
+            if let Some(event) = self.recv_messages().await {
+                match event {
+                    UIEvent::Input(key) => {
+                        self.on_key(key);
                     }
-
-                    _ => {
-                        tracing::warn!("Unhandled command: {:?}", cmd);
+                    UIEvent::Tick => {
+                        // Handle periodic tasks if necessary
                     }
-                },
-                UIEvent::ChatMessage(message) => {
-                    app.add_chat_message(message);
+                    UIEvent::Command(cmd) => match cmd {
+                        Command::Quit => {
+                            self.should_quit = true;
+                        }
+
+                        _ => {
+                            tracing::warn!("Unhandled command: {:?}", cmd);
+                        }
+                    },
+                    UIEvent::ChatMessage(message) => {
+                        self.add_chat_message(message);
+                    }
                 }
+            }
+
+            if self.should_quit {
+                break;
             }
         }
 
-        if app.should_quit {
-            break;
-        }
+        handle.abort();
+
+        Ok(())
     }
-
-    handle.abort();
-
-    Ok(())
 }
 
 async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {

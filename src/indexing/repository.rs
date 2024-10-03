@@ -12,6 +12,7 @@ pub async fn index_repository(repository: &Repository) -> Result<()> {
     // NOTE: Parameter to optimize on
     let chunk_size = 100..2048;
 
+    // TODO: If we get the concrete types instead, possible easier in the future.
     let indexing_provider: Box<dyn SimplePrompt> =
         repository.config().indexing_provider().try_into()?;
     let embedding_provider: Box<dyn EmbeddingModel> =

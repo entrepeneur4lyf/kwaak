@@ -2,11 +2,10 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 
 use crate::{
-    app::{App, UIEvent},
     chat_message::ChatMessage,
-    config::Config,
+    frontend::{App, UIEvent},
     indexing,
-    repository::{self, Repository},
+    repository::Repository,
 };
 
 /// Commands represent concrete actions from a user or in the backend
