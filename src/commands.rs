@@ -87,6 +87,7 @@ impl CommandHandler {
     /// TODO: Most commands should probably be handled in a tokio task
     /// Maybe generalize tasks to make ui updates easier?
     async fn handle_command(&self, cmd: Command) -> Result<()> {
+        let now = std::time::Instant::now();
         match cmd {
             Command::IndexRepository => indexing::index_repository(&self.repository).await?,
             Command::ShowConfig => {
@@ -95,6 +96,11 @@ impl CommandHandler {
             // Anything else we forward to the UI
             _ => self.ui_tx.send(UIEvent::Command(cmd))?,
         }
+        let elapsed = now.elapsed();
+        self.send_system_message(format!(
+            "Command {cmd} successful in {} seconds",
+            elapsed.as_secs_f64()
+        ));
 
         Ok(())
     }
