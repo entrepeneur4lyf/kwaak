@@ -3,6 +3,7 @@ use crossterm::event::KeyEvent;
 use crate::{chat_message::ChatMessage, commands::Command};
 
 // Event handling
+#[derive(Debug, Clone)]
 pub enum UIEvent {
     Input(KeyEvent),
     Tick,

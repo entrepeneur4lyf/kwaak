@@ -1,6 +1,7 @@
 use crate::commands::Command;
 
 /// Represents a chat message that can be stored in the app
+#[derive(Debug, Clone)]
 pub enum ChatMessage {
     User(String),
     System(String),

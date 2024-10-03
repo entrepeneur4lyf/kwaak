@@ -44,6 +44,13 @@ impl Config {
         }
     }
 
+    pub fn query_provider(&self) -> &LLMConfiguration {
+        match &self.llm {
+            LLMConfigurations::Single(config) => config,
+            LLMConfigurations::Multiple { query, .. } => query,
+        }
+    }
+
     pub fn cache_dir(&self) -> &Path {
         self.cache_dir.as_path()
     }

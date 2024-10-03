@@ -1,6 +1,7 @@
 //! Builds various storage providers for kwaak
 
 use anyhow::Result;
+use swiftide::indexing::EmbeddedField;
 use swiftide::integrations::lancedb::{LanceDB, LanceDBBuilder};
 use swiftide::integrations::redb::{Redb, RedbBuilder};
 
@@ -19,6 +20,7 @@ pub fn build_lancedb(repository: &Repository) -> Result<LanceDBBuilder> {
                 .to_str()
                 .ok_or(anyhow::anyhow!("Failed to convert path to string"))?,
         )
+        .with_vector(EmbeddedField::Combined)
         .vector_size(embedding_provider.vector_size()?)
         .table_name(&config.project_name)
         .to_owned())

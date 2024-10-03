@@ -78,11 +78,7 @@ impl App {
                     let message = if self.input.starts_with("/") {
                         if let Ok(cmd) = Command::parse(&self.input) {
                             // Send it to the handler
-                            self.command_tx
-                                .as_ref()
-                                .expect("Command tx not set")
-                                .send(cmd)
-                                .unwrap();
+                            self.dispatch_command(&cmd);
 
                             // Display the command as a message
                             ChatMessage::new_command(cmd)
@@ -90,6 +86,11 @@ impl App {
                             ChatMessage::new_system("Unknown command")
                         }
                     } else {
+                        // Currently just dispatch a user message command and answer the query
+                        // Later, perhaps maint a 'chat', add message to that chat, and then send
+                        // the whole thing
+                        self.dispatch_command(&Command::Chat(self.input.clone()));
+
                         ChatMessage::new_user(&self.input)
                     };
 
@@ -103,6 +104,14 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    fn dispatch_command(&self, cmd: &Command) {
+        self.command_tx
+            .as_ref()
+            .expect("Command tx not set")
+            .send(cmd.clone())
+            .expect("Failed to dispatch command");
     }
 
     fn add_chat_message(&mut self, message: ChatMessage) {
@@ -123,6 +132,7 @@ impl App {
 
             // Handle events
             if let Some(event) = self.recv_messages().await {
+                tracing::debug!("Received event: {:?}", event);
                 match event {
                     UIEvent::Input(key) => {
                         self.on_key(key);

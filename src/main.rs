@@ -16,6 +16,7 @@ mod commands;
 mod config;
 mod frontend;
 mod indexing;
+mod query;
 mod repository;
 mod storage;
 mod tracing;

@@ -4,7 +4,7 @@ use tokio::sync::mpsc;
 use crate::{
     chat_message::ChatMessage,
     frontend::{App, UIEvent},
-    indexing,
+    indexing, query,
     repository::Repository,
 };
 
@@ -19,17 +19,21 @@ use crate::{
     strum_macros::Display,
     strum_macros::EnumIter,
     Clone,
-    Copy,
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Command {
     Quit,
     ShowConfig,
     IndexRepository,
+    // Currently just dispatch a user message command and answer the query
+    // Later, perhaps main a 'chat', add message to that chat, and then send
+    // the whole thing
+    Chat(String),
 }
 
 impl Command {
     pub fn parse(input: &str) -> Result<Self, strum::ParseError> {
+        // FIXME: Will break on current Chat variant
         if let Some(input) = input.strip_prefix('/') {
             input.parse()
         } else {
@@ -70,7 +74,7 @@ impl CommandHandler {
     fn start(mut self) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             while let Some(cmd) = self.rx.recv().await {
-                if let Err(error) = self.handle_command(cmd).await {
+                if let Err(error) = self.handle_command(cmd.clone()).await {
                     tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
                     self.send_system_message(format!("Failed to handle command: {error:#}"));
                 }
@@ -92,8 +96,15 @@ impl CommandHandler {
             Command::ShowConfig => {
                 self.send_system_message(toml::to_string_pretty(self.repository.config())?)
             }
+            Command::Chat(ref msg) => {
+                let response = query::query(&self.repository, msg).await?;
+                tracing::info!(%response, "Chat message received, sending to frontend");
+                let response = ChatMessage::new_system(response);
+
+                self.ui_tx.send(response.into())?;
+            }
             // Anything else we forward to the UI
-            _ => self.ui_tx.send(UIEvent::Command(cmd))?,
+            _ => self.ui_tx.send(UIEvent::Command(cmd.clone()))?,
         }
         let elapsed = now.elapsed();
         self.send_system_message(format!(
