@@ -1,10 +1,13 @@
 use anyhow::Result;
 use swiftide::{
-    query::{self, answers, query_transformers, response_transformers},
+    query::{
+        self, answers, query_transformers, response_transformers,
+        search_strategies::SimilaritySingleEmbedding,
+    },
     traits::{EmbeddingModel, SimplePrompt},
 };
 
-use crate::{repository::Repository, storage};
+use crate::{repository::Repository, storage, util::strip_markdown_tags};
 
 pub async fn query(repository: &Repository, query: &str) -> Result<String> {
     let query_provider: Box<dyn SimplePrompt> = repository.config().query_provider().try_into()?;
@@ -13,7 +16,11 @@ pub async fn query(repository: &Repository, query: &str) -> Result<String> {
 
     let lancedb = storage::build_lancedb(repository)?;
 
-    let pipeline = query::Pipeline::default()
+    let search_strategy: SimilaritySingleEmbedding<()> = SimilaritySingleEmbedding::default()
+        .with_top_k(20)
+        .to_owned();
+
+    let pipeline = query::Pipeline::from_search_strategy(search_strategy)
         .then_transform_query(query_transformers::GenerateSubquestions::from_client(
             query_provider.clone(),
         ))
@@ -21,10 +28,11 @@ pub async fn query(repository: &Repository, query: &str) -> Result<String> {
             embedding_provider.clone(),
         ))
         .then_retrieve(lancedb.build()?)
-        .then_transform_response(response_transformers::Summary::from_client(
-            query_provider.clone(),
-        ))
+        // .then_transform_response(response_transformers::Summary::from_client(
+        //     query_provider.clone(),
+        // ))
         .then_answer(answers::Simple::from_client(query_provider.clone()));
 
-    pipeline.query(query).await.map(|q| q.answer().to_string())
+    let answer = pipeline.query(query).await?.answer().to_string();
+    Ok(strip_markdown_tags(&answer))
 }

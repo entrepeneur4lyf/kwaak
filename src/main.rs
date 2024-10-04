@@ -20,6 +20,7 @@ mod query;
 mod repository;
 mod storage;
 mod tracing;
+mod util;
 
 #[tokio::main]
 async fn main() -> Result<()> {

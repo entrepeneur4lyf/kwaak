@@ -1,8 +1,9 @@
 use ratatui::prelude::*;
+use ratatui::widgets::Wrap;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     text::Span,
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, Paragraph},
 };
 
 use crate::chat_message::ChatMessage;
@@ -30,34 +31,55 @@ pub fn ui(f: &mut ratatui::Frame, app: &App) {
         ])
         .split(chunks[0]);
 
-    // Left column - Chat messages
-    let messages: Vec<ListItem> = app
+    // Render chat messages
+    render_chat_messages(f, app, main_chunks[0]);
+
+    // Render other information
+    render_other_info(f, main_chunks[1]);
+
+    // Render user input bar
+    render_input_bar(f, app, chunks[1]);
+
+    // Render commands display area
+    render_commands_display(f, app, chunks[2]);
+}
+
+fn render_chat_messages(f: &mut ratatui::Frame, app: &App, area: Rect) {
+    let messages: Vec<Text> = app
         .messages
         .iter()
-        .map(|m| ListItem::new(format_chat_message(m)))
+        .map(|m| format_chat_message(m))
         .collect();
 
-    let chat_messages =
-        List::new(messages).block(Block::default().title("Chat").borders(Borders::ALL));
+    let chat_content = messages
+        .into_iter()
+        .fold(Text::default(), |acc, msg| acc + msg);
 
-    f.render_widget(chat_messages, main_chunks[0]);
+    let chat_messages = Paragraph::new(chat_content)
+        .block(Block::default().title("Chat").borders(Borders::ALL))
+        .wrap(Wrap { trim: false });
 
-    // Right column - Other information
+    f.render_widget(chat_messages, area);
+}
+
+fn render_other_info(f: &mut ratatui::Frame, area: Rect) {
     let other_info =
         Paragraph::new("Other info").block(Block::default().title("Info").borders(Borders::ALL));
-    f.render_widget(other_info, main_chunks[1]);
+    f.render_widget(other_info, area);
+}
 
-    // User input bar
+fn render_input_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {
     let input = Paragraph::new(app.input.as_str())
         .block(Block::default().title("Input").borders(Borders::ALL));
-    f.render_widget(input, chunks[1]);
+    f.render_widget(input, area);
     // Set cursor position
     f.set_cursor_position(
         // Put cursor past the end of the input text
-        (chunks[1].x + app.input.len() as u16 + 1, chunks[1].y + 1),
+        (area.x + app.input.len() as u16 + 1, area.y + 1),
     );
+}
 
-    // Commands display area
+fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
     let commands = Paragraph::new(
         app.supported_commands()
             .iter()
@@ -66,7 +88,7 @@ pub fn ui(f: &mut ratatui::Frame, app: &App) {
             .join(" "),
     )
     .block(Block::default().title("Commands").borders(Borders::ALL));
-    f.render_widget(commands, chunks[2]);
+    f.render_widget(commands, area);
 }
 
 fn format_chat_message(message: &ChatMessage) -> Text {

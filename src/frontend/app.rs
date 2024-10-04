@@ -51,8 +51,8 @@ impl App {
         Command::iter().collect()
     }
 
-    fn send_message(&self, msg: UIEvent) -> Result<()> {
-        self.ui_tx.send(msg)?;
+    fn send_ui_event(&self, msg: impl Into<UIEvent>) -> Result<()> {
+        self.ui_tx.send(msg.into())?;
 
         Ok(())
     }
@@ -94,7 +94,7 @@ impl App {
                         ChatMessage::new_user(&self.input)
                     };
 
-                    let _ = self.send_message(UIEvent::ChatMessage(message));
+                    let _ = self.send_ui_event(message);
 
                     self.input.clear();
                 }
@@ -126,13 +126,13 @@ impl App {
 
         let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
 
+        terminal.draw(|f| ui::ui(f, self))?;
         loop {
             // Draw the UI
-            terminal.draw(|f| ui::ui(f, self))?;
 
             // Handle events
             if let Some(event) = self.recv_messages().await {
-                if !matches!(event, UIEvent::Tick) {
+                if !matches!(event, UIEvent::Tick | UIEvent::Input(_)) {
                     tracing::debug!("Received ui event: {:?}", event);
                 }
                 match event {
@@ -156,6 +156,7 @@ impl App {
                     }
                 }
             }
+            terminal.draw(|f| ui::ui(f, self))?;
 
             if self.should_quit {
                 break;
