@@ -1,5 +1,5 @@
 use ratatui::prelude::*;
-use ratatui::widgets::Wrap;
+use ratatui::widgets::{Scrollbar, ScrollbarOrientation, Wrap};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     text::Span,
@@ -10,7 +10,7 @@ use crate::chat_message::ChatMessage;
 
 use super::app::App;
 
-pub fn ui(f: &mut ratatui::Frame, app: &App) {
+pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
     // Create the main layout (vertical)
     let area = f.area();
     let chunks = Layout::default()
@@ -44,7 +44,7 @@ pub fn ui(f: &mut ratatui::Frame, app: &App) {
     render_commands_display(f, app, chunks[2]);
 }
 
-fn render_chat_messages(f: &mut ratatui::Frame, app: &App, area: Rect) {
+fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     let messages: Vec<Text> = app
         .messages
         .iter()
@@ -55,13 +55,26 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &App, area: Rect) {
         .into_iter()
         .fold(Text::default(), |acc, msg| acc + msg);
 
+    app.vertical_scroll_state = app
+        .vertical_scroll_state
+        .content_length(chat_content.lines.len());
+
     let chat_messages = Paragraph::new(chat_content)
         .block(Block::default().title("Chat").borders(Borders::ALL))
-        .wrap(Wrap { trim: false });
+        .wrap(Wrap { trim: false })
+        .scroll((app.vertical_scroll, 0));
 
     f.render_widget(chat_messages, area);
-}
 
+    // Render scrollbar
+    f.render_stateful_widget(
+        Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(Some("↑"))
+            .end_symbol(Some("↓")),
+        area,
+        &mut app.vertical_scroll_state,
+    );
+}
 fn render_other_info(f: &mut ratatui::Frame, area: Rect) {
     let other_info =
         Paragraph::new("Other info").block(Block::default().title("Info").borders(Borders::ALL));

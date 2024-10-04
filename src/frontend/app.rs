@@ -3,7 +3,7 @@ use std::io;
 use std::time::Duration;
 use strum::IntoEnumIterator as _;
 
-use ratatui::Terminal;
+use ratatui::{widgets::ScrollbarState, Terminal};
 
 use crossterm::event::{self, KeyCode, KeyEvent};
 
@@ -25,6 +25,10 @@ pub struct App {
     pub ui_rx: mpsc::UnboundedReceiver<UIEvent>,
     pub command_tx: Option<mpsc::UnboundedSender<Command>>,
     pub should_quit: bool,
+
+    // Scroll chat
+    pub vertical_scroll_state: ScrollbarState,
+    pub vertical_scroll: u16,
 }
 
 impl Default for App {
@@ -38,6 +42,8 @@ impl Default for App {
             ui_rx,
             command_tx: None,
             should_quit: false,
+            vertical_scroll_state: ScrollbarState::default(),
+            vertical_scroll: 0,
         }
     }
 }
@@ -67,6 +73,18 @@ impl App {
         }
 
         match key.code {
+            KeyCode::Down => {
+                self.vertical_scroll = self.vertical_scroll.saturating_add(1);
+                self.vertical_scroll_state = self
+                    .vertical_scroll_state
+                    .position(self.vertical_scroll as usize);
+            }
+            KeyCode::Up => {
+                self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
+                self.vertical_scroll_state = self
+                    .vertical_scroll_state
+                    .position(self.vertical_scroll as usize);
+            }
             KeyCode::Char(c) => {
                 self.input.push(c);
             }
