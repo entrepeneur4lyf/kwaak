@@ -18,6 +18,7 @@ use crate::{
     strum_macros::EnumString,
     strum_macros::Display,
     strum_macros::EnumIter,
+    strum_macros::IntoStaticStr,
     Clone,
 )]
 #[strum(serialize_all = "snake_case")]

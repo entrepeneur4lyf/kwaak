@@ -25,6 +25,7 @@ dirs = "5.0.1"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-appender = "0.2.3"
 derive_more = { version = "1.0.0", features = ["full"] }
+tui-markdown = "0.2.10"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

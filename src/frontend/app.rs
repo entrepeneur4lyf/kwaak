@@ -132,7 +132,9 @@ impl App {
 
             // Handle events
             if let Some(event) = self.recv_messages().await {
-                tracing::debug!("Received event: {:?}", event);
+                if !matches!(event, UIEvent::Tick) {
+                    tracing::debug!("Received ui event: {:?}", event);
+                }
                 match event {
                     UIEvent::Input(key) => {
                         self.on_key(key);

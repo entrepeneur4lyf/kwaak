@@ -71,12 +71,12 @@ pub fn ui(f: &mut ratatui::Frame, app: &App) {
 
 fn format_chat_message(message: &ChatMessage) -> Text {
     let (prefix, content) = match message {
-        ChatMessage::User(msg) => ("You", msg.to_string()),
-        ChatMessage::System(msg) => ("System", msg.to_string()),
-        ChatMessage::Command(cmd) => ("Command", cmd.to_string()),
+        ChatMessage::User(msg) => ("You", msg.as_str()),
+        ChatMessage::System(msg) => ("System", msg.as_str()),
+        ChatMessage::Command(cmd) => ("Command", cmd.into()),
     };
     let prefix: Span = Span::styled(prefix, Style::default().fg(Color::Yellow));
-    let content: Text = Text::from(content);
+    let content: Text = tui_markdown::from_str(content);
 
     Text::from(prefix) + content
 }
