@@ -46,7 +46,30 @@ async fn main() -> Result<()> {
     let mut app = App::default();
 
     if cfg!(feature = "test-markdown") {
-        let content = r#"
+        app.ui_tx
+            .send(chat_message::ChatMessage::new_system(MARKDOWN_TEST).into())?;
+    }
+    let _guard = commands::CommandHandler::start_with_ui_app(&mut app, repository);
+
+    let res = app.run(&mut terminal).await;
+
+    // Restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    if let Err(err) = res {
+        println!("{err:?}");
+    }
+
+    Ok(())
+}
+
+static MARKDOWN_TEST: &str = r#"
 ## Examples
 
 Indexing a local code project, chunking into smaller pieces, enriching the nodes with metadata, and persisting into [Qdrant](https://qdrant.tech):
@@ -89,28 +112,4 @@ query::Pipeline::default()
     .then_answer(Simple::from_client(openai_client.clone()))
     .query("How can I use the query pipeline in Swiftide?")
     .await?;
-```
-    "#;
-
-        app.ui_tx
-            .send(chat_message::ChatMessage::new_system(content).into())?;
-    }
-    let _guard = commands::CommandHandler::start_with_ui_app(&mut app, repository);
-
-    let res = app.run(&mut terminal).await;
-
-    // Restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-
-    if let Err(err) = res {
-        println!("{:?}", err)
-    }
-
-    Ok(())
-}
+"#;
