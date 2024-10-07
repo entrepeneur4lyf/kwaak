@@ -139,8 +139,6 @@ impl App {
         &mut self,
         terminal: &mut Terminal<B>,
     ) -> io::Result<()> {
-        // Spawn a blocking task to read input events
-
         let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
 
         loop {

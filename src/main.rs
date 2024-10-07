@@ -49,10 +49,12 @@ async fn main() -> Result<()> {
         app.ui_tx
             .send(chat_message::ChatMessage::new_system(MARKDOWN_TEST).into())?;
     }
-    let _guard = commands::CommandHandler::start_with_ui_app(&mut app, repository);
+    let handler = commands::CommandHandler::start_with_ui_app(&mut app, repository);
 
     let res = app.run(&mut terminal).await;
+    handler.abort();
 
+    // TODO: Add panic unwind hook to alwqays restore terminal
     // Restore terminal
     disable_raw_mode()?;
     execute!(

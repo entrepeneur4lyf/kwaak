@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, task};
 
 use crate::{
     chat_message::ChatMessage,
@@ -73,7 +73,7 @@ impl CommandHandler {
     }
 
     fn start(mut self) -> tokio::task::JoinHandle<()> {
-        tokio::spawn(async move {
+        task::spawn(async move {
             while let Some(cmd) = self.rx.recv().await {
                 if let Err(error) = self.handle_command(cmd.clone()).await {
                     tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
