@@ -38,9 +38,9 @@ mod tests {
         assert_eq!(strip_markdown_tags(input), expected);
 
         // Case: Raw string
-        let input = r#"```markdown
+        let input = r"```markdown
         This is a test.
-        ```"#;
+        ```";
         let expected = "This is a test.";
         assert_eq!(strip_markdown_tags(input), expected);
     }

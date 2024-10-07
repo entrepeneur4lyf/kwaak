@@ -1,7 +1,7 @@
 use anyhow::Result;
 use swiftide::{
     query::{
-        self, answers, query_transformers, response_transformers,
+        self, answers, query_transformers,
         search_strategies::SimilaritySingleEmbedding,
     },
     traits::{EmbeddingModel, SimplePrompt},

@@ -5,7 +5,6 @@ use ratatui::{
     text::Span,
     widgets::{Block, Borders, Paragraph},
 };
-use text::{ToLine, ToText};
 
 use crate::chat_message::ChatMessage;
 

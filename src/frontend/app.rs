@@ -92,7 +92,7 @@ impl App {
             }
             KeyCode::Enter => {
                 if !self.input.is_empty() {
-                    let message = if self.input.starts_with("/") {
+                    let message = if self.input.starts_with('/') {
                         if let Ok(cmd) = Command::parse(&self.input) {
                             // Send it to the handler
                             self.dispatch_command(&cmd);

@@ -43,14 +43,14 @@ impl Command {
     }
 }
 
-/// Commands always flow via the CommandHandler
+/// Commands always flow via the `CommandHandler`
 pub struct CommandHandler {
     /// Receives commands
     rx: mpsc::UnboundedReceiver<Command>,
     #[allow(dead_code)]
     /// Sends commands
     tx: mpsc::UnboundedSender<Command>,
-    /// Sends UIEvents to the connected frontend
+    /// Sends `UIEvents` to the connected frontend
     ui_tx: mpsc::UnboundedSender<UIEvent>,
     /// Repository to interact with
     repository: Repository,
@@ -95,7 +95,7 @@ impl CommandHandler {
         match cmd {
             Command::IndexRepository => indexing::index_repository(&self.repository).await?,
             Command::ShowConfig => {
-                self.send_system_message(toml::to_string_pretty(self.repository.config())?)
+                self.send_system_message(toml::to_string_pretty(self.repository.config())?);
             }
             Command::Chat(ref msg) => {
                 let response = query::query(&self.repository, msg).await?;
