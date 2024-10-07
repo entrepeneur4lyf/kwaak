@@ -24,3 +24,10 @@ impl Repository {
         &self.config
     }
 }
+
+#[allow(clippy::from_over_into)]
+impl Into<Repository> for &Repository {
+    fn into(self) -> Repository {
+        self.clone()
+    }
+}

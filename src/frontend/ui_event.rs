@@ -4,6 +4,7 @@ use crate::{chat_message::ChatMessage, commands::Command};
 
 // Event handling
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum UIEvent {
     Input(KeyEvent),
     Tick,

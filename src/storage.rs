@@ -26,6 +26,7 @@ pub fn build_lancedb(repository: &Repository) -> Result<LanceDBBuilder> {
         .to_owned())
 }
 
+#[allow(clippy::unnecessary_wraps)]
 pub fn build_redb(repository: &Repository) -> Result<RedbBuilder> {
     let config = repository.config();
     let mut cache_dir = config.cache_dir().to_owned();

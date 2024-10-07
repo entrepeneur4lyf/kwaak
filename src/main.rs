@@ -49,10 +49,15 @@ async fn main() -> Result<()> {
         app.ui_tx
             .send(chat_message::ChatMessage::new_system(MARKDOWN_TEST).into())?;
     }
-    let handler = commands::CommandHandler::start_with_ui_app(&mut app, repository);
 
-    let res = app.run(&mut terminal).await;
-    handler.abort();
+    let app_result = {
+        let mut handler = commands::CommandHandler::from_repository(&repository);
+        handler.register_ui(&mut app);
+
+        let _guard = handler.start();
+
+        app.run(&mut terminal).await
+    };
 
     // TODO: Add panic unwind hook to alwqays restore terminal
     // Restore terminal
@@ -64,8 +69,8 @@ async fn main() -> Result<()> {
     )?;
     terminal.show_cursor()?;
 
-    if let Err(err) = res {
-        println!("{err:?}");
+    if let Err(error) = app_result {
+        ::tracing::error!(?error, "Application error");
     }
 
     Ok(())

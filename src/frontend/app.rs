@@ -52,6 +52,7 @@ impl App {
         self.ui_rx.recv().await
     }
 
+    #[allow(clippy::unused_self)]
     pub fn supported_commands(&self) -> Vec<Command> {
         Command::iter().collect()
     }

@@ -46,11 +46,7 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
 
 fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     f.render_widget(Clear, f.area());
-    let chat_content: Text = app
-        .messages
-        .iter()
-        .flat_map(|m| format_chat_message(m, area.width))
-        .collect();
+    let chat_content: Text = app.messages.iter().flat_map(format_chat_message).collect();
 
     let num_lines = chat_content.lines.len();
 
@@ -84,6 +80,7 @@ fn render_input_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {
     // Set cursor position
     f.set_cursor_position(
         // Put cursor past the end of the input text
+        #[allow(clippy::cast_possible_truncation)]
         (area.x + app.input.len() as u16 + 1, area.y + 1),
     );
 }
@@ -101,26 +98,13 @@ fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
     f.render_widget(commands, area);
 }
 
-fn format_chat_message(message: &ChatMessage, width: u16) -> Text {
+fn format_chat_message(message: &ChatMessage) -> Text {
     let (prefix, content) = match message {
         ChatMessage::User(msg) => ("You", msg.as_str()),
         ChatMessage::System(msg) => ("System", msg.as_str()),
         ChatMessage::Command(cmd) => ("Command", cmd.into()),
     };
     let prefix: Span = Span::styled(prefix, Style::default().fg(Color::Yellow));
-
-    // skin.paragraph.align = termimad::Alignment::Unspecified;
-    // skin.code_block.align = termimad::Alignment::Unspecified;
-    // skin.limit_to_ascii();
-
-    // skin.code_block.set_bg(crossterm::style::Color::Reset);
-    // let text = skin
-    //     .text(content, Some(width as usize - 4))
-    //     .to_text()
-    //     .to_string();
-    // let text = rendered.to_text();
-    // let content = Text::from(rendered.to_text().to_string());
-    // let text = rendered.to_text().to_owned();
 
     let content: Text = tui_markdown::from_str(content);
     //

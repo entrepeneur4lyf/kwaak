@@ -113,7 +113,6 @@ impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
                     )
                     .build()?,
             ),
-            _ => unimplemented!(),
         };
 
         Ok(boxed)
@@ -142,7 +141,6 @@ impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
                     )
                     .build()?,
             ),
-            _ => unimplemented!(),
         };
         Ok(boxed)
     }
@@ -240,6 +238,7 @@ pub enum OpenAIEmbeddingModel {
 
 #[cfg(test)]
 mod tests {
+    #![allow(irrefutable_let_patterns)]
     use super::*;
     use secrecy::ExposeSecret;
     use swiftide::integrations::treesitter::SupportedLanguages;

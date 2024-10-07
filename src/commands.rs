@@ -51,67 +51,80 @@ pub struct CommandHandler {
     /// Sends commands
     tx: mpsc::UnboundedSender<Command>,
     /// Sends `UIEvents` to the connected frontend
-    ui_tx: mpsc::UnboundedSender<UIEvent>,
+    ui_tx: Option<mpsc::UnboundedSender<UIEvent>>,
     /// Repository to interact with
     repository: Repository,
 }
 
 impl CommandHandler {
-    pub fn start_with_ui_app(app: &mut App, repository: Repository) -> tokio::task::JoinHandle<()> {
+    pub fn from_repository(repository: impl Into<Repository>) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
-        let ui_tx = app.ui_tx.clone();
-        app.command_tx = Some(tx.clone());
 
-        let handler = CommandHandler {
+        CommandHandler {
             rx,
             tx,
-            ui_tx,
-            repository,
-        };
-
-        handler.start()
+            ui_tx: None,
+            repository: repository.into(),
+        }
     }
 
-    fn start(mut self) -> tokio::task::JoinHandle<()> {
+    pub fn register_ui(&mut self, app: &mut App) {
+        self.ui_tx = Some(app.ui_tx.clone());
+        app.command_tx = Some(self.tx.clone());
+    }
+
+    pub fn start(mut self) -> tokio::task::JoinHandle<()> {
         task::spawn(async move {
             while let Some(cmd) = self.rx.recv().await {
                 if let Err(error) = self.handle_command(cmd.clone()).await {
                     tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
-                    self.send_system_message(format!("Failed to handle command: {error:#}"));
+                    self.send_ui_event(ChatMessage::new_system(format!(
+                        "Failed to handle command: {error:#}"
+                    )));
                 }
             }
         })
     }
 
-    fn send_system_message(&self, msg: impl Into<String>) {
-        let msg = ChatMessage::new_system(msg);
-        let _ = self.ui_tx.send(msg.into());
+    fn send_ui_event(&self, msg: impl Into<UIEvent>) {
+        if let Err(error) = self
+            .ui_tx
+            .as_ref()
+            .expect("Expected a registered ui")
+            .send(msg.into())
+        {
+            tracing::error!(?error, "Failed to send UI event");
+        }
     }
 
     /// TODO: Most commands should probably be handled in a tokio task
     /// Maybe generalize tasks to make ui updates easier?
     async fn handle_command(&self, cmd: Command) -> Result<()> {
         let now = std::time::Instant::now();
+
+        #[allow(clippy::match_wildcard_for_single_variants)]
         match cmd {
             Command::IndexRepository => indexing::index_repository(&self.repository).await?,
             Command::ShowConfig => {
-                self.send_system_message(toml::to_string_pretty(self.repository.config())?);
+                self.send_ui_event(ChatMessage::new_system(toml::to_string_pretty(
+                    self.repository.config(),
+                )?));
             }
             Command::Chat(ref msg) => {
                 let response = query::query(&self.repository, msg).await?;
                 tracing::info!(%response, "Chat message received, sending to frontend");
                 let response = ChatMessage::new_system(response);
 
-                self.ui_tx.send(response.into())?;
+                self.send_ui_event(response);
             }
             // Anything else we forward to the UI
-            _ => self.ui_tx.send(UIEvent::Command(cmd.clone()))?,
+            _ => self.send_ui_event(cmd.clone()),
         }
         let elapsed = now.elapsed();
-        self.send_system_message(format!(
+        self.send_ui_event(ChatMessage::new_system(format!(
             "Command {cmd} successful in {} seconds",
             elapsed.as_secs_f64()
-        ));
+        )));
 
         Ok(())
     }
