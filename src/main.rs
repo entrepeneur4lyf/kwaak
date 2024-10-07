@@ -44,6 +44,57 @@ async fn main() -> Result<()> {
 
     // Start the application
     let mut app = App::default();
+
+    if cfg!(feature = "test-markdown") {
+        let content = r#"
+## Examples
+
+Indexing a local code project, chunking into smaller pieces, enriching the nodes with metadata, and persisting into [Qdrant](https://qdrant.tech):
+
+```rust
+indexing::Pipeline::from_loader(FileLoader::new(".").with_extensions(&["rs"]))
+        .with_default_llm_client(openai_client.clone())
+        .filter_cached(Redis::try_from_url(
+            redis_url,
+            "swiftide-examples",
+        )?)
+        .then_chunk(ChunkCode::try_for_language_and_chunk_size(
+            "rust",
+            10..2048,
+        )?)
+        .then(MetadataQACode::default())
+        .then(move |node| my_own_thing(node))
+        .then_in_batch(Embed::new(openai_client.clone()))
+        .then_store_with(
+            Qdrant::builder()
+                .batch_size(50)
+                .vector_size(1536)
+                .build()?,
+        )
+        .run()
+        .await?;
+```
+
+Querying for an example on how to use the query pipeline:
+
+```rust
+query::Pipeline::default()
+    .then_transform_query(GenerateSubquestions::from_client(
+        openai_client.clone(),
+    ))
+    .then_transform_query(Embed::from_client(
+        openai_client.clone(),
+    ))
+    .then_retrieve(qdrant.clone())
+    .then_answer(Simple::from_client(openai_client.clone()))
+    .query("How can I use the query pipeline in Swiftide?")
+    .await?;
+```
+    "#;
+
+        app.ui_tx
+            .send(chat_message::ChatMessage::new_system(content).into())?;
+    }
     let _guard = commands::CommandHandler::start_with_ui_app(&mut app, repository);
 
     let res = app.run(&mut terminal).await;

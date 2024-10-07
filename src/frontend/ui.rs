@@ -1,10 +1,11 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Scrollbar, ScrollbarOrientation, Wrap};
+use ratatui::widgets::{Clear, Scrollbar, ScrollbarOrientation, Wrap};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     text::Span,
     widgets::{Block, Borders, Paragraph},
 };
+use text::{ToLine, ToText};
 
 use crate::chat_message::ChatMessage;
 
@@ -45,23 +46,19 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
 }
 
 fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
-    let messages: Vec<Text> = app
+    f.render_widget(Clear, f.area());
+    let chat_content: Text = app
         .messages
         .iter()
-        .map(|m| format_chat_message(m))
+        .flat_map(|m| format_chat_message(m, area.width))
         .collect();
 
-    let chat_content = messages
-        .into_iter()
-        .fold(Text::default(), |acc, msg| acc + msg);
+    let num_lines = chat_content.lines.len();
 
-    app.vertical_scroll_state = app
-        .vertical_scroll_state
-        .content_length(chat_content.lines.len());
+    app.vertical_scroll_state = app.vertical_scroll_state.content_length(num_lines);
 
     let chat_messages = Paragraph::new(chat_content)
         .block(Block::default().title("Chat").borders(Borders::ALL))
-        .wrap(Wrap { trim: false })
         .scroll((app.vertical_scroll, 0));
 
     f.render_widget(chat_messages, area);
@@ -100,18 +97,33 @@ fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
             .collect::<Vec<_>>()
             .join(" "),
     )
+    .wrap(Wrap { trim: true })
     .block(Block::default().title("Commands").borders(Borders::ALL));
     f.render_widget(commands, area);
 }
 
-fn format_chat_message(message: &ChatMessage) -> Text {
+fn format_chat_message(message: &ChatMessage, width: u16) -> Text {
     let (prefix, content) = match message {
         ChatMessage::User(msg) => ("You", msg.as_str()),
         ChatMessage::System(msg) => ("System", msg.as_str()),
         ChatMessage::Command(cmd) => ("Command", cmd.into()),
     };
     let prefix: Span = Span::styled(prefix, Style::default().fg(Color::Yellow));
-    let content: Text = tui_markdown::from_str(content);
 
+    // skin.paragraph.align = termimad::Alignment::Unspecified;
+    // skin.code_block.align = termimad::Alignment::Unspecified;
+    // skin.limit_to_ascii();
+
+    // skin.code_block.set_bg(crossterm::style::Color::Reset);
+    // let text = skin
+    //     .text(content, Some(width as usize - 4))
+    //     .to_text()
+    //     .to_string();
+    // let text = rendered.to_text();
+    // let content = Text::from(rendered.to_text().to_string());
+    // let text = rendered.to_text().to_owned();
+
+    let content: Text = tui_markdown::from_str(content);
+    //
     Text::from(prefix) + content
 }

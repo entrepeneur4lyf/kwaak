@@ -14,8 +14,7 @@ use crate::{chat_message::ChatMessage, commands::Command};
 
 use super::{ui, UIEvent};
 
-// Refresh rate in milliseconds
-const REFRESH_RATE: u64 = 10;
+const TICK_RATE: u64 = 250;
 
 /// Handles user and TUI interaction
 pub struct App {
@@ -144,9 +143,9 @@ impl App {
 
         let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
 
-        terminal.draw(|f| ui::ui(f, self))?;
         loop {
             // Draw the UI
+            terminal.draw(|f| ui::ui(f, self))?;
 
             // Handle events
             if let Some(event) = self.recv_messages().await {
@@ -174,7 +173,6 @@ impl App {
                     }
                 }
             }
-            terminal.draw(|f| ui::ui(f, self))?;
 
             if self.should_quit {
                 break;
@@ -187,19 +185,16 @@ impl App {
     }
 }
 
+#[allow(clippy::unused_async)]
 async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
     loop {
         // Poll for input events
-        if event::poll(Duration::from_millis(REFRESH_RATE * 10))? {
+        if event::poll(Duration::from_millis(TICK_RATE))? {
             if let crossterm::event::Event::Key(key) = event::read()? {
                 let _ = ui_tx.send(UIEvent::Input(key));
             }
         }
         // Send a tick event, ignore if the receiver is gone
-        let _ = ui_tx.send(UIEvent::Tick);
-
-        // Sleep for the tick rate
-        // Use tokio so it yields
-        tokio::time::sleep(Duration::from_millis(REFRESH_RATE)).await;
+        // let _ = ui_tx.send(UIEvent::Tick);
     }
 }

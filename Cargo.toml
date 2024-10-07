@@ -15,7 +15,7 @@ swiftide = { version = "0.13.0", features = [
   "openai",
   "tree-sitter",
   "redb",
-], path = "../swiftide/swiftide" }
+] }
 toml = "0.8.19"
 serde = { version = "1.0.210", features = ["derive"] }
 secrecy = { version = "0.10.2", features = ["serde"] }
@@ -25,15 +25,17 @@ dirs = "5.0.1"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-appender = "0.2.3"
 derive_more = { version = "1.0.0", features = ["full"] }
-tui-markdown = "0.2.10"
+tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
+  "highlight-code",
+] }
 
-[workspace.lints.rust]
+[lints.rust]
 unsafe_code = "forbid"
 unexpected_cfgs = { level = "warn", check-cfg = [
   'cfg(coverage,coverage_nightly)',
 ] }
 
-[workspace.lints.clippy]
+[lints.clippy]
 cargo = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 blocks_in_conditions = "allow"
@@ -42,3 +44,12 @@ module_name_repetitions = "allow"
 missing_fields_in_debug = "allow"
 # Should be fixed asap
 multiple_crate_versions = "allow"
+
+[features]
+"test-markdown" = []
+
+[patch.crates-io]
+swiftide = { path = "../swiftide/swiftide" }
+tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
+  "highlight-code",
+] }
