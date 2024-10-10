@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::commands::Command;
 
-/// Represents a chat message that can be stored in the app
+/// Represents a chat message that can be stored in a [`Chat`]
 #[derive(Debug, Clone, Default, Builder)]
 #[builder(setter(into, strip_option), build_fn(skip))]
 pub struct ChatMessage {
