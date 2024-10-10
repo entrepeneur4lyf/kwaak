@@ -207,14 +207,14 @@ impl App {
         self.chats
             .iter_mut()
             .find(|chat| chat.uuid == uuid)
-            .expect(&format!("Could not find chat for {uuid}"))
+            .unwrap_or_else(|| panic!("Could not find chat for {uuid}"))
     }
 
     fn find_chat(&self, uuid: Uuid) -> &Chat {
         self.chats
             .iter()
             .find(|chat| chat.uuid == uuid)
-            .expect(&format!("Could not find chat for {uuid}"))
+            .unwrap_or_else(|| panic!("Could not find chat for {uuid}"))
     }
 
     pub(crate) fn current_chat(&self) -> &Chat {

@@ -1,5 +1,4 @@
 use crossterm::event::KeyEvent;
-use uuid::Uuid;
 
 use crate::{
     chat_message::{ChatMessage, ChatMessageBuilder},
@@ -30,7 +29,7 @@ impl From<ChatMessageBuilder> for UIEvent {
 
 impl From<&mut ChatMessageBuilder> for UIEvent {
     fn from(builder: &mut ChatMessageBuilder) -> Self {
-        Self::ChatMessage(builder.build().to_owned())
+        Self::ChatMessage(builder.build().clone())
     }
 }
 impl From<Command> for UIEvent {
