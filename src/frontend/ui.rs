@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::chat_message::ChatMessage;
+use crate::chat_message::{ChatMessage, ChatRole};
 
 use super::app::App;
 
@@ -46,7 +46,8 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
 
 fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     f.render_widget(Clear, f.area());
-    let chat_content: Text = app.messages.iter().flat_map(format_chat_message).collect();
+    let messages = app.current_chat().messages.clone();
+    let chat_content: Text = messages.iter().flat_map(format_chat_message).collect();
 
     let num_lines = chat_content.lines.len();
 
@@ -99,12 +100,13 @@ fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
 }
 
 fn format_chat_message(message: &ChatMessage) -> Text {
-    let (prefix, content) = match message {
-        ChatMessage::User(msg) => ("You", msg.as_str()),
-        ChatMessage::System(msg) => ("System", msg.as_str()),
-        ChatMessage::Command(cmd) => ("Command", cmd.into()),
+    let msg = message.message();
+    let (prefix, content) = match message.role() {
+        ChatRole::User => ("You", msg),
+        ChatRole::System => ("System", msg),
+        ChatRole::Command => ("Command", msg),
     };
-    let prefix: Span = Span::styled(prefix, Style::default().fg(Color::Yellow));
+    let prefix: Span = Span::styled(message.role().as_ref(), Style::default().fg(Color::Yellow));
 
     let content: Text = tui_markdown::from_str(content);
     //

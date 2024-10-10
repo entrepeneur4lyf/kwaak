@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::io;
 use std::time::Duration;
 use strum::IntoEnumIterator as _;
+use uuid::Uuid;
 
 use ratatui::{widgets::ScrollbarState, Terminal};
 
@@ -10,7 +11,7 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use tokio::sync::mpsc;
 use tokio::task;
 
-use crate::{chat_message::ChatMessage, commands::Command};
+use crate::{chat::Chat, chat_message::ChatMessage, commands::Command};
 
 use super::{ui, UIEvent};
 
@@ -19,7 +20,8 @@ const TICK_RATE: u64 = 250;
 /// Handles user and TUI interaction
 pub struct App {
     pub input: String,
-    pub messages: Vec<ChatMessage>,
+    pub chats: Vec<Chat>,
+    pub current_chat: uuid::Uuid,
     pub ui_tx: mpsc::UnboundedSender<UIEvent>,
     pub ui_rx: mpsc::UnboundedReceiver<UIEvent>,
     pub command_tx: Option<mpsc::UnboundedSender<Command>>,
@@ -34,9 +36,12 @@ impl Default for App {
     fn default() -> Self {
         let (ui_tx, ui_rx) = mpsc::unbounded_channel();
 
+        let chat = Chat::default();
+
         Self {
             input: String::new(),
-            messages: Vec::new(),
+            current_chat: chat.uuid,
+            chats: vec![chat],
             ui_tx,
             ui_rx,
             command_tx: None,
@@ -61,6 +66,10 @@ impl App {
         self.ui_tx.send(msg.into())?;
 
         Ok(())
+    }
+
+    fn current_chat_uuid(&self) -> Uuid {
+        self.current_chat
     }
 
     fn on_key(&mut self, key: KeyEvent) {
@@ -94,22 +103,32 @@ impl App {
             KeyCode::Enter => {
                 if !self.input.is_empty() {
                     let message = if self.input.starts_with('/') {
-                        if let Ok(cmd) = Command::parse(&self.input) {
+                        if let Ok(cmd) = Command::parse(&self.input, Some(self.current_chat_uuid()))
+                        {
                             // Send it to the handler
                             self.dispatch_command(&cmd);
 
                             // Display the command as a message
                             ChatMessage::new_command(cmd)
+                                .uuid(self.current_chat_uuid())
+                                .to_owned()
                         } else {
                             ChatMessage::new_system("Unknown command")
+                                .uuid(self.current_chat_uuid())
+                                .to_owned()
                         }
                     } else {
                         // Currently just dispatch a user message command and answer the query
                         // Later, perhaps maint a 'chat', add message to that chat, and then send
                         // the whole thing
-                        self.dispatch_command(&Command::Chat(self.input.clone()));
+                        self.dispatch_command(&Command::Chat {
+                            message: self.input.clone(),
+                            uuid: self.current_chat_uuid(),
+                        });
 
                         ChatMessage::new_user(&self.input)
+                            .uuid(self.current_chat_uuid())
+                            .to_owned()
                     };
 
                     let _ = self.send_ui_event(message);
@@ -133,7 +152,8 @@ impl App {
     }
 
     fn add_chat_message(&mut self, message: ChatMessage) {
-        self.messages.push(message);
+        let chat = self.find_chat_mut(message.uuid().unwrap_or_else(|| self.current_chat_uuid()));
+        chat.add_message(message);
     }
 
     pub async fn run<B: ratatui::backend::Backend>(
@@ -159,7 +179,7 @@ impl App {
                         // Handle periodic tasks if necessary
                     }
                     UIEvent::Command(cmd) => match cmd {
-                        Command::Quit => {
+                        Command::Quit { .. } => {
                             self.should_quit = true;
                         }
 
@@ -182,6 +202,24 @@ impl App {
 
         Ok(())
     }
+
+    fn find_chat_mut(&mut self, uuid: Uuid) -> &mut Chat {
+        self.chats
+            .iter_mut()
+            .find(|chat| chat.uuid == uuid)
+            .expect(&format!("Could not find chat for {uuid}"))
+    }
+
+    fn find_chat(&self, uuid: Uuid) -> &Chat {
+        self.chats
+            .iter()
+            .find(|chat| chat.uuid == uuid)
+            .expect(&format!("Could not find chat for {uuid}"))
+    }
+
+    pub(crate) fn current_chat(&self) -> &Chat {
+        self.find_chat(self.current_chat_uuid())
+    }
 }
 
 #[allow(clippy::unused_async)]
@@ -194,6 +232,6 @@ async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
             }
         }
         // Send a tick event, ignore if the receiver is gone
-        // let _ = ui_tx.send(UIEvent::Tick);
+        let _ = ui_tx.send(UIEvent::Tick);
     }
 }
