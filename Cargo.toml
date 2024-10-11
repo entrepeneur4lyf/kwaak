@@ -51,7 +51,7 @@ multiple_crate_versions = "allow"
 "test-markdown" = []
 
 [patch.crates-io]
-swiftide = { path = "../swiftide/swiftide" }
+# swiftide = { path = "../swiftide/swiftide" }
 tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
   "highlight-code",
 ] }
