@@ -11,6 +11,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
+mod chat;
 mod chat_message;
 mod commands;
 mod config;
@@ -77,6 +78,7 @@ async fn main() -> Result<()> {
 }
 
 static MARKDOWN_TEST: &str = r#"
+# Main header
 ## Examples
 
 Indexing a local code project, chunking into smaller pieces, enriching the nodes with metadata, and persisting into [Qdrant](https://qdrant.tech):

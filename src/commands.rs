@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use tokio::{sync::mpsc, task};
+use uuid::Uuid;
 
 use crate::{
     chat_message::ChatMessage,
@@ -17,28 +20,44 @@ use crate::{
     Eq,
     strum_macros::EnumString,
     strum_macros::Display,
-    strum_macros::EnumIter,
     strum_macros::IntoStaticStr,
+    strum_macros::EnumIs,
     Clone,
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Command {
-    Quit,
-    ShowConfig,
-    IndexRepository,
-    // Currently just dispatch a user message command and answer the query
-    // Later, perhaps main a 'chat', add message to that chat, and then send
-    // the whole thing
-    Chat(String),
+    Quit {
+        uuid: Uuid,
+    },
+    ShowConfig {
+        uuid: Uuid,
+    },
+    IndexRepository {
+        uuid: Uuid,
+    },
+    /// Default when no command is provided
+    Chat {
+        uuid: Uuid,
+        message: String,
+    },
 }
 
 impl Command {
-    pub fn parse(input: &str) -> Result<Self, strum::ParseError> {
-        // FIXME: Will break on current Chat variant
-        if let Some(input) = input.strip_prefix('/') {
-            input.parse()
-        } else {
-            Err(strum::ParseError::VariantNotFound)
+    pub fn uuid(&self) -> Uuid {
+        match self {
+            Command::Quit { uuid }
+            | Command::ShowConfig { uuid }
+            | Command::IndexRepository { uuid }
+            | Command::Chat { uuid, .. } => *uuid,
+        }
+    }
+
+    pub fn with_uuid(self, uuid: Uuid) -> Self {
+        match self {
+            Command::Quit { .. } => Command::Quit { uuid },
+            Command::ShowConfig { .. } => Command::ShowConfig { uuid },
+            Command::IndexRepository { .. } => Command::IndexRepository { uuid },
+            Command::Chat { message, .. } => Command::Chat { uuid, message },
         }
     }
 }
@@ -53,7 +72,7 @@ pub struct CommandHandler {
     /// Sends `UIEvents` to the connected frontend
     ui_tx: Option<mpsc::UnboundedSender<UIEvent>>,
     /// Repository to interact with
-    repository: Repository,
+    repository: Arc<Repository>,
 }
 
 impl CommandHandler {
@@ -64,7 +83,7 @@ impl CommandHandler {
             rx,
             tx,
             ui_tx: None,
-            repository: repository.into(),
+            repository: Arc::new(repository.into()),
         }
     }
 
@@ -76,76 +95,70 @@ impl CommandHandler {
     pub fn start(mut self) -> tokio::task::JoinHandle<()> {
         task::spawn(async move {
             while let Some(cmd) = self.rx.recv().await {
-                if let Err(error) = self.handle_command(cmd.clone()).await {
-                    tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
-                    self.send_ui_event(ChatMessage::new_system(format!(
-                        "Failed to handle command: {error:#}"
-                    )));
-                }
+                let tx = self.ui_tx.clone().expect("Expected a registered ui");
+                let repository = Arc::clone(&self.repository);
+
+                tokio::spawn(async move {
+                    if let Err(error) =
+                        Self::handle_command(&Arc::clone(&repository), &tx, &cmd).await
+                    {
+                        tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
+                        tx.send(
+                            ChatMessage::new_system(format!("Failed to handle command: {error:#}"))
+                                .uuid(cmd.uuid())
+                                .to_owned()
+                                .into(),
+                        )
+                        .unwrap();
+                    }
+                });
             }
         })
     }
 
-    fn send_ui_event(&self, msg: impl Into<UIEvent>) {
-        if let Err(error) = self
-            .ui_tx
-            .as_ref()
-            .expect("Expected a registered ui")
-            .send(msg.into())
-        {
-            tracing::error!(?error, "Failed to send UI event");
-        }
-    }
-
     /// TODO: Most commands should probably be handled in a tokio task
     /// Maybe generalize tasks to make ui updates easier?
-    async fn handle_command(&self, cmd: Command) -> Result<()> {
+    async fn handle_command(
+        repository: &Repository,
+        tx: &mpsc::UnboundedSender<UIEvent>,
+        cmd: &Command,
+    ) -> Result<()> {
         let now = std::time::Instant::now();
+        tracing::warn!("Handling command {cmd}");
 
         #[allow(clippy::match_wildcard_for_single_variants)]
         match cmd {
-            Command::IndexRepository => indexing::index_repository(&self.repository).await?,
-            Command::ShowConfig => {
-                self.send_ui_event(ChatMessage::new_system(toml::to_string_pretty(
-                    self.repository.config(),
-                )?));
+            Command::IndexRepository { .. } => indexing::index_repository(repository).await?,
+            Command::ShowConfig { uuid } => {
+                tx.send(
+                    ChatMessage::new_system(toml::to_string_pretty(repository.config())?)
+                        .uuid(*uuid)
+                        .to_owned()
+                        .into(),
+                )
+                .unwrap();
             }
-            Command::Chat(ref msg) => {
-                let response = query::query(&self.repository, msg).await?;
+            Command::Chat { uuid, ref message } => {
+                let response = query::query(repository, message).await?;
                 tracing::info!(%response, "Chat message received, sending to frontend");
-                let response = ChatMessage::new_system(response);
+                let response = ChatMessage::new_system(response).uuid(*uuid).to_owned();
 
-                self.send_ui_event(response);
+                tx.send(response.into()).unwrap();
             }
             // Anything else we forward to the UI
-            _ => self.send_ui_event(cmd.clone()),
+            _ => tx.send(cmd.clone().into()).unwrap(),
         }
         let elapsed = now.elapsed();
-        self.send_ui_event(ChatMessage::new_system(format!(
-            "Command {cmd} successful in {} seconds",
-            elapsed.as_secs_f64()
-        )));
+        tx.send(
+            ChatMessage::new_system(format!(
+                "Command {cmd} successful in {} seconds",
+                elapsed.as_secs_f64()
+            ))
+            .uuid(cmd.uuid())
+            .into(),
+        )
+        .unwrap();
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_command_from_str() {
-        assert_eq!("quit".parse(), Ok(Command::Quit));
-    }
-
-    #[test]
-    fn test_command_to_string() {
-        assert_eq!(Command::Quit.to_string(), "quit");
-    }
-
-    #[test]
-    fn test_parse_str_with_prefix() {
-        assert_eq!(Command::parse("/quit"), Ok(Command::Quit));
     }
 }

@@ -1,12 +1,14 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Clear, Scrollbar, ScrollbarOrientation, Wrap};
+use ratatui::widgets::{
+    Clear, HighlightSpacing, List, Padding, Scrollbar, ScrollbarOrientation, Wrap,
+};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     text::Span,
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::chat_message::ChatMessage;
+use crate::chat_message::{ChatMessage, ChatRole};
 
 use super::app::App;
 
@@ -35,7 +37,7 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
     render_chat_messages(f, app, main_chunks[0]);
 
     // Render other information
-    render_other_info(f, main_chunks[1]);
+    render_chat_list(f, app, main_chunks[1]);
 
     // Render user input bar
     render_input_bar(f, app, chunks[1]);
@@ -46,14 +48,21 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
 
 fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     f.render_widget(Clear, f.area());
-    let chat_content: Text = app.messages.iter().flat_map(format_chat_message).collect();
+    let messages = app.current_chat().messages.clone();
+    let chat_content: Text = messages.iter().flat_map(format_chat_message).collect();
 
     let num_lines = chat_content.lines.len();
 
     app.vertical_scroll_state = app.vertical_scroll_state.content_length(num_lines);
 
     let chat_messages = Paragraph::new(chat_content)
-        .block(Block::default().title("Chat").borders(Borders::ALL))
+        .block(
+            Block::default()
+                .title("Chat")
+                .borders(Borders::ALL)
+                .padding(Padding::horizontal(1)),
+        )
+        .wrap(Wrap { trim: true })
         .scroll((app.vertical_scroll, 0));
 
     f.render_widget(chat_messages, area);
@@ -67,10 +76,17 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         &mut app.vertical_scroll_state,
     );
 }
-fn render_other_info(f: &mut ratatui::Frame, area: Rect) {
-    let other_info =
-        Paragraph::new("Other info").block(Block::default().title("Info").borders(Borders::ALL));
-    f.render_widget(other_info, area);
+fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
+    let list: List = app
+        .chats
+        .iter()
+        .map(|chat| chat.name.as_str())
+        .collect::<List>()
+        .highlight_spacing(HighlightSpacing::Always)
+        .highlight_style(Style::default().fg(Color::Yellow).bg(Color::DarkGray))
+        .block(Block::default().title("Chats").borders(Borders::ALL));
+
+    f.render_stateful_widget(list, area, &mut app.chats_state);
 }
 
 fn render_input_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {
@@ -99,14 +115,8 @@ fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
 }
 
 fn format_chat_message(message: &ChatMessage) -> Text {
-    let (prefix, content) = match message {
-        ChatMessage::User(msg) => ("You", msg.as_str()),
-        ChatMessage::System(msg) => ("System", msg.as_str()),
-        ChatMessage::Command(cmd) => ("Command", cmd.into()),
-    };
-    let prefix: Span = Span::styled(prefix, Style::default().fg(Color::Yellow));
+    let prefix: Span = Span::styled(message.role().as_ref(), Style::default().fg(Color::Yellow));
+    let content: Text = tui_markdown::from_str(message.content());
 
-    let content: Text = tui_markdown::from_str(content);
-    //
     Text::from(prefix) + content
 }

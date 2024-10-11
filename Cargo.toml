@@ -28,6 +28,8 @@ derive_more = { version = "1.0.0", features = ["full"] }
 tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
   "highlight-code",
 ] }
+uuid = { version = "1.10.0", features = ["v4"] }
+derive_builder = "0.20.2"
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -49,7 +51,7 @@ multiple_crate_versions = "allow"
 "test-markdown" = []
 
 [patch.crates-io]
-swiftide = { path = "../swiftide/swiftide" }
+# swiftide = { path = "../swiftide/swiftide" }
 tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
   "highlight-code",
 ] }
