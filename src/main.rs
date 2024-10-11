@@ -78,6 +78,7 @@ async fn main() -> Result<()> {
 }
 
 static MARKDOWN_TEST: &str = r#"
+# Main header
 ## Examples
 
 Indexing a local code project, chunking into smaller pieces, enriching the nodes with metadata, and persisting into [Qdrant](https://qdrant.tech):

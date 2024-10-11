@@ -35,7 +35,7 @@ impl ChatMessage {
             .to_owned()
     }
 
-    pub fn new_command(cmd: impl Into<Command>) -> ChatMessageBuilder {
+    pub fn new_command(cmd: impl Into<String>) -> ChatMessageBuilder {
         ChatMessageBuilder::default()
             .role(ChatRole::Command)
             .content(cmd.into().to_string())
@@ -45,7 +45,7 @@ impl ChatMessage {
     pub fn uuid(&self) -> Option<Uuid> {
         self.uuid
     }
-    pub fn message(&self) -> &str {
+    pub fn content(&self) -> &str {
         &self.content
     }
 

@@ -1,9 +1,8 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use swiftide::{
-    query::{
-        self, answers, query_transformers,
-        search_strategies::SimilaritySingleEmbedding,
-    },
+    query::{self, answers, query_transformers, search_strategies::SimilaritySingleEmbedding},
     traits::{EmbeddingModel, SimplePrompt},
 };
 
@@ -14,8 +13,7 @@ pub async fn query(repository: &Repository, query: &str) -> Result<String> {
     let embedding_provider: Box<dyn EmbeddingModel> =
         repository.config().embedding_provider().try_into()?;
 
-    let lancedb = storage::build_lancedb(repository)?;
-
+    let lancedb = storage::build_lancedb(&repository)?;
     let search_strategy: SimilaritySingleEmbedding<()> = SimilaritySingleEmbedding::default()
         .with_top_k(20)
         .to_owned();
