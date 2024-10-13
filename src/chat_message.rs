@@ -1,8 +1,6 @@
 use derive_builder::Builder;
 use uuid::Uuid;
 
-use crate::commands::Command;
-
 /// Represents a chat message that can be stored in a [`Chat`]
 #[derive(Clone, Default, Builder)]
 #[builder(setter(into, strip_option), build_fn(skip))]
@@ -26,7 +24,9 @@ impl std::fmt::Debug for ChatMessage {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, strum::EnumString, strum::Display, strum::AsRefStr)]
+#[derive(
+    Debug, Clone, Copy, Default, strum::EnumString, strum::Display, strum::AsRefStr, strum::EnumIs,
+)]
 pub enum ChatRole {
     User,
     #[default]

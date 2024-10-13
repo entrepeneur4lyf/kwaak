@@ -1,6 +1,5 @@
-use log::LevelFilter;
-use ratatui::{prelude::*, widgets::*};
-use tui_logger::{TuiLoggerLevelOutput, TuiLoggerSmartWidget, TuiLoggerWidget, TuiWidgetState};
+use ratatui::prelude::*;
+use tui_logger::{TuiLoggerLevelOutput, TuiLoggerSmartWidget};
 
 use crate::frontend::App;
 
@@ -19,8 +18,8 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
         .output_timestamp(Some("%H:%M:%S".to_string()))
         .output_level(Some(TuiLoggerLevelOutput::Abbreviated))
         .output_target(true)
-        .output_file(true)
-        .output_line(true)
+        .output_file(false)
+        .output_line(false)
         .title_log("Logs")
         .title_target("Filters")
         .state(&app.log_state)

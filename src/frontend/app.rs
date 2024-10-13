@@ -11,18 +11,17 @@ use uuid::Uuid;
 //     widgets::{ListState, ScrollbarState, Tabs},
 //     Terminal,
 // };
-use ratatui::{prelude::*, widgets::*};
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Borders, ListState, Padding, ScrollbarState, Tabs},
+};
 
 use crossterm::event::{self, KeyCode, KeyEvent};
 
 use tokio::sync::mpsc;
 use tokio::task;
 
-use crate::{
-    chat::Chat,
-    chat_message::{ChatMessage, ChatMessageBuilder},
-    commands::Command,
-};
+use crate::{chat::Chat, chat_message::ChatMessage, commands::Command};
 
 use super::{chat_mode, logs_mode, UIEvent, UserInputCommand};
 
@@ -261,6 +260,10 @@ impl App {
 
     pub(crate) fn current_chat(&self) -> &Chat {
         self.find_chat(self.current_chat)
+    }
+
+    pub(crate) fn current_chat_mut(&mut self) -> &mut Chat {
+        self.find_chat_mut(self.current_chat)
     }
 
     fn add_chat(&mut self, mut new_chat: Chat) {

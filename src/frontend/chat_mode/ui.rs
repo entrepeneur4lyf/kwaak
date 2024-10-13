@@ -1,6 +1,6 @@
 use ratatui::prelude::*;
 use ratatui::widgets::{
-    Clear, HighlightSpacing, List, Padding, Scrollbar, ScrollbarOrientation, Wrap,
+    HighlightSpacing, List, ListItem, Padding, Scrollbar, ScrollbarOrientation, Wrap,
 };
 use ratatui::{
     layout::{Constraint, Direction, Layout},
@@ -8,10 +8,17 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::chat_message::{ChatMessage, ChatRole};
+use crate::chat::{Chat, ChatState};
+use crate::chat_message::ChatMessage;
 use crate::frontend::App;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
+    // If we're rendering the current chat and it has new messages
+    // set it as ready, clearing the new message
+    if app.current_chat().has_new_messages() {
+        app.current_chat_mut().set_ready();
+    }
+
     // Create the main layout (vertical)
     let [main_area, input_area, help_area] = Layout::default()
         .direction(Direction::Vertical)
@@ -52,13 +59,13 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 
     app.vertical_scroll_state = app.vertical_scroll_state.content_length(num_lines);
 
+    let message_block = Block::default()
+        .title("Chat")
+        .borders(Borders::ALL)
+        .padding(Padding::horizontal(1));
+
     let chat_messages = Paragraph::new(chat_content)
-        .block(
-            Block::default()
-                .title("Chat")
-                .borders(Borders::ALL)
-                .padding(Padding::horizontal(1)),
-        )
+        .block(message_block)
         .wrap(Wrap { trim: false })
         .scroll((app.vertical_scroll, 0));
 
@@ -77,7 +84,7 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     let list: List = app
         .chats
         .iter()
-        .map(|chat| chat.name.as_str())
+        .map(format_chat_in_list)
         .collect::<List>()
         .highlight_spacing(HighlightSpacing::Always)
         .highlight_style(Style::default().fg(Color::Yellow).bg(Color::DarkGray))
@@ -86,9 +93,27 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     f.render_stateful_widget(list, area, &mut app.chats_state);
 }
 
+fn format_chat_in_list(chat: &Chat) -> ListItem {
+    let suffix = match chat.state {
+        ChatState::Loading => " ...",
+        ChatState::NewMessage => " *",
+        ChatState::Ready => "",
+    };
+
+    ListItem::from(format!("{}{}", chat.name, suffix))
+}
+
 fn render_input_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {
-    let input = Paragraph::new(app.input.as_str())
-        .block(Block::default().title("Input").borders(Borders::ALL));
+    if app.current_chat().is_loading() {
+        let block = Block::default().title("Input").borders(Borders::ALL);
+        let throbber = throbber_widgets_tui::Throbber::default().label("Kwaaking ...");
+
+        f.render_widget(throbber, block.inner(area));
+        return block.render(area, f.buffer_mut());
+    }
+
+    let block = Block::default().title("Input").borders(Borders::ALL);
+    let input = Paragraph::new(app.input.as_str()).block(block);
     f.render_widget(input, area);
     // Set cursor position
     f.set_cursor_position(
