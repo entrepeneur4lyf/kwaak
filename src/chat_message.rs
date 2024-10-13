@@ -1,7 +1,6 @@
 use derive_builder::Builder;
 use uuid::Uuid;
 
-
 /// Represents a chat message that can be stored in a [`Chat`]
 #[derive(Clone, Default, Builder)]
 #[builder(setter(into, strip_option), build_fn(skip))]

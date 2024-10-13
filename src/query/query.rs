@@ -1,4 +1,3 @@
-
 use anyhow::Result;
 use swiftide::{
     query::{self, answers, query_transformers, search_strategies::SimilaritySingleEmbedding},
