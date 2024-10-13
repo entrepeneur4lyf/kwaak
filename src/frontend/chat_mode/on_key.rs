@@ -31,6 +31,12 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
             let message = if app.input.starts_with('/') {
                 handle_input_command(app)
             } else {
+                // Set the current chat to loading
+                // Bit on the wrong level of abstraction
+                // Probably will change when agents anyway
+                // as we'll need more than just the message
+                app.current_chat_mut().set_loading();
+
                 // Currently just dispatch a user message command and answer the query
                 // Later, perhaps maint a 'chat', add message to that chat, and then send
                 // the whole thing

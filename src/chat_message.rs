@@ -26,7 +26,9 @@ impl std::fmt::Debug for ChatMessage {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, strum::EnumString, strum::Display, strum::AsRefStr)]
+#[derive(
+    Debug, Clone, Copy, Default, strum::EnumString, strum::Display, strum::AsRefStr, strum::EnumIs,
+)]
 pub enum ChatRole {
     User,
     #[default]

@@ -263,6 +263,10 @@ impl App {
         self.find_chat(self.current_chat)
     }
 
+    pub(crate) fn current_chat_mut(&mut self) -> &mut Chat {
+        self.find_chat_mut(self.current_chat)
+    }
+
     fn add_chat(&mut self, mut new_chat: Chat) {
         new_chat.name = format!("Chat #{}", self.chats.len() + 1);
 
