@@ -11,7 +11,7 @@ use uuid::Uuid;
 //     widgets::{ListState, ScrollbarState, Tabs},
 //     Terminal,
 // };
-use ratatui::{prelude::*, widgets::*};
+use ratatui::{prelude::*, widgets::{Block, Borders, ListState, Padding, ScrollbarState, Tabs}};
 
 use crossterm::event::{self, KeyCode, KeyEvent};
 
@@ -20,7 +20,7 @@ use tokio::task;
 
 use crate::{
     chat::Chat,
-    chat_message::{ChatMessage, ChatMessageBuilder},
+    chat_message::ChatMessage,
     commands::Command,
 };
 

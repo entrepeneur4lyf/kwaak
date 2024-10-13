@@ -1,4 +1,4 @@
-use crate::chat_message::{ChatMessage, ChatRole};
+use crate::chat_message::ChatMessage;
 
 #[derive(Debug, Clone)]
 pub struct Chat {

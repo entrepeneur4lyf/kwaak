@@ -1,6 +1,6 @@
 use ratatui::prelude::*;
 use ratatui::widgets::{
-    Clear, HighlightSpacing, List, ListItem, Padding, Scrollbar, ScrollbarOrientation, Wrap,
+    HighlightSpacing, List, ListItem, Padding, Scrollbar, ScrollbarOrientation, Wrap,
 };
 use ratatui::{
     layout::{Constraint, Direction, Layout},
@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::chat::{Chat, ChatState};
-use crate::chat_message::{ChatMessage, ChatRole};
+use crate::chat_message::ChatMessage;
 use crate::frontend::App;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {

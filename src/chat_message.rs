@@ -1,7 +1,6 @@
 use derive_builder::Builder;
 use uuid::Uuid;
 
-use crate::commands::Command;
 
 /// Represents a chat message that can be stored in a [`Chat`]
 #[derive(Clone, Default, Builder)]

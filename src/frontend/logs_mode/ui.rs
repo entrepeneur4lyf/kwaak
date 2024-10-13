@@ -1,6 +1,5 @@
-use log::LevelFilter;
-use ratatui::{prelude::*, widgets::*};
-use tui_logger::{TuiLoggerLevelOutput, TuiLoggerSmartWidget, TuiLoggerWidget, TuiWidgetState};
+use ratatui::prelude::*;
+use tui_logger::{TuiLoggerLevelOutput, TuiLoggerSmartWidget};
 
 use crate::frontend::App;
 
