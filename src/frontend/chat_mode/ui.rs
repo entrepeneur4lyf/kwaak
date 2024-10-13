@@ -65,10 +65,11 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .padding(Padding::horizontal(1));
 
     let chat_messages = Paragraph::new(chat_content)
+        .block(message_block)
         .wrap(Wrap { trim: false })
         .scroll((app.vertical_scroll, 0));
 
-    f.render_widget(chat_messages, message_block.inner(area));
+    f.render_widget(chat_messages, area);
 
     // Render scrollbar
     f.render_stateful_widget(
