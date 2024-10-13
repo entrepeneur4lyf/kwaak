@@ -9,45 +9,42 @@ use ratatui::{
 };
 
 use crate::chat_message::{ChatMessage, ChatRole};
+use crate::frontend::App;
 
-use super::app::App;
-
-pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
+pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Create the main layout (vertical)
-    let area = f.area();
-    let chunks = Layout::default()
+    let [main_area, input_area, help_area] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0),    // Main area
             Constraint::Length(3), // User input bar (2 lines)
             Constraint::Length(3), // Commands display area
         ])
-        .split(area);
+        .areas(area);
 
     // Split the main area into two columns
-    let main_chunks = Layout::default()
+    let [chat_messages, chat_list] = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Percentage(80), // Left column (chat messages)
             Constraint::Percentage(20), // Right column (other info)
         ])
-        .split(chunks[0]);
+        .areas(main_area);
 
     // Render chat messages
-    render_chat_messages(f, app, main_chunks[0]);
+    render_chat_messages(f, app, chat_messages);
 
     // Render other information
-    render_chat_list(f, app, main_chunks[1]);
+    render_chat_list(f, app, chat_list);
 
     // Render user input bar
-    render_input_bar(f, app, chunks[1]);
+    render_input_bar(f, app, input_area);
 
     // Render commands display area
-    render_commands_display(f, app, chunks[2]);
+    render_commands_display(f, app, help_area);
 }
 
 fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
-    f.render_widget(Clear, f.area());
     let messages = app.current_chat().messages.clone();
     let chat_content: Text = messages.iter().flat_map(format_chat_message).collect();
 
@@ -62,7 +59,7 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
                 .borders(Borders::ALL)
                 .padding(Padding::horizontal(1)),
         )
-        .wrap(Wrap { trim: true })
+        .wrap(Wrap { trim: false })
         .scroll((app.vertical_scroll, 0));
 
     f.render_widget(chat_messages, area);
