@@ -1,6 +1,14 @@
 language = "rust"
 
-[llm]
+[llm.indexing]
 provider = "OpenAI"
 prompt_model = "gpt-4o-mini"
-embedding_model = "text-embedding-3-small"
+embedding_model = "text-embedding-3-large"
+
+[llm.query]
+provider = "OpenAI"
+prompt_model = "gpt-4o"
+
+[llm.embedding]
+provider = "OpenAI"
+embedding_model = "text-embedding-3-large"

@@ -151,6 +151,7 @@ impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
 pub enum LLMConfigurations {
     Single(LLMConfiguration),
     Multiple {
+        // TODO: Should probably be with reduced attrs on needed per item
         indexing: LLMConfiguration,
         embedding: LLMConfiguration,
         query: LLMConfiguration,
