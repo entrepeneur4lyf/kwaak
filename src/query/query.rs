@@ -13,7 +13,7 @@ pub async fn query(repository: &Repository, query: &str) -> Result<String> {
 
     let lancedb = storage::build_lancedb(repository)?;
     let search_strategy: SimilaritySingleEmbedding<()> = SimilaritySingleEmbedding::default()
-        .with_top_k(20)
+        .with_top_k(40)
         .to_owned();
 
     let pipeline = query::Pipeline::from_search_strategy(search_strategy)

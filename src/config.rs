@@ -233,7 +233,7 @@ pub enum OpenAIEmbeddingModel {
     #[serde(rename = "text-embedding-3-small")]
     TextEmbedding3Small,
     #[strum(serialize = "text-embedding-3-large")]
-    #[serde(rename = "text-embedding")]
+    #[serde(rename = "text-embedding-3-large")]
     TextEmbedding3Large,
 }
 

@@ -174,7 +174,9 @@ impl App {
         self.mode.on_key(self, key);
     }
 
-    pub fn dispatch_command(&self, cmd: &Command) {
+    pub fn dispatch_command(&mut self, cmd: &Command) {
+        self.current_chat_mut().set_loading();
+
         self.command_tx
             .as_ref()
             .expect("Command tx not set")
