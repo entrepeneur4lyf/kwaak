@@ -15,8 +15,8 @@ use crate::frontend::App;
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // If we're rendering the current chat and it has new messages
     // set it as ready, clearing the new message
-    if app.current_chat().has_new_messages() {
-        app.current_chat_mut().set_ready();
+    if app.current_chat().in_state(ChatState::NewMessage) {
+        app.current_chat_mut().transition(ChatState::Ready);
     }
 
     // Create the main layout (vertical)
@@ -104,7 +104,7 @@ fn format_chat_in_list(chat: &Chat) -> ListItem {
 }
 
 fn render_input_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {
-    if app.current_chat().is_loading() {
+    if app.current_chat().in_state(ChatState::Loading) {
         let block = Block::default().title("Input").borders(Borders::ALL);
         let throbber = throbber_widgets_tui::Throbber::default().label("Kwaaking ...");
 

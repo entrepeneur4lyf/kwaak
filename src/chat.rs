@@ -18,24 +18,16 @@ impl Chat {
         self.messages.push(message);
     }
 
-    pub fn set_loading(&mut self) {
-        self.state = ChatState::Loading;
+    pub fn transition(&mut self, state: ChatState) {
+        self.state = state;
     }
 
-    pub fn set_ready(&mut self) {
-        self.state = ChatState::Ready;
-    }
-
-    pub(crate) fn has_new_messages(&self) -> bool {
-        self.state.is_new_message()
-    }
-
-    pub(crate) fn is_loading(&self) -> bool {
-        self.state.is_loading()
+    pub fn in_state(&self, state: ChatState) -> bool {
+        self.state == state
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, strum::EnumIs)]
+#[derive(Debug, Clone, Copy, Default, strum::EnumIs, PartialEq)]
 pub enum ChatState {
     Loading,
     NewMessage,

@@ -21,7 +21,11 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use tokio::sync::mpsc;
 use tokio::task;
 
-use crate::{chat::Chat, chat_message::ChatMessage, commands::Command};
+use crate::{
+    chat::{Chat, ChatState},
+    chat_message::ChatMessage,
+    commands::Command,
+};
 
 use super::{chat_mode, logs_mode, UIEvent, UserInputCommand};
 
@@ -175,7 +179,7 @@ impl App {
     }
 
     pub fn dispatch_command(&mut self, cmd: &Command) {
-        self.current_chat_mut().set_loading();
+        self.current_chat_mut().transition(ChatState::Loading);
 
         self.command_tx
             .as_ref()
