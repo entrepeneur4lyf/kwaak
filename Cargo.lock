@@ -1774,6 +1774,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 
 [[package]]
+name = "document-features"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb6969eaabd2421f8a2775cfd2471a2b634372b4a25d41e3bd647b79912850a0"
+dependencies = [
+ "litrs",
+]
+
+[[package]]
 name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3159,6 +3168,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
 
 [[package]]
+name = "litrs"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4135,9 +4150,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.11.0"
+version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38200e5ee88914975b69f657f0801b6f6dccafd44fd9326302a4aaeecfacb1d8"
+checksum = "b544ef1b4eac5dc2db33ea63606ae9ffcfac26c1416a2806ae0bf5f56b201191"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -4907,10 +4922,10 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "swiftide"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "def92402e38a0195a4fdffb8b9adcdb6ae7d065ee9653bb4de25571756f0bf60"
+version = "0.14.1"
 dependencies = [
+ "document-features",
+ "swiftide-agents",
  "swiftide-core",
  "swiftide-indexing",
  "swiftide-integrations",
@@ -4918,10 +4933,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "swiftide-agents"
+version = "0.14.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "derive_builder",
+ "dyn-clone",
+ "indoc",
+ "pretty_assertions",
+ "strum",
+ "strum_macros",
+ "swiftide-core",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "swiftide-core"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69d7fa08ddea4eb95c996075fbcb84ee43698c49c2e7a46ce40d1409a05eb30c"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4930,7 +4960,7 @@ dependencies = [
  "futures-util",
  "itertools 0.13.0",
  "lazy_static",
- "pin-project-lite",
+ "pin-project",
  "serde",
  "serde_json",
  "strum",
@@ -4944,9 +4974,7 @@ dependencies = [
 
 [[package]]
 name = "swiftide-indexing"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7c26bbb3c14d3ae37478a0e5f5933bc694cc6d09052a15b4f4c0d30b8f00dc7"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4970,9 +4998,7 @@ dependencies = [
 
 [[package]]
 name = "swiftide-integrations"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e32dbb45f2ad1822c0fd7fd1c05b65e47968614a13f1b613986894c1f47758b"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "arrow-array",
@@ -5006,9 +5032,7 @@ dependencies = [
 
 [[package]]
 name = "swiftide-macros"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db76795b78403d741976392f9105ccaffddc6321189dcdc7a10fe3d2238b5e8b"
+version = "0.14.1"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -5018,9 +5042,7 @@ dependencies = [
 
 [[package]]
 name = "swiftide-query"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4149e4bb4781a1ddfd1dc2dd23fadbe9c40c970eaa3fcaf0c23400587dd11d20"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5028,7 +5050,6 @@ dependencies = [
  "futures-util",
  "indoc",
  "num_cpus",
- "pin-project-lite",
  "serde",
  "serde_json",
  "swiftide-core",
@@ -5387,9 +5408,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.40.0"
+version = "1.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2b070231665d27ad9ec9b8df639893f46727666c6767db40317fbe920a5d998"
+checksum = "145f3413504347a2be84393cc8a7d2fb4d863b375909ea59f2158261aa258bbb"
 dependencies = [
  "backtrace",
  "bytes",

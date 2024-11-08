@@ -10,11 +10,13 @@ ratatui = "0.28.1"
 tokio = { version = "1.40.0", features = ["full"] }
 strum = "0.26.3"
 strum_macros = "0.26.4"
-swiftide = { version = "0.13.0", features = [
+swiftide = { version = "0.14.1", features = [
   "lancedb",
   "openai",
   "tree-sitter",
   "redb",
+  "swiftide-agents",
+
 ] }
 toml = "0.8.19"
 serde = { version = "1.0.210", features = ["derive"] }
@@ -55,7 +57,7 @@ multiple_crate_versions = "allow"
 "test-markdown" = []
 
 [patch.crates-io]
-# swiftide = { path = "../swiftide/swiftide" }
+swiftide = { path = "../swiftide/swiftide" }
 tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
   "highlight-code",
 ] }

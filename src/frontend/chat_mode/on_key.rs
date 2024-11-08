@@ -53,7 +53,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
 }
 
 pub fn handle_input_command(app: &mut App) -> ChatMessageBuilder {
-    let Ok(cmd) = app.input[1..].parse::<UserInputCommand>() else {
+    let Ok(mut cmd) = UserInputCommand::parse_from_input(&app.input) else {
         return ChatMessage::new_system("Unknown command")
             .uuid(app.current_chat)
             .to_owned();
@@ -62,7 +62,7 @@ pub fn handle_input_command(app: &mut App) -> ChatMessageBuilder {
     if let Some(cmd) = cmd.to_command(app.current_chat) {
         // If the backend supports it, forward the command
         app.dispatch_command(&cmd);
-    } else if let Ok(cmd) = UIEvent::try_from(cmd) {
+    } else if let Ok(cmd) = UIEvent::try_from(cmd.clone()) {
         app.send_ui_event(cmd);
     } else {
         tracing::error!("Could not convert ui command to backend command nor ui event {cmd}");

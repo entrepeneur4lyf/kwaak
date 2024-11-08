@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
+use swiftide::chat_completion::ChatCompletion;
 use swiftide::integrations;
 use swiftide::traits::SimplePrompt;
 use swiftide::{integrations::treesitter::SupportedLanguages, traits::EmbeddingModel};
@@ -122,6 +123,33 @@ impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
 impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
     type Error = anyhow::Error;
     fn try_into(self) -> std::result::Result<Box<dyn SimplePrompt>, Self::Error> {
+        let boxed = match self {
+            LLMConfiguration::OpenAI {
+                api_key,
+                prompt_model,
+                ..
+            } => Box::new(
+                integrations::openai::OpenAI::builder()
+                    .client(async_openai::Client::with_config(
+                        async_openai::config::OpenAIConfig::default()
+                            .with_api_key(api_key.expose_secret()),
+                    ))
+                    .default_prompt_model(
+                        prompt_model
+                            .as_ref()
+                            .ok_or(anyhow::anyhow!("Missing prompt model"))?
+                            .to_string(),
+                    )
+                    .build()?,
+            ),
+        };
+        Ok(boxed)
+    }
+}
+
+impl TryInto<Box<dyn ChatCompletion>> for &LLMConfiguration {
+    type Error = anyhow::Error;
+    fn try_into(self) -> std::result::Result<Box<dyn ChatCompletion>, Self::Error> {
         let boxed = match self {
             LLMConfiguration::OpenAI {
                 api_key,

@@ -5,6 +5,7 @@ use tokio::{sync::mpsc, task};
 use uuid::Uuid;
 
 use crate::{
+    agent,
     chat_message::ChatMessage,
     frontend::{App, UIEvent},
     indexing, query,
@@ -40,6 +41,11 @@ pub enum Command {
         uuid: Uuid,
         message: String,
     },
+
+    Agent {
+        uuid: Uuid,
+        message: String,
+    },
 }
 
 impl Command {
@@ -48,6 +54,7 @@ impl Command {
             Command::Quit { uuid }
             | Command::ShowConfig { uuid }
             | Command::IndexRepository { uuid }
+            | Command::Agent { uuid, .. }
             | Command::Chat { uuid, .. } => *uuid,
         }
     }
@@ -58,6 +65,7 @@ impl Command {
             Command::ShowConfig { .. } => Command::ShowConfig { uuid },
             Command::IndexRepository { .. } => Command::IndexRepository { uuid },
             Command::Chat { message, .. } => Command::Chat { uuid, message },
+            Command::Agent { message, .. } => Command::Agent { uuid, message },
         }
     }
 }
@@ -118,7 +126,6 @@ impl CommandHandler {
 
     /// TODO: Most commands should probably be handled in a tokio task
     /// Maybe generalize tasks to make ui updates easier?
-    #[tracing::instrument(skip(repository, tx))]
     async fn handle_command(
         repository: &Repository,
         tx: &mpsc::UnboundedSender<UIEvent>,
@@ -144,6 +151,12 @@ impl CommandHandler {
                 tracing::info!(%response, "Chat message received, sending to frontend");
                 let response = ChatMessage::new_system(response).uuid(*uuid).to_owned();
 
+                tx.send(response.into()).unwrap();
+            }
+            Command::Agent { uuid, ref message } => {
+                let response = agent::run_agent(repository, message).await?;
+                tracing::info!(%response, "Agent message received, sending to frontend");
+                let response = ChatMessage::new_system(response).uuid(*uuid).to_owned();
                 tx.send(response.into()).unwrap();
             }
             // Anything else we forward to the UI
