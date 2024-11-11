@@ -11,3 +11,6 @@ prompt_model = "gpt-4o"
 [llm.embedding]
 provider = "OpenAI"
 embedding_model = "text-embedding-3-large"
+
+[docker]
+dockerfile = "Dockerfile"

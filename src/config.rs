@@ -19,6 +19,16 @@ pub struct Config {
     cache_dir: PathBuf,
     #[serde(default = "default_log_dir")]
     log_dir: PathBuf,
+
+    pub docker: DockerConfiguration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DockerConfiguration {
+    #[serde(default = "default_dockerfile")]
+    pub dockerfile: PathBuf,
+    #[serde(default = "default_docker_context")]
+    pub context: PathBuf,
 }
 
 impl Config {
@@ -89,6 +99,14 @@ fn default_openai_api_key() -> SecretString {
     std::env::var("OPENAI_API_KEY")
         .map(SecretString::from)
         .expect("Missing OPENAI_API_KEY environment variable or config")
+}
+
+fn default_dockerfile() -> PathBuf {
+    "./Dockerfile".into()
+}
+
+fn default_docker_context() -> PathBuf {
+    ".".into()
 }
 
 impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {

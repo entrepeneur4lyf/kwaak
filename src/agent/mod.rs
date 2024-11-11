@@ -1,8 +1,10 @@
+mod docker_tool_executor;
 use std::{future::IntoFuture, sync::Arc};
 
 use anyhow::{anyhow, Result};
+use docker_tool_executor::DockerExecutor;
 use swiftide::{
-    agents::Agent,
+    agents::{Agent, DefaultContext},
     chat_completion::{ChatCompletion, ChatMessage},
 };
 
@@ -17,18 +19,21 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
 
     let repository = Arc::new(repository.clone());
     let query = query.to_string();
+    let executor = DockerExecutor::from_repository(&repository).await?;
+    let context = DefaultContext::from_executor(executor);
 
     let mut agent = Agent::builder()
-        .instructions(query.to_string())
+        .instructions(query.clone())
+        .context(context)
         .before_all(move |context| {
             let repository = repository.clone();
-            let query = query.to_string();
+            let query = query.clone();
 
             Box::pin(async move {
                 let retrieved_context = query::query(&repository, &query).await?;
 
                 context
-                    .record_in_history(ChatMessage::User(retrieved_context))
+                    .add_message(ChatMessage::User(retrieved_context))
                     .await;
 
                 Ok(())
