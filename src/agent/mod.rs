@@ -1,4 +1,6 @@
 mod docker_tool_executor;
+mod tools;
+
 use std::{future::IntoFuture, sync::Arc};
 
 use anyhow::{anyhow, Result};

@@ -18,6 +18,7 @@ swiftide = { version = "0.14.1", features = [
   "swiftide-agents",
 
 ] }
+swiftide-macros = { path = "../swiftide/swiftide-macros" }
 toml = "0.8.19"
 serde = { version = "1.0.210", features = ["derive"] }
 secrecy = { version = "0.10.2", features = ["serde"] }
@@ -62,6 +63,7 @@ multiple_crate_versions = "allow"
 
 [patch.crates-io]
 swiftide = { path = "../swiftide/swiftide" }
+swiftide-macros = { path = "../swiftide/swiftide-macros" }
 tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
   "highlight-code",
 ] }
