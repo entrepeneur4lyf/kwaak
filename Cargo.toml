@@ -41,6 +41,7 @@ bollard = "0.17.1"
 tokio-tar = "0.3.1"
 ignore = "0.4.23"
 async-trait = "0.1.83"
+shell-escape = "0.1.5"
 
 [lints.rust]
 unsafe_code = "forbid"

@@ -2696,6 +2696,7 @@ dependencies = [
  "ratatui",
  "secrecy 0.10.3",
  "serde",
+ "shell-escape",
  "strum",
  "strum_macros",
  "swiftide",
@@ -4811,6 +4812,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "shell-escape"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45bb67a18fa91266cc7807181f62f9178a6873bfad7dc788c42e6430db40184f"
+
+[[package]]
 name = "shellexpand"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5037,7 +5044,11 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 name = "swiftide"
 version = "0.14.1"
 dependencies = [
+ "anyhow",
+ "async-trait",
  "document-features",
+ "serde",
+ "serde_json",
  "swiftide-agents",
  "swiftide-core",
  "swiftide-indexing",
@@ -5055,6 +5066,8 @@ dependencies = [
  "dyn-clone",
  "indoc",
  "pretty_assertions",
+ "serde",
+ "serde_json",
  "strum",
  "strum_macros",
  "swiftide-core",
@@ -5150,6 +5163,7 @@ version = "0.14.1"
 dependencies = [
  "anyhow",
  "async-trait",
+ "convert_case",
  "darling",
  "proc-macro2",
  "quote",

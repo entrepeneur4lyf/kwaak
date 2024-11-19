@@ -45,6 +45,7 @@ impl ToolExecutor for DockerExecutor {
         let Command::Shell(cmd) = cmd else {
             anyhow::bail!("Command not implemented")
         };
+
         let exec = self
             .docker
             .create_exec(

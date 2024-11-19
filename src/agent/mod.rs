@@ -25,7 +25,6 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
     let context = DefaultContext::from_executor(executor);
 
     let mut agent = Agent::builder()
-        .instructions(query.clone())
         .context(context)
         .before_all(move |context| {
             let repository = repository.clone();
@@ -35,7 +34,7 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
                 let retrieved_context = query::query(&repository, &query).await?;
 
                 context
-                    .add_message(ChatMessage::User(retrieved_context))
+                    .add_message(&ChatMessage::User(retrieved_context))
                     .await;
 
                 Ok(())
@@ -44,7 +43,7 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
         .llm(&query_provider)
         .build()?;
 
-    agent.run().await?;
+    agent.query(query).await?;
 
     let response = agent
         .history()
