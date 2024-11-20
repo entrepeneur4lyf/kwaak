@@ -20,7 +20,7 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
         repository.config().query_provider().try_into()?;
 
     let repository = Arc::new(repository.clone());
-    let query = query.to_string();
+    let query_for_agent = query.to_string();
     let executor = DockerExecutor::from_repository(&repository).await?;
     let context = DefaultContext::from_executor(executor);
 
@@ -28,7 +28,7 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
         .context(context)
         .before_all(move |context| {
             let repository = repository.clone();
-            let query = query.clone();
+            let query = query_for_agent.clone();
 
             Box::pin(async move {
                 let retrieved_context = query::query(&repository, &query).await?;
