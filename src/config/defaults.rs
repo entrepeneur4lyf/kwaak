@@ -39,3 +39,9 @@ pub(super) fn default_dockerfile() -> PathBuf {
 pub(super) fn default_docker_context() -> PathBuf {
     ".".into()
 }
+
+pub(super) fn default_github_token() -> SecretString {
+    std::env::var("GITHUB_TOKEN")
+        .map(SecretString::from)
+        .expect("Missing GITHUB_TOKEN environment variable or config")
+}

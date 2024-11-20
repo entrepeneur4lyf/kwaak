@@ -25,7 +25,10 @@ pub struct Config {
 
     pub docker: DockerConfiguration,
 
-    #[serde(serialize_with = "serde_hidden_secret")]
+    #[serde(
+        serialize_with = "serde_hidden_secret",
+        default = "default_github_token"
+    )]
     pub github_token: SecretString,
 }
 
