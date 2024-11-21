@@ -1,4 +1,5 @@
 language = "rust"
+github_token = "some-token"
 
 [llm.indexing]
 provider = "OpenAI"
