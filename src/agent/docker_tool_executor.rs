@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::{
     io::{BufWriter, Cursor, Read as _},
-    path::Path,
+    path::{Path, PathBuf},
 };
 use swiftide::{
     query::StreamExt as _,
@@ -32,20 +32,62 @@ use crate::repository::{self, Repository};
 /// - implement the Workspace trait for this
 ///
 #[derive(Clone)]
-pub struct DockerExecutor {
+pub struct RunningDockerExecutor {
     container_id: String,
     docker: Docker,
     // docker file?
     // handle?
 }
 
+#[derive(Clone, Debug)]
+pub struct DockerExecutor {
+    context_path: PathBuf,
+    image_name: String,
+}
+
+impl Default for DockerExecutor {
+    fn default() -> Self {
+        Self {
+            context_path: ".".into(),
+            image_name: "docker-executor".into(),
+        }
+    }
+}
+
+impl DockerExecutor {
+    pub fn from_repository(repository: &Repository) -> DockerExecutor {
+        let mut executor = DockerExecutor::default();
+        executor.with_context_path(&repository.config().docker.context);
+        executor.with_image_name(&repository.config().project_name);
+
+        executor
+    }
+
+    pub fn with_context_path(&mut self, path: impl Into<PathBuf>) -> &mut Self {
+        self.context_path = path.into();
+
+        self
+    }
+
+    pub fn with_image_name(&mut self, name: impl Into<String>) -> &mut Self {
+        self.image_name = name.into();
+
+        self
+    }
+
+    pub async fn start(self) -> Result<RunningDockerExecutor> {
+        RunningDockerExecutor::start(&self.context_path, &self.image_name).await
+    }
+}
+
 #[async_trait]
-impl ToolExecutor for DockerExecutor {
+impl ToolExecutor for RunningDockerExecutor {
     async fn exec_cmd(&self, cmd: &Command) -> Result<swiftide::traits::Output> {
         let Command::Shell(cmd) = cmd else {
             anyhow::bail!("Command not implemented")
         };
 
+        tracing::debug!("Building command: {cmd}");
         let exec = self
             .docker
             .create_exec(
@@ -62,6 +104,8 @@ impl ToolExecutor for DockerExecutor {
 
         let mut response = String::new();
 
+        tracing::warn!("Executing command {cmd}");
+
         if let StartExecResults::Attached { mut output, .. } =
             self.docker.start_exec(&exec, None).await?
         {
@@ -75,47 +119,46 @@ impl ToolExecutor for DockerExecutor {
     }
 }
 
-impl DockerExecutor {
-    /// Starts a docker container from the dockerfile configured in the repository
-    ///
-    /// Method is a bit loaded, tar'in the full context (respecting ignore)
-    /// and then booting up the container
-    ///
-    /// TODO: Ensure that drop can be handled on panic
-    /// TODO: Should not build and run container in constructor
-    pub async fn from_repository(repository: &Repository) -> Result<DockerExecutor> {
+impl RunningDockerExecutor {
+    /// Starts a docker container with a given context and image name
+    pub async fn start(context_path: &Path, image_name: &str) -> Result<RunningDockerExecutor> {
         let docker = Docker::connect_with_socket_defaults().unwrap();
 
         // TODO: Handle dockerfile not being named `Dockerfile` or missing
         // let dockerfile_path = &repository.config().docker.dockerfile;
-        let context_path = &repository.config().docker.context;
 
+        tracing::warn!(
+            "Creating archive for context from {}",
+            context_path.display()
+        );
         let context = build_context_as_tar(context_path).await?;
 
-        // Step 2: Build the Docker image using the in-memory tar archive
-        let image_name = format!("kwaak-{}", repository.config().project_name);
+        let image_name = format!("kwaak-{image_name}");
         let build_options = BuildImageOptions {
             t: image_name.as_str(),
             rm: true,
             ..Default::default()
         };
 
-        let mut build_stream = docker.build_image(build_options, None, Some(context.into()));
+        tracing::warn!("Building docker image with name {image_name}");
+        {
+            let mut build_stream = docker.build_image(build_options, None, Some(context.into()));
 
-        while let Some(log) = build_stream.next().await {
-            match log {
-                Ok(output) => {
-                    if let Some(stream) = output.stream {
-                        info!("{}", stream);
+            while let Some(log) = build_stream.next().await {
+                match log {
+                    Ok(output) => {
+                        if let Some(stream) = output.stream {
+                            info!("{}", stream);
+                        }
                     }
+                    Err(e) => error!("Error during build: {:?}", e),
                 }
-                Err(e) => error!("Error during build: {:?}", e),
             }
         }
 
-        // Step 3: Start a container with the built image
         let config = Config {
             image: Some(image_name.as_str()),
+            tty: Some(true),
             host_config: Some(bollard::models::HostConfig {
                 auto_remove: Some(true),
                 ..Default::default()
@@ -128,24 +171,25 @@ impl DockerExecutor {
             ..Default::default()
         };
 
+        tracing::warn!("Creating container from image {image_name}");
         let container_id = docker
             .create_container(Some(create_options), config)
             .await?
             .id;
 
+        tracing::warn!("Starting container {container_id}");
         docker
-            .start_container(&image_name, None::<StartContainerOptions<String>>)
+            .start_container(&container_id, None::<StartContainerOptions<String>>)
             .await?;
 
-        Ok(DockerExecutor {
+        Ok(RunningDockerExecutor {
             container_id,
-            // TODO: should we clone the docker client here?
-            docker: docker.clone(),
+            docker,
         })
     }
 }
 
-impl Drop for DockerExecutor {
+impl Drop for RunningDockerExecutor {
     fn drop(&mut self) {
         let result = tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current().block_on(async {
@@ -208,4 +252,34 @@ async fn build_context_as_tar(context_path: &Path) -> Result<Vec<u8>> {
     let result = tar.into_inner().await?;
 
     Ok(result.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test_log::test(tokio::test(flavor = "multi_thread"))]
+    async fn test_runs_docker_and_echos() {
+        let executor = DockerExecutor::default()
+            .with_context_path(".")
+            .with_image_name("tests")
+            .to_owned()
+            .start()
+            .await
+            .unwrap();
+
+        /// Debug docker ps
+        let docker_ps = tokio::process::Command::new("docker")
+            .args(&["ps"])
+            .output()
+            .await
+            .unwrap();
+        dbg!(String::from_utf8(docker_ps.stdout));
+        let output = executor
+            .exec_cmd(&Command::Shell("echo hello".to_string()))
+            .await
+            .unwrap();
+
+        assert_eq!(output.to_string(), "hello\n");
+    }
 }

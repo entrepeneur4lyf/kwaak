@@ -22,6 +22,7 @@ mod chat_message;
 mod commands;
 mod config;
 mod frontend;
+mod git;
 mod indexing;
 mod query;
 mod repository;

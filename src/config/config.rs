@@ -23,6 +23,7 @@ pub struct Config {
     #[serde(default = "default_log_dir")]
     log_dir: PathBuf,
 
+    #[serde(default)]
     pub docker: DockerConfiguration,
 
     #[serde(
@@ -38,6 +39,15 @@ pub struct DockerConfiguration {
     pub dockerfile: PathBuf,
     #[serde(default = "default_docker_context")]
     pub context: PathBuf,
+}
+
+impl Default for DockerConfiguration {
+    fn default() -> Self {
+        Self {
+            dockerfile: "Dockerfile".into(),
+            context: ".".into(),
+        }
+    }
 }
 
 impl Config {
@@ -110,11 +120,13 @@ mod tests {
     fn test_deserialize_toml_single() {
         let toml = r#"
             language = "rust"
+            github_token = "some-token"
 
             [llm]
             provider = "OpenAI"
             api_key = "test-key"
             prompt_model = "gpt-4o-mini"
+
             "#;
 
         let config: Config = toml::from_str(toml).unwrap();
@@ -137,6 +149,7 @@ mod tests {
     fn test_deserialize_toml_multiple() {
         let toml = r#"
             language = "rust"
+            github_token = "my-token"
 
             [llm.indexing]
             provider = "OpenAI"

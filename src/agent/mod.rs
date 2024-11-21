@@ -21,7 +21,7 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
 
     let repository = Arc::new(repository.clone());
     let query_for_agent = query.to_string();
-    let executor = DockerExecutor::from_repository(&repository).await?;
+    let executor = DockerExecutor::from_repository(&repository).start().await?;
     let context = DefaultContext::from_executor(executor);
 
     let mut agent = Agent::builder()
