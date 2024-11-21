@@ -53,6 +53,7 @@ tokio-tar = "0.3.1"
 ignore = "0.4.23"
 async-trait = "0.1.83"
 shell-escape = "0.1.5"
+url = "2.5.3"
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace"] }

@@ -1,10 +1,12 @@
 mod docker_tool_executor;
+mod env_setup;
 mod tools;
 
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use docker_tool_executor::DockerExecutor;
+use env_setup::EnvSetup;
 use swiftide::{
     agents::{Agent, DefaultContext},
     chat_completion::{ChatCompletion, ChatMessage},
@@ -22,6 +24,11 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
     let repository = Arc::new(repository.clone());
     let query_for_agent = query.to_string();
     let executor = DockerExecutor::from_repository(&repository).start().await?;
+
+    // Run a series of commands inside the executor so that everything is available
+    let env_setup = EnvSetup::new(&repository, &executor);
+    env_setup.exec_setup_commands().await?;
+
     let context = DefaultContext::from_executor(executor);
 
     let mut agent = Agent::builder()
