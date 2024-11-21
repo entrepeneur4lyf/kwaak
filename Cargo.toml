@@ -56,6 +56,7 @@ shell-escape = "0.1.5"
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace"] }
+insta = "1.41.1"
 
 [lints.rust]
 unsafe_code = "forbid"

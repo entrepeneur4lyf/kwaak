@@ -3,18 +3,20 @@ use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use swiftide::{
     query::StreamExt as _,
-    traits::{Command, ToolExecutor},
+    traits::{Command, Output, ToolExecutor},
 };
 use tokio::io::AsyncReadExt as _;
 use tracing::{error, info};
 
 use bollard::{
-    container::{Config, CreateContainerOptions, StartContainerOptions, StopContainerOptions},
+    container::{
+        Config, CreateContainerOptions, LogOutput, StartContainerOptions, StopContainerOptions,
+    },
     exec::{CreateExecOptions, StartExecResults},
     image::BuildImageOptions,
     Docker,
 };
-use ignore::{gitignore::GitignoreBuilder, WalkBuilder};
+use ignore::{gitignore::GitignoreBuilder, overrides::OverrideBuilder, WalkBuilder};
 use tokio_tar::{Builder, Header};
 
 use crate::repository::Repository;
@@ -37,6 +39,7 @@ pub struct RunningDockerExecutor {
 pub struct DockerExecutor {
     context_path: PathBuf,
     image_name: String,
+    working_dir: PathBuf,
 }
 
 impl Default for DockerExecutor {
@@ -44,6 +47,7 @@ impl Default for DockerExecutor {
         Self {
             context_path: ".".into(),
             image_name: "docker-executor".into(),
+            working_dir: ".".into(),
         }
     }
 }
@@ -65,6 +69,12 @@ impl DockerExecutor {
 
     pub fn with_image_name(&mut self, name: impl Into<String>) -> &mut Self {
         self.image_name = name.into();
+
+        self
+    }
+
+    pub fn with_working_dir(&mut self, path: impl Into<PathBuf>) -> &mut Self {
+        self.working_dir = path.into();
 
         self
     }
@@ -96,7 +106,8 @@ impl ToolExecutor for RunningDockerExecutor {
             .await?
             .id;
 
-        let mut response = String::new();
+        let mut stdout = String::new();
+        let mut stderr = String::new();
 
         tracing::warn!("Executing command {cmd}");
 
@@ -104,12 +115,26 @@ impl ToolExecutor for RunningDockerExecutor {
             self.docker.start_exec(&exec, None).await?
         {
             while let Some(Ok(msg)) = output.next().await {
-                response.push_str(&msg.to_string());
+                match msg {
+                    LogOutput::StdErr { .. } => stderr.push_str(&msg.to_string()),
+                    LogOutput::StdOut { .. } => stdout.push_str(&msg.to_string()),
+                    _ => (),
+                }
             }
         } else {
             todo!();
         }
-        Ok(response.into())
+
+        #[allow(clippy::bool_to_int_with_if)]
+        let status = if stderr.is_empty() { 0 } else { 1 };
+        let success = status == 0;
+
+        Ok(Output::Shell {
+            stdout,
+            stderr,
+            status,
+            success,
+        })
     }
 }
 
@@ -145,6 +170,8 @@ impl RunningDockerExecutor {
                             info!("{}", stream);
                         }
                     }
+                    // TODO: This can happen if 2 threads build the same image in parallel, and
+                    // should be handled
                     Err(e) => error!("Error during build: {:?}", e),
                 }
             }
@@ -160,8 +187,11 @@ impl RunningDockerExecutor {
             ..Default::default()
         };
 
+        // Add a random suffix so multiple containers do not conflict
+        let random_suffix = uuid::Uuid::new_v4().to_string();
+        let container_name = format!("kwaak-{image_name}-{random_suffix}");
         let create_options = CreateContainerOptions {
-            name: image_name.as_str(),
+            name: container_name.as_str(),
             ..Default::default()
         };
 
@@ -204,29 +234,24 @@ impl Drop for RunningDockerExecutor {
     }
 }
 
+// Iterate over all the files in the context directory and adds it to an in memory
+// tar. Respects .gitignore and .dockerignore.
 async fn build_context_as_tar(context_path: &Path) -> Result<Vec<u8>> {
     let buffer = Vec::new();
 
     let mut tar = Builder::new(buffer);
-    // Load .dockerignore and .gitignore rules
-    let mut ignore_builder = GitignoreBuilder::new(context_path);
-    let dockerignore_path = context_path.join(".dockerignore");
-    if dockerignore_path.exists() {
-        ignore_builder.add(&dockerignore_path);
-    }
-    let gitignore_path = context_path.join(".gitignore");
-    if gitignore_path.exists() {
-        ignore_builder.add(&gitignore_path);
-    }
-    let matcher = ignore_builder.build()?;
 
-    // Walk the directory and add files that are not ignored
-    for entry in WalkBuilder::new(context_path).build() {
+    // Ensure we *do* include the .git directory
+    // let overrides = OverrideBuilder::new(context_path).add(".git")?.build()?;
+
+    for entry in WalkBuilder::new(context_path)
+        // .overrides(overrides)
+        .hidden(false)
+        .add_custom_ignore_filename(".dockerignore")
+        .build()
+    {
         let entry = entry?;
         let path = entry.path();
-        if matcher.matched(path, path.is_dir()).is_ignore() {
-            continue; // Skip ignored files
-        }
 
         if path.is_file() {
             let relative_path = path.strip_prefix(context_path)?;
@@ -250,6 +275,8 @@ async fn build_context_as_tar(context_path: &Path) -> Result<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
+    use swiftide::traits::Output;
+
     use super::*;
 
     #[test_log::test(tokio::test(flavor = "multi_thread"))]
@@ -268,5 +295,47 @@ mod tests {
             .unwrap();
 
         assert_eq!(output.to_string(), "hello\n");
+    }
+
+    #[test_log::test(tokio::test(flavor = "multi_thread"))]
+    async fn test_context_present_and_connective() {
+        let executor = DockerExecutor::default()
+            .with_context_path(".")
+            .with_image_name("tests")
+            .with_working_dir("/app")
+            .to_owned()
+            .start()
+            .await
+            .unwrap();
+
+        // Verify that the working directory is set correctly
+        // TODO: Annoying this needs to be updated when files change in the root. Think of something better.
+        let ls = executor
+            .exec_cmd(&Command::Shell("ls -a".to_string()))
+            .await
+            .unwrap();
+
+        insta::assert_snapshot!(ls.to_string());
+
+        // Verify we have connectivity
+        let ping = executor
+            .exec_cmd(&Command::Shell("ping www.google.com -c 1".to_string()))
+            .await
+            .unwrap();
+
+        let Output::Shell {
+            stdout,
+            stderr,
+            status,
+            success,
+        } = ping
+        else {
+            panic!("Expected shell output")
+        };
+
+        assert!(stdout.contains("1 packets transmitted, 1 received"));
+        assert!(stderr.is_empty());
+        assert!(success);
+        assert_eq!(status, 0);
     }
 }

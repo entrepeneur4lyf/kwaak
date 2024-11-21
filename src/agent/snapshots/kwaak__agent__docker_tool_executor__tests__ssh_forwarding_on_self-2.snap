@@ -1,0 +1,5 @@
+---
+source: src/agent/docker_tool_executor.rs
+expression: output.to_string()
+---
+fatal: could not read Username for 'https://github.com': No such device or address
