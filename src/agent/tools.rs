@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use anyhow::Result;
 use swiftide::{
     chat_completion::ToolOutput,

@@ -1,14 +1,11 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
-use swiftide::chat_completion::ChatCompletion;
-use swiftide::integrations;
-use swiftide::traits::SimplePrompt;
-use swiftide::{integrations::treesitter::SupportedLanguages, traits::EmbeddingModel};
+use swiftide::integrations::treesitter::SupportedLanguages;
 
-use super::defaults::*;
+use super::defaults::{default_cache_dir, default_docker_context, default_dockerfile, default_github_token, default_log_dir, default_project_name};
 use super::{LLMConfiguration, LLMConfigurations};
 
 // TODO: Improving parsing by enforcing invariants

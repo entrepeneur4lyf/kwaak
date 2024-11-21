@@ -53,7 +53,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
 }
 
 pub fn handle_input_command(app: &mut App) -> ChatMessageBuilder {
-    let Ok(mut cmd) = UserInputCommand::parse_from_input(&app.input) else {
+    let Ok(cmd) = UserInputCommand::parse_from_input(&app.input) else {
         return ChatMessage::new_system("Unknown command")
             .uuid(app.current_chat)
             .to_owned();

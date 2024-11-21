@@ -1,9 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use std::{
-    io::{BufWriter, Cursor, Read as _},
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use swiftide::{
     query::StreamExt as _,
     traits::{Command, ToolExecutor},
@@ -12,18 +9,15 @@ use tokio::io::AsyncReadExt as _;
 use tracing::{error, info};
 
 use bollard::{
-    container::{
-        Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
-        StopContainerOptions,
-    },
+    container::{Config, CreateContainerOptions, StartContainerOptions, StopContainerOptions},
     exec::{CreateExecOptions, StartExecResults},
-    image::{BuildImageOptions, CreateImageOptions},
+    image::BuildImageOptions,
     Docker,
 };
 use ignore::{gitignore::GitignoreBuilder, WalkBuilder};
 use tokio_tar::{Builder, Header};
 
-use crate::repository::{self, Repository};
+use crate::repository::Repository;
 
 /// Starts up a docker container from the dockerfile configured in the repository
 ///
@@ -268,13 +262,6 @@ mod tests {
             .await
             .unwrap();
 
-        /// Debug docker ps
-        let docker_ps = tokio::process::Command::new("docker")
-            .args(&["ps"])
-            .output()
-            .await
-            .unwrap();
-        dbg!(String::from_utf8(docker_ps.stdout));
         let output = executor
             .exec_cmd(&Command::Shell("echo hello".to_string()))
             .await

@@ -1,5 +1,5 @@
 use super::config::serde_hidden_secret;
-use super::defaults::*;
+use super::defaults::default_openai_api_key;
 use anyhow::Result;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::{Deserialize, Serialize};

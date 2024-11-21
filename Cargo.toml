@@ -2,6 +2,14 @@
 name = "kwaak"
 version = "0.1.0"
 edition = "2021"
+# TODO: Find good categories
+categories = ["tui"]
+readme = "README.md"
+repository = "https://github.com/bosun-ai/kwaak"
+# TODO: Find good keywords
+keywords = ["tui", "swiftide", "kwaak"]
+description = "Run autonomous agents on your code"
+license = "MIT"
 
 [dependencies]
 anyhow = "1.0.88"

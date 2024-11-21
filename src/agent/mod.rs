@@ -1,7 +1,7 @@
 mod docker_tool_executor;
 mod tools;
 
-use std::{future::IntoFuture, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use docker_tool_executor::DockerExecutor;
@@ -11,7 +11,7 @@ use swiftide::{
 };
 
 use crate::{
-    query::{self, query},
+    query::{self},
     repository::Repository,
 };
 
