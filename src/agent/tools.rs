@@ -10,8 +10,7 @@ use swiftide_macros::{tool, Tool};
 
 use crate::git::github::GithubSession;
 
-static MAIN_BRANCH_CMD: &str =
-    "git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'";
+static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/.*: //p'";
 
 #[tool(
     description = "Reads file content",
