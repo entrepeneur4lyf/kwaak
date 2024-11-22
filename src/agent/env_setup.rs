@@ -17,7 +17,7 @@ use super::docker_tool_executor::RunningDockerExecutor;
 
 pub struct EnvSetup<'a> {
     repository: &'a Repository,
-    github_session: &'a GithubSession<'a>,
+    github_session: &'a GithubSession,
     executor: &'a RunningDockerExecutor,
 }
 

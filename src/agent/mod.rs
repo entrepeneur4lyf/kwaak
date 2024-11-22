@@ -10,6 +10,7 @@ use env_setup::EnvSetup;
 use swiftide::{
     agents::{Agent, DefaultContext},
     chat_completion::{ChatCompletion, ChatMessage},
+    traits::Tool,
 };
 
 use crate::{
@@ -26,7 +27,7 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
     let query_for_agent = query.to_string();
 
     let executor = DockerExecutor::from_repository(&repository).start().await?;
-    let github_session = GithubSession::from_repository(&repository)?;
+    let github_session = Arc::new(GithubSession::from_repository(&repository)?);
 
     // Run a series of commands inside the executor so that everything is available
     let env_setup = EnvSetup::new(&repository, &github_session, &executor);
@@ -34,8 +35,16 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
 
     let context = DefaultContext::from_executor(executor);
 
+    let tools = vec![
+        tools::read_file(),
+        tools::search_file(),
+        tools::git(),
+        tools::CreatePullRequest::new(&github_session).boxed(),
+    ];
+
     let mut agent = Agent::builder()
         .context(context)
+        .tools(tools)
         .before_all(move |context| {
             let repository = repository.clone();
             let query = query_for_agent.clone();

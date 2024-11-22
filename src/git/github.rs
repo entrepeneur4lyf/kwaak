@@ -9,13 +9,13 @@ use secrecy::{ExposeSecret, SecretString};
 use crate::repository::Repository;
 
 #[derive(Debug)]
-pub struct GithubSession<'a> {
+pub struct GithubSession {
     token: SecretString,
     octocrab: Octocrab,
-    repository: &'a Repository,
+    repository: Repository,
 }
-impl<'a> GithubSession<'a> {
-    pub fn from_repository(repository: &'a Repository) -> Result<Self> {
+impl GithubSession {
+    pub fn from_repository(repository: &Repository) -> Result<Self> {
         let token = repository.config().github.token.clone();
 
         let octocrab = Octocrab::builder()
@@ -25,7 +25,7 @@ impl<'a> GithubSession<'a> {
         Ok(Self {
             token,
             octocrab,
-            repository,
+            repository: repository.to_owned(),
         })
     }
 

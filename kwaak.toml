@@ -1,5 +1,8 @@
 language = "rust"
-github_token = "some-token"
+
+[github]
+owner = "bosun-ai"
+repository = "kwaak"
 
 [llm.indexing]
 provider = "OpenAI"
