@@ -10,30 +10,35 @@ use swiftide::traits::Command;
 use swiftide::traits::Output;
 use swiftide::traits::ToolExecutor as _;
 
+use crate::git::github::GithubSession;
 use crate::{git::github, repository::Repository};
 
-use super::docker_tool_executor::DockerExecutor;
 use super::docker_tool_executor::RunningDockerExecutor;
 
 pub struct EnvSetup<'a> {
     repository: &'a Repository,
+    github_session: &'a GithubSession<'a>,
     executor: &'a RunningDockerExecutor,
 }
 
 impl EnvSetup<'_> {
     pub fn new<'a>(
         repository: &'a Repository,
+        github_session: &'a GithubSession,
         executor: &'a RunningDockerExecutor,
     ) -> EnvSetup<'a> {
         EnvSetup {
             repository,
+            github_session,
             executor,
         }
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn exec_setup_commands(&self) -> Result<()> {
-        let Output::Shell { stdout, .. } = self
+        let Output::Shell {
+            stdout: origin_url, ..
+        } = self
             .executor
             .exec_cmd(&Command::shell("git remote get-url origin"))
             .await?
@@ -41,8 +46,7 @@ impl EnvSetup<'_> {
             bail!("Could not get origin url")
         };
 
-        let url_with_token =
-            github::add_token_to_url(&stdout, &self.repository.config().github_token)?;
+        let url_with_token = self.github_session.add_token_to_url(&origin_url)?;
 
         self.executor
             .exec_cmd(&Command::shell(format!(

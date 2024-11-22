@@ -54,6 +54,7 @@ ignore = "0.4.23"
 async-trait = "0.1.83"
 shell-escape = "0.1.5"
 url = "2.5.3"
+octocrab = "0.42.0"
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace"] }

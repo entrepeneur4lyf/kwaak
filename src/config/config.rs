@@ -5,7 +5,10 @@ use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::treesitter::SupportedLanguages;
 
-use super::defaults::{default_cache_dir, default_docker_context, default_dockerfile, default_github_token, default_log_dir, default_project_name};
+use super::defaults::{
+    default_cache_dir, default_docker_context, default_dockerfile, default_github_token,
+    default_log_dir, default_project_name,
+};
 use super::{LLMConfiguration, LLMConfigurations};
 
 // TODO: Improving parsing by enforcing invariants
@@ -23,11 +26,7 @@ pub struct Config {
     #[serde(default)]
     pub docker: DockerConfiguration,
 
-    #[serde(
-        serialize_with = "serde_hidden_secret",
-        default = "default_github_token"
-    )]
-    pub github_token: SecretString,
+    pub github: GithubConfiguration,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +44,20 @@ impl Default for DockerConfiguration {
             context: ".".into(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GithubConfiguration {
+    // TODO: Repo and owner can probably be derived from the origin url
+    // Personally would prefer an onboarding that prefils instead of inferring at runtime
+    pub repository: String,
+    pub owner: String,
+
+    #[serde(
+        serialize_with = "serde_hidden_secret",
+        default = "default_github_token"
+    )]
+    pub token: SecretString,
 }
 
 impl Config {
@@ -117,7 +130,11 @@ mod tests {
     fn test_deserialize_toml_single() {
         let toml = r#"
             language = "rust"
-            github_token = "some-token"
+
+            [github]
+            owner = "bosun-ai"
+            repository = "kwaak"
+            token = "some-token"
 
             [llm]
             provider = "OpenAI"
@@ -146,7 +163,11 @@ mod tests {
     fn test_deserialize_toml_multiple() {
         let toml = r#"
             language = "rust"
-            github_token = "my-token"
+
+            [github]
+            owner = "bosun-ai"
+            repository = "kwaak"
+            token = "my-token"
 
             [llm.indexing]
             provider = "OpenAI"

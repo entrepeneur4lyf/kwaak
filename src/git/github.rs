@@ -1,19 +1,74 @@
+//! This module provides a github session wrapping octocrab
+//!
+//! It is responsible for providing tooling and interaction with github
 use anyhow::{Context, Result};
+use derive_builder::Builder;
+use octocrab::{models::pulls::PullRequest, Octocrab};
 use secrecy::{ExposeSecret, SecretString};
 
-/// Adds the github token to the repository url
-#[tracing::instrument(skip_all)]
-pub fn add_token_to_url(repo_url: &str, token: &SecretString) -> Result<SecretString> {
-    if !repo_url.starts_with("https://") {
-        anyhow::bail!("Only https urls are supported")
+use crate::repository::Repository;
+
+#[derive(Debug)]
+pub struct GithubSession<'a> {
+    token: SecretString,
+    octocrab: Octocrab,
+    repository: &'a Repository,
+}
+impl<'a> GithubSession<'a> {
+    pub fn from_repository(repository: &'a Repository) -> Result<Self> {
+        let token = repository.config().github.token.clone();
+
+        let octocrab = Octocrab::builder()
+            .personal_token(token.expose_secret())
+            .build()?;
+
+        Ok(Self {
+            token,
+            octocrab,
+            repository,
+        })
     }
 
-    let mut parsed = url::Url::parse(repo_url).context("Failed to parse url")?;
+    /// Adds the github token to the repository url
+    ///
+    /// Used to overwrite the origin remote so that the agent can interact with git
+    #[tracing::instrument(skip_all)]
+    pub fn add_token_to_url(&self, repo_url: impl AsRef<str>) -> Result<SecretString> {
+        if !repo_url.as_ref().starts_with("https://") {
+            anyhow::bail!("Only https urls are supported")
+        }
 
-    parsed
-        .set_username("x-access-token")
-        .and_then(|()| parsed.set_password(Some(token.expose_secret())))
-        .expect("Infallible");
+        let mut parsed = url::Url::parse(repo_url.as_ref()).context("Failed to parse url")?;
 
-    Ok(SecretString::from(parsed.to_string()))
+        parsed
+            .set_username("x-access-token")
+            .and_then(|()| parsed.set_password(Some(self.token.expose_secret())))
+            .expect("Infallible");
+
+        Ok(SecretString::from(parsed.to_string()))
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn create_pull_request(
+        &self,
+        branch_name: impl AsRef<str>,
+        base_branch_name: impl AsRef<str>,
+        title: impl AsRef<str>,
+        description: impl AsRef<str>,
+    ) -> Result<PullRequest> {
+        let owner = &self.repository.config().github.owner;
+        let repo = &self.repository.config().github.repository;
+
+        self.octocrab
+            .pulls(owner, repo)
+            .create(
+                title.as_ref(),
+                branch_name.as_ref(),
+                base_branch_name.as_ref(),
+            )
+            .body(description.as_ref())
+            .send()
+            .await
+            .map_err(anyhow::Error::from)
+    }
 }
