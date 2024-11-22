@@ -45,3 +45,7 @@ pub(super) fn default_github_token() -> SecretString {
         .map(SecretString::from)
         .expect("Missing GITHUB_TOKEN environment variable or config")
 }
+
+pub(super) fn default_main_branch() -> String {
+    "main".to_string()
+}

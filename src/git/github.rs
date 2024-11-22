@@ -48,6 +48,10 @@ impl GithubSession {
         Ok(SecretString::from(parsed.to_string()))
     }
 
+    pub fn main_branch(&self) -> &str {
+        &self.repository.config().github.main_branch
+    }
+
     #[tracing::instrument(skip_all)]
     pub async fn create_pull_request(
         &self,
@@ -58,6 +62,14 @@ impl GithubSession {
     ) -> Result<PullRequest> {
         let owner = &self.repository.config().github.owner;
         let repo = &self.repository.config().github.repository;
+
+        tracing::debug!(
+            "Creating pull request for {}/{} from branch {} onto {}",
+            owner,
+            repo,
+            branch_name.as_ref(),
+            base_branch_name.as_ref()
+        );
 
         self.octocrab
             .pulls(owner, repo)

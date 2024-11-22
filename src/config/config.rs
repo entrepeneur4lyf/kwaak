@@ -7,7 +7,7 @@ use swiftide::integrations::treesitter::SupportedLanguages;
 
 use super::defaults::{
     default_cache_dir, default_docker_context, default_dockerfile, default_github_token,
-    default_log_dir, default_project_name,
+    default_log_dir, default_main_branch, default_project_name,
 };
 use super::{LLMConfiguration, LLMConfigurations};
 
@@ -52,6 +52,8 @@ pub struct GithubConfiguration {
     // Personally would prefer an onboarding that prefils instead of inferring at runtime
     pub repository: String,
     pub owner: String,
+    #[serde(default = "default_main_branch")]
+    pub main_branch: String,
 
     #[serde(
         serialize_with = "serde_hidden_secret",

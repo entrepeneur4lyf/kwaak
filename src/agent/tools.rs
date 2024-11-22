@@ -109,25 +109,16 @@ impl<'a> CreatePullRequest {
             }
         };
 
-        let main_branch = context.exec_cmd(&Command::shell(MAIN_BRANCH_CMD)).await?;
-
-        let main_branch = match main_branch {
-            Output::Shell {
-                stdout, success, ..
-            } if success => stdout,
-            Output::Shell {
-                stderr, success, ..
-            } if !success => return Err(anyhow::anyhow!("Failed to get main branch: {}", stderr)),
-            _ => {
-                return Err(anyhow::anyhow!(
-                    "Unexpected output from git symbolic-ref refs/remotes/origin/HEAD"
-                ))
-            }
-        };
-
+        // Main branch leaks from github session intentionally as it would be cool to use other
+        // branches as well. However, if that's never the case, just simplify the api.
         let pull_request = self
             .github_session
-            .create_pull_request(current_branch, main_branch, title, pull_request_body)
+            .create_pull_request(
+                current_branch,
+                &self.github_session.main_branch(),
+                title,
+                pull_request_body,
+            )
             .await?;
 
         Ok(ToolOutput::Text(format!(
