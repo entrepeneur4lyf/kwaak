@@ -125,6 +125,10 @@ impl ToolExecutor for RunningDockerExecutor {
             todo!();
         }
 
+        // Trim both stdout and stderr to remove surrounding whitespace and newlines
+        let stdout = stdout.trim().to_string();
+        let stderr = stderr.trim().to_string();
+
         #[allow(clippy::bool_to_int_with_if)]
         let status = if stderr.is_empty() { 0 } else { 1 };
         let success = status == 0;

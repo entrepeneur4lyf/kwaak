@@ -3,6 +3,7 @@ language = "rust"
 [github]
 owner = "bosun-ai"
 repository = "kwaak"
+main_branch = "master"
 
 [llm.indexing]
 provider = "OpenAI"
