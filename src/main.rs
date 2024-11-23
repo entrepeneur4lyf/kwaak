@@ -22,6 +22,7 @@ mod chat_message;
 mod commands;
 mod config;
 mod frontend;
+mod git;
 mod indexing;
 mod query;
 mod repository;
@@ -83,12 +84,22 @@ pub fn init_panic_hook() {
     }));
 }
 
+/// Initializes the terminal backend in raw mode
+///
+/// # Errors
+///
+/// Errors if the terminal backend cannot be initialized
 pub fn init_tui() -> io::Result<Terminal<impl Backend>> {
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen)?;
     Terminal::new(CrosstermBackend::new(stdout()))
 }
 
+/// Restores the terminal to its original state
+///
+/// # Errors
+///
+/// Errors if the terminal cannot be restored
 pub fn restore_tui() -> io::Result<()> {
     disable_raw_mode()?;
     execute!(stdout(), LeaveAlternateScreen)?;

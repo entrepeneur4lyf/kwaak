@@ -2,15 +2,23 @@
 name = "kwaak"
 version = "0.1.0"
 edition = "2021"
+# TODO: Find good categories
+categories = ["tui"]
+readme = "README.md"
+repository = "https://github.com/bosun-ai/kwaak"
+# TODO: Find good keywords
+keywords = ["tui", "swiftide", "kwaak"]
+description = "Run autonomous agents on your code"
+license = "MIT"
 
 [dependencies]
 anyhow = "1.0.88"
 crossterm = "0.28.1"
-ratatui = "0.28.1"
+ratatui = "0.29.0"
 tokio = { version = "1.40.0", features = ["full"] }
 strum = "0.26.3"
 strum_macros = "0.26.4"
-swiftide = { version = "0.14.1", features = [
+swiftide = { version = "0.14.3", features = [
   "lancedb",
   "openai",
   "tree-sitter",
@@ -18,24 +26,39 @@ swiftide = { version = "0.14.1", features = [
   "swiftide-agents",
 
 ] }
+swiftide-macros = { path = "../swiftide/swiftide-macros" }
 toml = "0.8.19"
 serde = { version = "1.0.210", features = ["derive"] }
 secrecy = { version = "0.10.2", features = ["serde"] }
 tracing = "0.1.40"
-async-openai = "0.25.0"
+async-openai = "0.26.0"
 dirs = "5.0.1"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-appender = "0.2.3"
 derive_more = { version = "1.0.0", features = ["full"] }
-tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
-  "highlight-code",
-] }
+# tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
+#   "highlight-code",
+# ] }
+tui-markdown = "0.3.0"
 uuid = { version = "1.10.0", features = ["v4"] }
 derive_builder = "0.20.2"
-tui-logger = { version = "0.13.2", features = ["tracing-support"] }
+tui-logger = { features = [
+  "tracing-support",
+], git = "https://github.com/gin66/tui-logger" }
 # Only needed for tui-logger filtering
 log = "0.4"
-throbber-widgets-tui = "0.7.1"
+throbber-widgets-tui = "0.8.0"
+bollard = "0.18.1"
+tokio-tar = "0.3.1"
+ignore = "0.4.23"
+async-trait = "0.1.83"
+shell-escape = "0.1.5"
+url = "2.5.3"
+octocrab = "0.42.0"
+
+[dev-dependencies]
+test-log = { version = "0.2.16", features = ["trace"] }
+insta = "1.41.1"
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -58,6 +81,4 @@ multiple_crate_versions = "allow"
 
 [patch.crates-io]
 swiftide = { path = "../swiftide/swiftide" }
-tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
-  "highlight-code",
-] }
+swiftide-macros = { path = "../swiftide/swiftide-macros" }

@@ -1,13 +1,21 @@
-use std::{future::IntoFuture, sync::Arc};
+mod docker_tool_executor;
+mod env_setup;
+mod tools;
+
+use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use docker_tool_executor::DockerExecutor;
+use env_setup::EnvSetup;
 use swiftide::{
-    agents::Agent,
+    agents::{Agent, DefaultContext},
     chat_completion::{ChatCompletion, ChatMessage},
+    traits::Tool,
 };
 
 use crate::{
-    query::{self, query},
+    git::github::GithubSession,
+    query::{self},
     repository::Repository,
 };
 
@@ -16,19 +24,36 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
         repository.config().query_provider().try_into()?;
 
     let repository = Arc::new(repository.clone());
-    let query = query.to_string();
+    let query_for_agent = query.to_string();
+
+    let executor = DockerExecutor::from_repository(&repository).start().await?;
+    let github_session = Arc::new(GithubSession::from_repository(&repository)?);
+
+    // Run a series of commands inside the executor so that everything is available
+    let env_setup = EnvSetup::new(&repository, &github_session, &executor);
+    env_setup.exec_setup_commands().await?;
+
+    let context = DefaultContext::from_executor(executor);
+
+    let tools = vec![
+        tools::read_file(),
+        tools::search_file(),
+        tools::git(),
+        tools::CreatePullRequest::new(&github_session).boxed(),
+    ];
 
     let mut agent = Agent::builder()
-        .instructions(query.to_string())
+        .context(context)
+        .tools(tools)
         .before_all(move |context| {
             let repository = repository.clone();
-            let query = query.to_string();
+            let query = query_for_agent.clone();
 
             Box::pin(async move {
                 let retrieved_context = query::query(&repository, &query).await?;
 
                 context
-                    .record_in_history(ChatMessage::User(retrieved_context))
+                    .add_message(&ChatMessage::User(retrieved_context))
                     .await;
 
                 Ok(())
@@ -37,7 +62,7 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
         .llm(&query_provider)
         .build()?;
 
-    agent.run().await?;
+    agent.query(query).await?;
 
     let response = agent
         .history()

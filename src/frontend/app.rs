@@ -96,7 +96,7 @@ impl AppMode {
         }
     }
 
-    fn tab_index(&self) -> Option<usize> {
+    fn tab_index(self) -> Option<usize> {
         match self {
             AppMode::Chat => Some(0),
             AppMode::Logs => Some(1),
@@ -117,8 +117,10 @@ impl Default for App {
     fn default() -> Self {
         let (ui_tx, ui_rx) = mpsc::unbounded_channel();
 
-        let mut chat = Chat::default();
-        chat.name = "Chat #1".to_string();
+        let chat = Chat {
+            name: "Chat #1".to_string(),
+            ..Chat::default()
+        };
 
         Self {
             input: String::new(),
