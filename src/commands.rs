@@ -41,11 +41,6 @@ pub enum Command {
         uuid: Uuid,
         message: String,
     },
-
-    Agent {
-        uuid: Uuid,
-        message: String,
-    },
 }
 
 pub enum CommandResponse {
@@ -64,7 +59,6 @@ impl Command {
             Command::Quit { uuid }
             | Command::ShowConfig { uuid }
             | Command::IndexRepository { uuid }
-            | Command::Agent { uuid, .. }
             | Command::Chat { uuid, .. } => *uuid,
         }
     }
@@ -75,7 +69,6 @@ impl Command {
             Command::ShowConfig { .. } => Command::ShowConfig { uuid },
             Command::IndexRepository { .. } => Command::IndexRepository { uuid },
             Command::Chat { message, .. } => Command::Chat { uuid, message },
-            Command::Agent { message, .. } => Command::Agent { uuid, message },
         }
     }
 }
@@ -161,18 +154,11 @@ impl CommandHandler {
                     .unwrap();
             }
             Command::Chat { uuid, ref message } => {
-                let response = query::query(repository, message).await?;
-                tracing::info!(%response, "Chat message received, sending to frontend");
-                let response = ChatMessage::new_system(response).uuid(*uuid).to_owned();
-
-                ui_tx.send(response.into()).unwrap();
-            }
-            Command::Agent { uuid, ref message } => {
                 let (tx, mut rx) = mpsc::unbounded_channel::<CommandResponse>();
                 // Spawn a task that receives the command responses and forwards them to the ui
                 //
                 let ui_tx_clone = ui_tx.clone();
-                let uuid = uuid.clone();
+                let uuid = *uuid;
 
                 let handle = task::spawn(async move {
                     while let Some(response) = rx.recv().await {

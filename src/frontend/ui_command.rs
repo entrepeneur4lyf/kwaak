@@ -29,10 +29,6 @@ impl UserInputCommand {
             UserInputCommand::Quit => Some(Command::Quit { uuid }),
             UserInputCommand::ShowConfig => Some(Command::ShowConfig { uuid }),
             UserInputCommand::IndexRepository => Some(Command::IndexRepository { uuid }),
-            UserInputCommand::Agent(message) => Some(Command::Agent {
-                uuid,
-                message: message.to_string(),
-            }),
             _ => None,
         }
     }
