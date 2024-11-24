@@ -2,7 +2,9 @@ use derive_builder::Builder;
 use uuid::Uuid;
 
 /// Represents a chat message that can be stored in a [`Chat`]
-/// TODO: Should we just use swiftide chat messages to avoid confusion?
+///
+/// Messages are expected to be formatted strings and are displayed as-is. Markdown is rendered
+/// using `tui-markdown`.
 #[derive(Clone, Default, Builder)]
 #[builder(setter(into, strip_option), build_fn(skip))]
 pub struct ChatMessage {
@@ -130,5 +132,97 @@ impl ChatMessageBuilder {
             uuid: self.uuid.unwrap_or_default(),
             role: self.role.unwrap_or_default(),
         }
+    }
+}
+
+fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
+    // If args, parse them as a json value, then if its just one, render only the value, otherwise
+    // limit the output to 20 characters
+    let formatted_args = tool_call.args().map_or("no arguments".to_string(), |args| {
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args) {
+            if let Some(obj) = parsed.as_object() {
+                if obj.keys().count() == 1 {
+                    let key = obj.keys().next().unwrap();
+                    let val = obj[key].as_str().unwrap_or_default();
+
+                    if val.len() > 20 {
+                        return format!("{} ...", &val[..20]);
+                    }
+
+                    return val.to_string();
+                }
+                return args.to_string();
+            }
+
+            args.to_string()
+        } else {
+            args.to_string()
+        }
+    });
+
+    format!(
+        "calling tool `{}` with `{}`",
+        tool_call.name(),
+        formatted_args
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use swiftide::chat_completion::ToolCall;
+
+    #[test]
+    fn test_format_tool_call_no_arguments() {
+        let tool_call = ToolCall::builder()
+            .name("test_tool")
+            .id("test_id")
+            .build()
+            .unwrap();
+
+        let result = format_tool_call(&tool_call);
+        assert_eq!(result, "calling tool `test_tool` with `no arguments`");
+    }
+
+    #[test]
+    fn test_format_tool_call_single_argument() {
+        let tool_call = ToolCall::builder()
+            .name("test_tool")
+            .id("test_id")
+            .args(r#"{"key": "value"}"#.to_string())
+            .build()
+            .unwrap();
+
+        let result = format_tool_call(&tool_call);
+        assert_eq!(result, "calling tool `test_tool` with `value`");
+    }
+
+    #[test]
+    fn test_format_tool_call_multiple_arguments() {
+        let tool_call = ToolCall::builder()
+            .name("test_tool")
+            .id("test_id")
+            .args(r#"{"key1": "value1", "key2": "value2"}"#.to_string())
+            .build()
+            .unwrap();
+
+        let result = format_tool_call(&tool_call);
+        assert_eq!(
+            result,
+            "calling tool `test_tool` with `{\"key1\": \"value1\", \"key2\": \"value2\"}`"
+        );
+    }
+
+    #[test]
+    fn test_format_tool_call_invalid_json() {
+        let tool_call = ToolCall::builder()
+            .name("test_tool")
+            .id("test_id")
+            .args("invalid json".to_string())
+            .build()
+            .unwrap();
+
+        let result = format_tool_call(&tool_call);
+        assert_eq!(result, "calling tool `test_tool` with `invalid json`");
     }
 }
