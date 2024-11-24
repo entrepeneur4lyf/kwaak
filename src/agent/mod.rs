@@ -27,6 +27,16 @@ pub async fn build_agent(
     query: &str,
     command_response_tx: mpsc::UnboundedSender<CommandResponse>,
 ) -> Result<Agent> {
+    command_response_tx
+        .send(
+            ChatMessage::new_system(
+                "Starting up agent for the first time, this might take a while ...",
+            )
+            .build()
+            .into(),
+        )
+        .unwrap();
+
     let query_provider: Box<dyn ChatCompletion> =
         repository.config().query_provider().try_into()?;
 
