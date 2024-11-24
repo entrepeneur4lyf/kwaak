@@ -87,58 +87,15 @@ impl DockerExecutor {
 #[async_trait]
 impl ToolExecutor for RunningDockerExecutor {
     async fn exec_cmd(&self, cmd: &Command) -> Result<swiftide::traits::Output> {
-        let Command::Shell(cmd) = cmd else {
-            anyhow::bail!("Command not implemented")
-        };
-
-        tracing::debug!("Building command: {cmd}");
-        let exec = self
-            .docker
-            .create_exec(
-                &self.container_id,
-                CreateExecOptions {
-                    attach_stdout: Some(true),
-                    attach_stderr: Some(true),
-                    cmd: Some(cmd.split_whitespace().collect::<Vec<_>>()),
-                    ..Default::default()
-                },
-            )
-            .await?
-            .id;
-
-        let mut stdout = String::new();
-        let mut stderr = String::new();
-
-        tracing::warn!("Executing command {cmd}");
-
-        if let StartExecResults::Attached { mut output, .. } =
-            self.docker.start_exec(&exec, None).await?
-        {
-            while let Some(Ok(msg)) = output.next().await {
-                match msg {
-                    LogOutput::StdErr { .. } => stderr.push_str(&msg.to_string()),
-                    LogOutput::StdOut { .. } => stdout.push_str(&msg.to_string()),
-                    _ => (),
-                }
-            }
-        } else {
-            todo!();
+        // let Command::Shell(cmd) = cmd else {
+        //     anyhow::bail!("Command not implemented")
+        // };
+        match cmd {
+            Command::Shell(cmd) => self.exec_shell(cmd).await,
+            Command::ReadFile(path) => self.read_file(path).await,
+            Command::WriteFile(path, content) => self.write_file(path, content).await,
+            _ => todo!(),
         }
-
-        // Trim both stdout and stderr to remove surrounding whitespace and newlines
-        let stdout = stdout.trim().to_string();
-        let stderr = stderr.trim().to_string();
-
-        #[allow(clippy::bool_to_int_with_if)]
-        let status = if stderr.is_empty() { 0 } else { 1 };
-        let success = status == 0;
-
-        Ok(Output::Shell {
-            stdout,
-            stderr,
-            status,
-            success,
-        })
     }
 }
 
@@ -214,6 +171,71 @@ impl RunningDockerExecutor {
             container_id,
             docker,
         })
+    }
+
+    async fn exec_shell(&self, cmd: &str) -> Result<Output> {
+        tracing::debug!("Building command: {cmd}");
+        let exec = self
+            .docker
+            .create_exec(
+                &self.container_id,
+                CreateExecOptions {
+                    attach_stdout: Some(true),
+                    attach_stderr: Some(true),
+                    cmd: Some(cmd.split_whitespace().collect::<Vec<_>>()),
+                    ..Default::default()
+                },
+            )
+            .await?
+            .id;
+
+        let mut stdout = String::new();
+        let mut stderr = String::new();
+
+        tracing::warn!("Executing command {cmd}");
+
+        if let StartExecResults::Attached { mut output, .. } =
+            self.docker.start_exec(&exec, None).await?
+        {
+            while let Some(Ok(msg)) = output.next().await {
+                match msg {
+                    LogOutput::StdErr { .. } => stderr.push_str(&msg.to_string()),
+                    LogOutput::StdOut { .. } => stdout.push_str(&msg.to_string()),
+                    _ => (),
+                }
+            }
+        } else {
+            todo!();
+        }
+
+        // Trim both stdout and stderr to remove surrounding whitespace and newlines
+        let stdout = stdout.trim().to_string();
+        let stderr = stderr.trim().to_string();
+
+        #[allow(clippy::bool_to_int_with_if)]
+        let status = if stderr.is_empty() { 0 } else { 1 };
+        let success = status == 0;
+
+        Ok(Output::Shell {
+            stdout,
+            stderr,
+            status,
+            success,
+        })
+    }
+
+    async fn read_file(&self, path: &Path) -> std::result::Result<Output, anyhow::Error> {
+        self.exec_shell(&format!("cat {}", path.display())).await
+    }
+
+    async fn write_file(
+        &self,
+        path: &Path,
+        content: &str,
+    ) -> std::result::Result<Output, anyhow::Error> {
+        let content = shell_escape::escape(content.into());
+        self.exec_shell(&format!("echo \"{content}\" > {}", path.display()))
+            .await
     }
 }
 

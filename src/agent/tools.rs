@@ -20,7 +20,7 @@ pub async fn read_file(
     context: &dyn AgentContext,
     file_name: &str,
 ) -> Result<ToolOutput, ToolError> {
-    let cmd = Command::Shell(format!("cat {file_name}"));
+    let cmd = Command::ReadFile(file_name.into());
 
     let output = context.exec_cmd(&cmd).await?;
 
@@ -37,8 +37,7 @@ pub async fn write_file(
     file_name: &str,
     content: &str,
 ) -> Result<ToolOutput, ToolError> {
-    let heredoc = format!("<<HERE\n{content}\nHERE");
-    let cmd = Command::Shell(format!("echo {heredoc} > {file_name}"));
+    let cmd = Command::WriteFile(file_name.into(), content.into());
 
     let output = context.exec_cmd(&cmd).await?;
 
