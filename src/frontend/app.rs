@@ -56,7 +56,7 @@ pub struct App {
 
     // Scroll chat
     pub vertical_scroll_state: ScrollbarState,
-    pub vertical_scroll: u16,
+    pub vertical_scroll: usize,
 
     /// Tracks the current selected state in the UI
     pub chats_state: ListState,

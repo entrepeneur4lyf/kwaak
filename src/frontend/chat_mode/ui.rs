@@ -13,12 +13,6 @@ use crate::chat_message::ChatMessage;
 use crate::frontend::App;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
-    // If we're rendering the current chat and it has new messages
-    // set the counter back to 0
-    if app.current_chat().new_message_count > 0 {
-        app.current_chat_mut().new_message_count = 0;
-    }
-
     // Create the main layout (vertical)
     let [main_area, input_area, help_area] = Layout::default()
         .direction(Direction::Vertical)
@@ -59,15 +53,31 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 
     app.vertical_scroll_state = app.vertical_scroll_state.content_length(num_lines);
 
+    // If we're rendering the current chat and it has new messages
+    // set the counter back to 0 and scroll to bottom
+    if app.current_chat().new_message_count > 0 {
+        app.current_chat_mut().new_message_count = 0;
+
+        let max_height = area.height as usize;
+
+        // If the number of lines is less than the max height, scroll down just enough
+        // so everything is in view
+        if num_lines > max_height {
+            app.vertical_scroll = app.vertical_scroll.saturating_add(num_lines - max_height);
+            app.vertical_scroll_state = app.vertical_scroll_state.position(app.vertical_scroll);
+        }
+    }
+
     let message_block = Block::default()
         .title("Chat")
         .borders(Borders::ALL)
         .padding(Padding::horizontal(1));
 
+    #[allow(clippy::cast_possible_truncation)]
     let chat_messages = Paragraph::new(chat_content)
         .block(message_block)
         .wrap(Wrap { trim: false })
-        .scroll((app.vertical_scroll, 0));
+        .scroll((app.vertical_scroll as u16, 0));
 
     f.render_widget(chat_messages, area);
 

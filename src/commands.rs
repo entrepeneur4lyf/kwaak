@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     sync::{Arc, MutexGuard},
+    time::Duration,
 };
 
 use anyhow::Result;
@@ -193,12 +194,14 @@ impl CommandHandler {
             // Anything else we forward to the UI
             _ => ui_tx.send(cmd.clone().into()).unwrap(),
         }
+        // Sleep for a tiny bit to avoid racing with agent responses
+        tokio::time::sleep(Duration::from_millis(50)).await;
         let elapsed = now.elapsed();
         ui_tx
             .send(
                 ChatMessage::new_system(format!(
                     "Command {cmd} successful in {} seconds",
-                    elapsed.as_secs_f64()
+                    elapsed.as_secs_f64().round()
                 ))
                 .uuid(cmd.uuid())
                 .into(),
