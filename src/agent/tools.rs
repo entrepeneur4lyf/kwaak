@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use swiftide::{
-    chat_completion::ToolOutput,
+    chat_completion::{errors::ToolError, ToolOutput},
     traits::{AgentContext, Command, Output},
 };
 use swiftide_macros::{tool, Tool};
@@ -16,10 +16,15 @@ static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/
     description = "Reads file content",
     param(name = "file_name", description = "Full path of the file")
 )]
-pub async fn read_file(context: &dyn AgentContext, file_name: &str) -> Result<ToolOutput> {
+pub async fn read_file(
+    context: &dyn AgentContext,
+    file_name: &str,
+) -> Result<ToolOutput, ToolError> {
     let cmd = Command::Shell(format!("cat {file_name}"));
 
-    context.exec_cmd(&cmd).await.map(Into::into)
+    let output = context.exec_cmd(&cmd).await?;
+
+    Ok(output.into())
 }
 
 #[tool(
@@ -31,30 +36,38 @@ pub async fn write_file(
     context: &dyn AgentContext,
     file_name: &str,
     content: &str,
-) -> Result<ToolOutput> {
-    // TODO: Does not work
+) -> Result<ToolOutput, ToolError> {
     let heredoc = format!("<<HERE\n{content}\nHERE");
     let cmd = Command::Shell(format!("echo {heredoc} > {file_name}"));
 
-    context.exec_cmd(&cmd).await.map(Into::into)
+    let output = context.exec_cmd(&cmd).await?;
+
+    Ok(output.into())
 }
 
 #[tool(
     description = "Searches for a file",
     param(name = "file_name", description = "Partial or full name of the file")
 )]
-pub async fn search_file(context: &dyn AgentContext, file_name: &str) -> Result<ToolOutput> {
+pub async fn search_file(
+    context: &dyn AgentContext,
+    file_name: &str,
+) -> Result<ToolOutput, ToolError> {
     let cmd = Command::Shell(format!("find . -name '*{file_name}*'"));
-    context.exec_cmd(&cmd).await.map(Into::into)
+    let output = context.exec_cmd(&cmd).await?;
+
+    Ok(output.into())
 }
 
 #[tool(
     description = "Invoke a git command on the current repository",
     param(name = "command", description = "Git sub-command to run")
 )]
-pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput> {
+pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput, ToolError> {
     let cmd = Command::Shell(format!("git {command}"));
-    context.exec_cmd(&cmd).await.map(Into::into)
+    let output = context.exec_cmd(&cmd).await?;
+
+    Ok(output.into())
 }
 
 #[derive(Tool, Clone, Debug)]
@@ -79,7 +92,7 @@ impl<'a> CreatePullRequest {
         context: &dyn AgentContext,
         title: &str,
         pull_request_body: &str,
-    ) -> Result<ToolOutput> {
+    ) -> Result<ToolOutput, ToolError> {
         // Push the current branch first
         let cmd = Command::Shell("git push origin HEAD".to_string());
         context.exec_cmd(&cmd).await?;
@@ -100,12 +113,12 @@ impl<'a> CreatePullRequest {
             Output::Shell {
                 stderr, success, ..
             } if !success => {
-                return Err(anyhow::anyhow!("Failed to get current branch: {}", stderr))
+                return Err(anyhow::anyhow!("Failed to get current branch: {}", stderr).into())
             }
             _ => {
-                return Err(anyhow::anyhow!(
-                    "Unexpected output from git branch --show-current"
-                ))
+                return Err(
+                    anyhow::anyhow!("Unexpected output from git branch --show-current").into(),
+                )
             }
         };
 
@@ -139,9 +152,11 @@ impl RunTests {
         Self { test_command }
     }
 
-    async fn run_tests(&self, context: &dyn AgentContext) -> Result<ToolOutput> {
+    async fn run_tests(&self, context: &dyn AgentContext) -> Result<ToolOutput, ToolError> {
         let cmd = Command::Shell(self.test_command.clone());
-        context.exec_cmd(&cmd).await.map(Into::into)
+        let output = context.exec_cmd(&cmd).await?;
+
+        Ok(output.into())
     }
 }
 // read file

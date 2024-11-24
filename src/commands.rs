@@ -48,6 +48,16 @@ pub enum Command {
     },
 }
 
+pub enum CommandResponse {
+    Chat(ChatMessage),
+}
+
+impl From<ChatMessage> for CommandResponse {
+    fn from(msg: ChatMessage) -> Self {
+        CommandResponse::Chat(msg)
+    }
+}
+
 impl Command {
     pub fn uuid(&self) -> Uuid {
         match self {
@@ -74,9 +84,9 @@ impl Command {
 pub struct CommandHandler {
     /// Receives commands
     rx: mpsc::UnboundedReceiver<Command>,
-    #[allow(dead_code)]
     /// Sends commands
     tx: mpsc::UnboundedSender<Command>,
+
     /// Sends `UIEvents` to the connected frontend
     ui_tx: Option<mpsc::UnboundedSender<UIEvent>>,
     /// Repository to interact with
@@ -103,21 +113,24 @@ impl CommandHandler {
     pub fn start(mut self) -> tokio::task::JoinHandle<()> {
         task::spawn(async move {
             while let Some(cmd) = self.rx.recv().await {
-                let tx = self.ui_tx.clone().expect("Expected a registered ui");
+                let ui_tx = self.ui_tx.clone().expect("Expected a registered ui");
                 let repository = Arc::clone(&self.repository);
 
                 tokio::spawn(async move {
                     if let Err(error) =
-                        Self::handle_command(&Arc::clone(&repository), &tx, &cmd).await
+                        Self::handle_command(&Arc::clone(&repository), &ui_tx, &cmd).await
                     {
                         tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
-                        tx.send(
-                            ChatMessage::new_system(format!("Failed to handle command: {error:#}"))
+                        ui_tx
+                            .send(
+                                ChatMessage::new_system(format!(
+                                    "Failed to handle command: {error:#}"
+                                ))
                                 .uuid(cmd.uuid())
                                 .to_owned()
                                 .into(),
-                        )
-                        .unwrap();
+                            )
+                            .unwrap();
                     }
                 });
             }
@@ -128,7 +141,7 @@ impl CommandHandler {
     /// Maybe generalize tasks to make ui updates easier?
     async fn handle_command(
         repository: &Repository,
-        tx: &mpsc::UnboundedSender<UIEvent>,
+        ui_tx: &mpsc::UnboundedSender<UIEvent>,
         cmd: &Command,
     ) -> Result<()> {
         let now = std::time::Instant::now();
@@ -138,40 +151,61 @@ impl CommandHandler {
         match cmd {
             Command::IndexRepository { .. } => indexing::index_repository(repository).await?,
             Command::ShowConfig { uuid } => {
-                tx.send(
-                    ChatMessage::new_system(toml::to_string_pretty(repository.config())?)
-                        .uuid(*uuid)
-                        .to_owned()
-                        .into(),
-                )
-                .unwrap();
+                ui_tx
+                    .send(
+                        ChatMessage::new_system(toml::to_string_pretty(repository.config())?)
+                            .uuid(*uuid)
+                            .to_owned()
+                            .into(),
+                    )
+                    .unwrap();
             }
             Command::Chat { uuid, ref message } => {
                 let response = query::query(repository, message).await?;
                 tracing::info!(%response, "Chat message received, sending to frontend");
                 let response = ChatMessage::new_system(response).uuid(*uuid).to_owned();
 
-                tx.send(response.into()).unwrap();
+                ui_tx.send(response.into()).unwrap();
             }
             Command::Agent { uuid, ref message } => {
-                let response = agent::run_agent(repository, message).await?;
+                let (tx, mut rx) = mpsc::unbounded_channel::<CommandResponse>();
+                // Spawn a task that receives the command responses and forwards them to the ui
+                //
+                let ui_tx_clone = ui_tx.clone();
+                let uuid = uuid.clone();
+
+                let handle = task::spawn(async move {
+                    while let Some(response) = rx.recv().await {
+                        match response {
+                            CommandResponse::Chat(msg) => {
+                                ui_tx_clone.send(msg.with_uuid(uuid).into()).unwrap();
+                            }
+                        }
+                    }
+                });
+
+                let response = agent::run_agent(repository, message, tx).await?;
                 tracing::info!(%response, "Agent message received, sending to frontend");
-                let response = ChatMessage::new_system(response).uuid(*uuid).to_owned();
-                tx.send(response.into()).unwrap();
+
+                let response = ChatMessage::new_system(response).uuid(uuid).to_owned();
+                let _ = handle.await;
+
+                ui_tx.send(response.into()).unwrap();
             }
             // Anything else we forward to the UI
-            _ => tx.send(cmd.clone().into()).unwrap(),
+            _ => ui_tx.send(cmd.clone().into()).unwrap(),
         }
         let elapsed = now.elapsed();
-        tx.send(
-            ChatMessage::new_system(format!(
-                "Command {cmd} successful in {} seconds",
-                elapsed.as_secs_f64()
-            ))
-            .uuid(cmd.uuid())
-            .into(),
-        )
-        .unwrap();
+        ui_tx
+            .send(
+                ChatMessage::new_system(format!(
+                    "Command {cmd} successful in {} seconds",
+                    elapsed.as_secs_f64()
+                ))
+                .uuid(cmd.uuid())
+                .into(),
+            )
+            .unwrap();
 
         Ok(())
     }

@@ -9,17 +9,24 @@ use docker_tool_executor::DockerExecutor;
 use env_setup::EnvSetup;
 use swiftide::{
     agents::{Agent, DefaultContext},
-    chat_completion::{ChatCompletion, ChatMessage},
-    traits::Tool,
+    chat_completion::{self, ChatCompletion, Tool},
 };
+use tokio::sync::mpsc;
 
 use crate::{
+    chat_message::ChatMessage,
+    commands::CommandResponse,
+    frontend::UIEvent,
     git::github::GithubSession,
     query::{self},
     repository::Repository,
 };
 
-pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
+pub async fn run_agent(
+    repository: &Repository,
+    query: &str,
+    command_response_tx: mpsc::UnboundedSender<CommandResponse>,
+) -> Result<String> {
     let query_provider: Box<dyn ChatCompletion> =
         repository.config().query_provider().try_into()?;
 
@@ -42,19 +49,42 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
         tools::CreatePullRequest::new(&github_session).boxed(),
     ];
 
+    let tx_1 = command_response_tx.clone();
+    let tx_2 = command_response_tx.clone();
+
     let mut agent = Agent::builder()
         .context(context)
         .tools(tools)
         .before_all(move |context| {
             let repository = repository.clone();
             let query = query_for_agent.clone();
+            let command_response_tx = tx_1.clone();
 
             Box::pin(async move {
                 let retrieved_context = query::query(&repository, &query).await?;
+                command_response_tx
+                    .send(
+                        ChatMessage::new_system("Generating dumb context for agent ...")
+                            .build()
+                            .into(),
+                    )
+                    .unwrap();
 
                 context
-                    .add_message(&ChatMessage::User(retrieved_context))
+                    .add_message(&chat_completion::ChatMessage::User(retrieved_context))
                     .await;
+
+                Ok(())
+            })
+        })
+        .on_new_message(move |_, message| {
+            let command_response_tx = tx_2.clone();
+            let message = message.clone();
+
+            Box::pin(async move {
+                command_response_tx
+                    .send(CommandResponse::Chat(message.into()))
+                    .unwrap();
 
                 Ok(())
             })
@@ -64,17 +94,5 @@ pub async fn run_agent(repository: &Repository, query: &str) -> Result<String> {
 
     agent.query(query).await?;
 
-    let response = agent
-        .history()
-        .await
-        .iter()
-        .filter_map(|msg| match msg {
-            ChatMessage::Assistant(msg) => Some(msg),
-            _ => None,
-        })
-        .last()
-        .ok_or(anyhow!("No message found"))
-        .cloned();
-
-    response
+    Ok("All completions done for agent".to_string())
 }

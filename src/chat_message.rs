@@ -2,6 +2,7 @@ use derive_builder::Builder;
 use uuid::Uuid;
 
 /// Represents a chat message that can be stored in a [`Chat`]
+/// TODO: Should we just use swiftide chat messages to avoid confusion?
 #[derive(Clone, Default, Builder)]
 #[builder(setter(into, strip_option), build_fn(skip))]
 pub struct ChatMessage {
@@ -32,6 +33,8 @@ pub enum ChatRole {
     #[default]
     System,
     Command,
+    Assistant,
+    Tool,
 }
 
 impl ChatMessage {
@@ -56,6 +59,20 @@ impl ChatMessage {
             .to_owned()
     }
 
+    pub fn new_assistant(msg: impl Into<String>) -> ChatMessageBuilder {
+        ChatMessageBuilder::default()
+            .role(ChatRole::Assistant)
+            .content(msg.into())
+            .to_owned()
+    }
+
+    pub fn new_tool(msg: impl Into<String>) -> ChatMessageBuilder {
+        ChatMessageBuilder::default()
+            .role(ChatRole::Tool)
+            .content(msg.into())
+            .to_owned()
+    }
+
     pub fn uuid(&self) -> Option<Uuid> {
         self.uuid
     }
@@ -65,6 +82,43 @@ impl ChatMessage {
 
     pub fn role(&self) -> &ChatRole {
         &self.role
+    }
+
+    pub fn with_uuid(self, uuid: Uuid) -> Self {
+        Self {
+            uuid: Some(uuid),
+            ..self
+        }
+    }
+}
+
+impl From<swiftide::chat_completion::ChatMessage> for ChatMessage {
+    fn from(msg: swiftide::chat_completion::ChatMessage) -> Self {
+        match msg {
+            swiftide::chat_completion::ChatMessage::System(msg) => {
+                ChatMessage::new_system(msg).build()
+            }
+            swiftide::chat_completion::ChatMessage::User(msg) => ChatMessage::new_user(msg).build(),
+            swiftide::chat_completion::ChatMessage::Assistant(msg) => {
+                ChatMessage::new_assistant(msg).build()
+            }
+            swiftide::chat_completion::ChatMessage::ToolCall(tool_call) => {
+                ChatMessage::new_tool(format!(
+                    "calling tool `{}` with `{}`",
+                    tool_call.name(),
+                    tool_call.args().unwrap_or("no arguments")
+                ))
+                .build()
+            }
+            swiftide::chat_completion::ChatMessage::ToolOutput(tool_call, _) => {
+                ChatMessage::new_tool(format!(
+                    "tool `{}` with `{}` completed",
+                    tool_call.name(),
+                    tool_call.args().unwrap_or("no arguments")
+                ))
+                .build()
+            }
+        }
     }
 }
 
