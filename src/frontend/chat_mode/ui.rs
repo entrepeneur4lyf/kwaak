@@ -14,9 +14,9 @@ use crate::frontend::App;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // If we're rendering the current chat and it has new messages
-    // set it as ready, clearing the new message
-    if app.current_chat().in_state(ChatState::NewMessage) {
-        app.current_chat_mut().transition(ChatState::Ready);
+    // set the counter back to 0
+    if app.current_chat().new_message_count > 0 {
+        app.current_chat_mut().new_message_count = 0;
     }
 
     // Create the main layout (vertical)
@@ -96,11 +96,19 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 fn format_chat_in_list(chat: &Chat) -> ListItem {
     let suffix = match chat.state {
         ChatState::Loading => " ...",
-        ChatState::NewMessage => " *",
         ChatState::Ready => "",
     };
 
-    ListItem::from(format!("{}{}", chat.name, suffix))
+    let new_message_count = if chat.new_message_count > 0 {
+        format!(" ({})", chat.new_message_count)
+    } else {
+        String::new()
+    };
+
+    ListItem::from(format!(
+        "{name}{suffix}{new_message_count}",
+        name = chat.name
+    ))
 }
 
 fn render_input_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {

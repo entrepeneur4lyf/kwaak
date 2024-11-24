@@ -221,6 +221,10 @@ impl App {
                     UIEvent::Tick => {
                         // Handle periodic tasks if necessary
                     }
+                    UIEvent::AgentReady(uuid) => {
+                        self.find_chat_mut(uuid).transition(ChatState::Ready);
+                    }
+
                     UIEvent::Command(cmd) => match cmd {
                         Command::Quit { .. } => {
                             // If the backends tells us to quit we also do it

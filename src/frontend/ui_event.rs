@@ -1,4 +1,5 @@
 use crossterm::event::KeyEvent;
+use uuid::Uuid;
 
 use crate::{
     chat_message::{ChatMessage, ChatMessageBuilder},
@@ -18,6 +19,7 @@ pub enum UIEvent {
     NewChat,
     NextChat,
     ChangeMode(AppMode),
+    AgentReady(Uuid),
 }
 
 impl From<ChatMessage> for UIEvent {

@@ -187,6 +187,8 @@ impl CommandHandler {
                 let agent = self.find_or_start_agent_by_uuid(*uuid, message).await?;
 
                 agent.query(message).await?;
+
+                ui_tx.send(UIEvent::AgentReady(*uuid)).unwrap();
             }
             // Anything else we forward to the UI
             _ => ui_tx.send(cmd.clone().into()).unwrap(),

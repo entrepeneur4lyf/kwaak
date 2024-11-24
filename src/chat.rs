@@ -8,12 +8,13 @@ pub struct Chat {
     pub uuid: uuid::Uuid,
     pub messages: Vec<ChatMessage>,
     pub state: ChatState,
+    pub new_message_count: usize,
 }
 
 impl Chat {
     pub(crate) fn add_message(&mut self, message: ChatMessage) {
-        if message.role().is_system() {
-            self.state = ChatState::NewMessage;
+        if !message.role().is_user() {
+            self.new_message_count += 1;
         }
         self.messages.push(message);
     }
@@ -30,7 +31,6 @@ impl Chat {
 #[derive(Debug, Clone, Copy, Default, strum::EnumIs, PartialEq)]
 pub enum ChatState {
     Loading,
-    NewMessage,
     #[default]
     Ready,
 }
@@ -42,6 +42,7 @@ impl Default for Chat {
             uuid: uuid::Uuid::new_v4(),
             messages: Vec::new(),
             state: ChatState::default(),
+            new_message_count: 0,
         }
     }
 }

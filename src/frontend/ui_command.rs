@@ -20,7 +20,6 @@ pub enum UserInputCommand {
     IndexRepository,
     NextChat,
     NewChat,
-    Agent(String),
 }
 
 impl UserInputCommand {
@@ -39,12 +38,9 @@ impl UserInputCommand {
         let cmd_parts = input.split_whitespace().collect::<Vec<_>>();
 
         let raw_cmd = cmd_parts.first().unwrap();
-        let args = cmd_parts[1..].join(" ");
+        let _args = cmd_parts[1..].join(" ");
 
-        let mut cmd = raw_cmd[1..].parse::<UserInputCommand>()?;
-        if matches!(cmd, UserInputCommand::Agent(_)) {
-            cmd = UserInputCommand::Agent(args);
-        }
+        let cmd = raw_cmd[1..].parse::<UserInputCommand>()?;
         Ok(cmd)
     }
 }
@@ -61,10 +57,6 @@ mod tests {
             ("/index_repository", UserInputCommand::IndexRepository),
             ("/next_chat", UserInputCommand::NextChat),
             ("/new_chat", UserInputCommand::NewChat),
-            (
-                "/agent some_agent",
-                UserInputCommand::Agent("some_agent".to_string()),
-            ),
         ];
 
         for (input, expected_command) in test_cases {
