@@ -60,11 +60,13 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 
         let max_height = area.height as usize;
 
-        // If the number of lines is less than the max height, scroll down just enough
-        // so everything is in view
-        if num_lines > max_height {
-            app.vertical_scroll = app.vertical_scroll.saturating_add(num_lines - max_height);
+        // If the number of lines is greater than what fits in the chat list area and the vertical
+        // there are more lines than where we are scrolled to, scroll down the remaining lines
+        if num_lines > max_height && num_lines > app.vertical_scroll {
+            app.vertical_scroll = num_lines - max_height;
             app.vertical_scroll_state = app.vertical_scroll_state.position(app.vertical_scroll);
+        } else {
+            app.vertical_scroll = 0;
         }
     }
 
