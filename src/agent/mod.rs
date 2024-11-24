@@ -22,11 +22,11 @@ use crate::{
     repository::Repository,
 };
 
-pub async fn run_agent(
+pub async fn build_agent(
     repository: &Repository,
     query: &str,
     command_response_tx: mpsc::UnboundedSender<CommandResponse>,
-) -> Result<String> {
+) -> Result<Agent> {
     let query_provider: Box<dyn ChatCompletion> =
         repository.config().query_provider().try_into()?;
 
@@ -52,7 +52,7 @@ pub async fn run_agent(
     let tx_1 = command_response_tx.clone();
     let tx_2 = command_response_tx.clone();
 
-    let mut agent = Agent::builder()
+    let agent = Agent::builder()
         .context(context)
         .tools(tools)
         .before_all(move |context| {
@@ -92,7 +92,5 @@ pub async fn run_agent(
         .llm(&query_provider)
         .build()?;
 
-    agent.query(query).await?;
-
-    Ok("All completions done for agent".to_string())
+    Ok(agent)
 }

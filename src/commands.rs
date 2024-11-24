@@ -1,7 +1,14 @@
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    sync::{Arc, MutexGuard},
+};
 
 use anyhow::Result;
-use tokio::{sync::mpsc, task};
+use swiftide::agents::Agent;
+use tokio::{
+    sync::{mpsc, Mutex, RwLock},
+    task,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -76,7 +83,7 @@ impl Command {
 /// Commands always flow via the `CommandHandler`
 pub struct CommandHandler {
     /// Receives commands
-    rx: mpsc::UnboundedReceiver<Command>,
+    rx: Option<mpsc::UnboundedReceiver<Command>>,
     /// Sends commands
     tx: mpsc::UnboundedSender<Command>,
 
@@ -84,6 +91,21 @@ pub struct CommandHandler {
     ui_tx: Option<mpsc::UnboundedSender<UIEvent>>,
     /// Repository to interact with
     repository: Arc<Repository>,
+
+    /// TODO: Fix this, too tired to think straight
+    agents: Arc<RwLock<HashMap<Uuid, RunningAgent>>>,
+}
+
+#[derive(Clone)]
+struct RunningAgent {
+    agent: Arc<Mutex<Agent>>,
+    handle: Arc<tokio::task::JoinHandle<()>>,
+}
+
+impl RunningAgent {
+    pub async fn query(&self, query: &str) -> Result<()> {
+        self.agent.lock().await.query(query).await
+    }
 }
 
 impl CommandHandler {
@@ -91,10 +113,11 @@ impl CommandHandler {
         let (tx, rx) = mpsc::unbounded_channel();
 
         CommandHandler {
-            rx,
+            rx: Some(rx),
             tx,
             ui_tx: None,
             repository: Arc::new(repository.into()),
+            agents: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -104,15 +127,21 @@ impl CommandHandler {
     }
 
     pub fn start(mut self) -> tokio::task::JoinHandle<()> {
+        let repository = Arc::clone(&self.repository);
+        let ui_tx = self.ui_tx.clone().expect("Expected a registered ui");
+        let mut rx = self.rx.take().expect("Expected a receiver");
+        let this_handler = Arc::new(self);
+
         task::spawn(async move {
-            while let Some(cmd) = self.rx.recv().await {
-                let ui_tx = self.ui_tx.clone().expect("Expected a registered ui");
-                let repository = Arc::clone(&self.repository);
+            while let Some(cmd) = rx.recv().await {
+                let repository = Arc::clone(&repository);
+                let ui_tx = ui_tx.clone();
+                let this_handler = Arc::clone(&this_handler);
 
                 tokio::spawn(async move {
-                    if let Err(error) =
-                        Self::handle_command(&Arc::clone(&repository), &ui_tx, &cmd).await
-                    {
+                    let result = this_handler.handle_command(&repository, &ui_tx, &cmd).await;
+
+                    if let Err(error) = result {
                         tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
                         ui_tx
                             .send(
@@ -124,7 +153,7 @@ impl CommandHandler {
                                 .into(),
                             )
                             .unwrap();
-                    }
+                    };
                 });
             }
         })
@@ -133,6 +162,7 @@ impl CommandHandler {
     /// TODO: Most commands should probably be handled in a tokio task
     /// Maybe generalize tasks to make ui updates easier?
     async fn handle_command(
+        &self,
         repository: &Repository,
         ui_tx: &mpsc::UnboundedSender<UIEvent>,
         cmd: &Command,
@@ -154,29 +184,9 @@ impl CommandHandler {
                     .unwrap();
             }
             Command::Chat { uuid, ref message } => {
-                let (tx, mut rx) = mpsc::unbounded_channel::<CommandResponse>();
-                // Spawn a task that receives the command responses and forwards them to the ui
-                //
-                let ui_tx_clone = ui_tx.clone();
-                let uuid = *uuid;
+                let agent = self.find_or_start_agent_by_uuid(*uuid, message).await?;
 
-                let handle = task::spawn(async move {
-                    while let Some(response) = rx.recv().await {
-                        match response {
-                            CommandResponse::Chat(msg) => {
-                                ui_tx_clone.send(msg.with_uuid(uuid).into()).unwrap();
-                            }
-                        }
-                    }
-                });
-
-                let response = agent::run_agent(repository, message, tx).await?;
-                tracing::info!(%response, "Agent message received, sending to frontend");
-
-                let response = ChatMessage::new_system(response).uuid(uuid).to_owned();
-                let _ = handle.await;
-
-                ui_tx.send(response.into()).unwrap();
+                agent.query(message).await?;
             }
             // Anything else we forward to the UI
             _ => ui_tx.send(cmd.clone().into()).unwrap(),
@@ -194,5 +204,36 @@ impl CommandHandler {
             .unwrap();
 
         Ok(())
+    }
+
+    async fn find_or_start_agent_by_uuid(&self, uuid: Uuid, query: &str) -> Result<RunningAgent> {
+        // TODO: Can we do this nicer? Double arc is ugly
+        if let Some(agent) = self.agents.read().await.get(&uuid) {
+            return Ok(agent.clone());
+        }
+
+        let (tx, mut rx) = mpsc::unbounded_channel::<CommandResponse>();
+        let ui_tx_clone = self.ui_tx.clone().expect("expected ui tx");
+
+        let handle = task::spawn(async move {
+            while let Some(response) = rx.recv().await {
+                match response {
+                    CommandResponse::Chat(msg) => {
+                        let _ = ui_tx_clone.send(msg.with_uuid(uuid).into());
+                    }
+                }
+            }
+        });
+        let agent = agent::build_agent(&self.repository, query, tx).await?;
+
+        let running_agent = RunningAgent {
+            agent: Arc::new(Mutex::new(agent)),
+            handle: Arc::new(handle),
+        };
+
+        let cloned = running_agent.clone();
+        self.agents.write().await.insert(uuid, running_agent);
+
+        Ok(cloned)
     }
 }
