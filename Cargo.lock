@@ -2983,6 +2983,7 @@ dependencies = [
  "derive_more",
  "dirs",
  "ignore",
+ "indoc",
  "insta",
  "log",
  "octocrab",

@@ -54,6 +54,7 @@ pub async fn build_agent(
 
     let tools = vec![
         tools::read_file(),
+        tools::write_file(),
         tools::search_file(),
         tools::git(),
         tools::CreatePullRequest::new(&github_session).boxed(),

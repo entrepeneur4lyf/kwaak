@@ -86,6 +86,7 @@ impl DockerExecutor {
 
 #[async_trait]
 impl ToolExecutor for RunningDockerExecutor {
+    #[tracing::instrument(skip(self))]
     async fn exec_cmd(&self, cmd: &Command) -> Result<swiftide::traits::Output> {
         // let Command::Shell(cmd) = cmd else {
         //     anyhow::bail!("Command not implemented")
@@ -174,7 +175,9 @@ impl RunningDockerExecutor {
     }
 
     async fn exec_shell(&self, cmd: &str) -> Result<Output> {
-        tracing::debug!("Building command: {cmd}");
+        let cmd = vec!["sh", "-c", cmd];
+        tracing::debug!("Executing command {cmd}", cmd = cmd.join(" "));
+
         let exec = self
             .docker
             .create_exec(
@@ -182,7 +185,7 @@ impl RunningDockerExecutor {
                 CreateExecOptions {
                     attach_stdout: Some(true),
                     attach_stderr: Some(true),
-                    cmd: Some(cmd.split_whitespace().collect::<Vec<_>>()),
+                    cmd: Some(cmd),
                     ..Default::default()
                 },
             )
@@ -191,8 +194,6 @@ impl RunningDockerExecutor {
 
         let mut stdout = String::new();
         let mut stderr = String::new();
-
-        tracing::warn!("Executing command {cmd}");
 
         if let StartExecResults::Attached { mut output, .. } =
             self.docker.start_exec(&exec, None).await?
@@ -224,18 +225,28 @@ impl RunningDockerExecutor {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     async fn read_file(&self, path: &Path) -> std::result::Result<Output, anyhow::Error> {
         self.exec_shell(&format!("cat {}", path.display())).await
     }
 
+    #[tracing::instrument(skip(self, content))]
     async fn write_file(
         &self,
         path: &Path,
         content: &str,
     ) -> std::result::Result<Output, anyhow::Error> {
-        let content = shell_escape::escape(content.into());
-        self.exec_shell(&format!("echo \"{content}\" > {}", path.display()))
-            .await
+        let cmd = indoc::formatdoc! {r#"
+            cat << EOFKWAAK > {path}
+            {content}
+            EOFKWAAK"#,
+            path = path.display(),
+            content = content
+
+        };
+
+        dbg!(&cmd);
+        self.exec_shell(&cmd).await
     }
 }
 
@@ -320,7 +331,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(output.to_string(), "hello\n");
+        assert_eq!(output.to_string(), "hello");
     }
 
     #[test_log::test(tokio::test(flavor = "multi_thread"))]
@@ -363,5 +374,53 @@ mod tests {
         assert!(stderr.is_empty());
         assert!(success);
         assert_eq!(status, 0);
+    }
+
+    #[test_log::test(tokio::test(flavor = "multi_thread"))]
+    async fn test_write_and_read_file_with_quotes() {
+        let content = r#"This is a "test" content with 'quotes' and special characters: \n \t"#;
+        let path = Path::new("test_file.txt");
+
+        let executor = DockerExecutor::default()
+            .with_context_path(".")
+            .with_image_name("test-files")
+            .with_working_dir("/app")
+            .to_owned()
+            .start()
+            .await
+            .unwrap();
+
+        // Write the content to the file
+        let output = executor
+            .exec_cmd(&Command::write_file(path, content))
+            .await
+            .unwrap();
+
+        let Output::Shell { success, .. } = output else {
+            panic!("Expected shell output")
+        };
+
+        dbg!(&output);
+        assert!(success);
+
+        let output = executor.exec_cmd(&Command::shell("ls")).await.unwrap();
+
+        dbg!(output);
+
+        // Read the content from the file
+        //
+        let output = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
+
+        dbg!(&output);
+        let Output::Shell {
+            stdout, success, ..
+        } = output
+        else {
+            panic!("Expected shell output")
+        };
+
+        // Assert that the written content matches the read content
+        assert!(success);
+        assert_eq!(content, stdout);
     }
 }
