@@ -134,7 +134,7 @@ impl<'a> CreatePullRequest {
             .await?;
 
         Ok(ToolOutput::Text(format!(
-            "Created a pull request at {}",
+            "Created a pull request at `{}`",
             pull_request.url
         )))
     }
