@@ -24,7 +24,6 @@ mod config;
 mod frontend;
 mod git;
 mod indexing;
-mod query;
 mod repository;
 mod storage;
 mod tracing;

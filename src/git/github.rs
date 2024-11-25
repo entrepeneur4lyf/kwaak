@@ -2,7 +2,6 @@
 //!
 //! It is responsible for providing tooling and interaction with github
 use anyhow::{Context, Result};
-use derive_builder::Builder;
 use octocrab::{models::pulls::PullRequest, Octocrab};
 use secrecy::{ExposeSecret, SecretString};
 

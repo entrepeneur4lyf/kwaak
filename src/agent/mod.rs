@@ -4,7 +4,7 @@ mod tools;
 
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use docker_tool_executor::DockerExecutor;
 use env_setup::EnvSetup;
 use swiftide::{
@@ -14,11 +14,7 @@ use swiftide::{
 use tokio::sync::mpsc;
 
 use crate::{
-    chat_message::ChatMessage,
-    commands::CommandResponse,
-    frontend::UIEvent,
-    git::github::GithubSession,
-    query::{self},
+    chat_message::ChatMessage, commands::CommandResponse, git::github::GithubSession, indexing,
     repository::Repository,
 };
 
@@ -41,7 +37,6 @@ pub async fn build_agent(
         repository.config().query_provider().try_into()?;
 
     let repository = Arc::new(repository.clone());
-    let query_for_agent = query.to_string();
 
     let executor = DockerExecutor::from_repository(&repository).start().await?;
     let github_session = Arc::new(GithubSession::from_repository(&repository)?);
@@ -57,6 +52,7 @@ pub async fn build_agent(
         tools::write_file(),
         tools::search_file(),
         tools::git(),
+        tools::shell_command(),
         tools::CreatePullRequest::new(&github_session).boxed(),
         tools::RunTests::new(&repository.config().commands.test).boxed(),
     ];
@@ -64,26 +60,38 @@ pub async fn build_agent(
     let tx_1 = command_response_tx.clone();
     let tx_2 = command_response_tx.clone();
 
+    let context_query = indoc::formatdoc! {r#"
+        What is the purpose of the {project_name} that is written in {lang}? Provide a detailed answer to help me understand the context.
+
+        Also consider what else might be helpful to accomplish the following:
+        `{query}`
+        "#,
+        project_name = repository.config().project_name,
+        lang = repository.config().language
+    };
+
     let agent = Agent::builder()
         .context(context)
         .tools(tools)
         .before_all(move |context| {
             let repository = repository.clone();
-            let query = query_for_agent.clone();
             let command_response_tx = tx_1.clone();
+            let context_query = context_query.clone();
 
             Box::pin(async move {
-                let retrieved_context = query::query(&repository, &query).await?;
                 command_response_tx
                     .send(
-                        ChatMessage::new_system("Generating dumb context for agent ...")
+                        ChatMessage::new_system("Generating initial context for agent ...")
                             .build()
                             .into(),
                     )
                     .unwrap();
 
+                let retrieved_context = indexing::query(&repository, &context_query).await?;
+                let formatted_context = format!("Additional information:\n\n{retrieved_context}");
+
                 context
-                    .add_message(&chat_completion::ChatMessage::User(retrieved_context))
+                    .add_message(&chat_completion::ChatMessage::User(formatted_context))
                     .await;
 
                 Ok(())

@@ -11,11 +11,12 @@ use swiftide::traits::Output;
 use swiftide::traits::ToolExecutor as _;
 
 use crate::git::github::GithubSession;
-use crate::{git::github, repository::Repository};
+use crate::repository::Repository;
 
 use super::docker_tool_executor::RunningDockerExecutor;
 
 pub struct EnvSetup<'a> {
+    #[allow(dead_code)]
     repository: &'a Repository,
     github_session: &'a GithubSession,
     executor: &'a RunningDockerExecutor,

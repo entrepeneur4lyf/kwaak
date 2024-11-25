@@ -12,6 +12,19 @@ use crate::git::github::GithubSession;
 
 static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/.*: //p'";
 
+/// WARN: Experimental
+#[tool(
+    description = "Run any shell command in the current repository",
+    param(
+        name = "cmd",
+        description = "The shell command, including any arguments if needed, to run"
+    )
+)]
+pub async fn shell_command(context: &dyn AgentContext, cmd: &str) -> Result<ToolOutput, ToolError> {
+    let output = context.exec_cmd(&Command::Shell(cmd.into())).await?;
+    Ok(output.into())
+}
+
 #[tool(
     description = "Reads file content",
     param(name = "file_name", description = "Full path of the file")

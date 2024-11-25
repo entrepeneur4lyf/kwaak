@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, MutexGuard},
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use swiftide::agents::Agent;
@@ -16,7 +12,7 @@ use crate::{
     agent,
     chat_message::ChatMessage,
     frontend::{App, UIEvent},
-    indexing, query,
+    indexing,
     repository::Repository,
 };
 
@@ -100,6 +96,8 @@ pub struct CommandHandler {
 #[derive(Clone)]
 struct RunningAgent {
     agent: Arc<Mutex<Agent>>,
+
+    #[allow(dead_code)]
     handle: Arc<tokio::task::JoinHandle<()>>,
 }
 

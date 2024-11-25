@@ -16,7 +16,7 @@ use bollard::{
     image::BuildImageOptions,
     Docker,
 };
-use ignore::{gitignore::GitignoreBuilder, overrides::OverrideBuilder, WalkBuilder};
+use ignore::WalkBuilder;
 use tokio_tar::{Builder, Header};
 
 use crate::repository::Repository;
@@ -39,6 +39,7 @@ pub struct RunningDockerExecutor {
 pub struct DockerExecutor {
     context_path: PathBuf,
     image_name: String,
+    #[allow(dead_code)]
     working_dir: PathBuf,
 }
 
@@ -73,6 +74,7 @@ impl DockerExecutor {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_working_dir(&mut self, path: impl Into<PathBuf>) -> &mut Self {
         self.working_dir = path.into();
 
