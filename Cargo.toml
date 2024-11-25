@@ -53,10 +53,8 @@ bollard = "0.18.1"
 tokio-tar = "0.3.1"
 ignore = "0.4.23"
 async-trait = "0.1.83"
-shell-escape = "0.1.5"
 url = "2.5.3"
 octocrab = "0.42.0"
-tempfile = "3.14.0"
 indoc = "2.0.5"
 
 [dev-dependencies]
