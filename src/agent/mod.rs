@@ -58,6 +58,7 @@ pub async fn build_agent(
         tools::search_file(),
         tools::git(),
         tools::CreatePullRequest::new(&github_session).boxed(),
+        tools::RunTests::new(&repository.config().commands.test).boxed(),
     ];
 
     let tx_1 = command_response_tx.clone();

@@ -1,5 +1,8 @@
 language = "rust"
 
+[commands]
+test = "cargo test"
+
 [github]
 owner = "bosun-ai"
 repository = "kwaak"

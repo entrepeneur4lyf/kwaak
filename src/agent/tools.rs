@@ -147,8 +147,10 @@ pub struct RunTests {
 }
 
 impl RunTests {
-    pub fn new(test_command: String) -> Self {
-        Self { test_command }
+    pub fn new(test_command: impl AsRef<str>) -> Self {
+        Self {
+            test_command: test_command.as_ref().to_string(),
+        }
     }
 
     async fn run_tests(&self, context: &dyn AgentContext) -> Result<ToolOutput, ToolError> {

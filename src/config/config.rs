@@ -9,7 +9,7 @@ use super::defaults::{
     default_cache_dir, default_docker_context, default_dockerfile, default_github_token,
     default_log_dir, default_main_branch, default_project_name,
 };
-use super::{LLMConfiguration, LLMConfigurations};
+use super::{CommandConfiguration, LLMConfiguration, LLMConfigurations};
 
 // TODO: Improving parsing by enforcing invariants
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -18,6 +18,7 @@ pub struct Config {
     pub project_name: String,
     pub language: SupportedLanguages,
     pub llm: LLMConfigurations,
+    pub commands: CommandConfiguration,
     #[serde(default = "default_cache_dir")]
     cache_dir: PathBuf,
     #[serde(default = "default_log_dir")]
@@ -133,6 +134,9 @@ mod tests {
         let toml = r#"
             language = "rust"
 
+            [commands]
+            test = "cargo test"
+
             [github]
             owner = "bosun-ai"
             repository = "kwaak"
@@ -165,6 +169,9 @@ mod tests {
     fn test_deserialize_toml_multiple() {
         let toml = r#"
             language = "rust"
+
+            [commands]
+            test = "cargo test"
 
             [github]
             owner = "bosun-ai"
