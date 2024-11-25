@@ -152,6 +152,7 @@ impl CommandHandler {
                                 .into(),
                             )
                             .unwrap();
+                        ui_tx.send(UIEvent::AgentReady(cmd.uuid())).unwrap();
                     };
                 });
             }
