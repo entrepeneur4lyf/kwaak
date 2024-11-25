@@ -160,7 +160,3 @@ impl RunTests {
         Ok(output.into())
     }
 }
-// read file
-// write file
-// search file
-// run tests

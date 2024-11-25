@@ -105,20 +105,10 @@ impl From<swiftide::chat_completion::ChatMessage> for ChatMessage {
                 ChatMessage::new_assistant(msg).build()
             }
             swiftide::chat_completion::ChatMessage::ToolCall(tool_call) => {
-                ChatMessage::new_tool(format!(
-                    "calling tool `{}` with `{}`",
-                    tool_call.name(),
-                    tool_call.args().unwrap_or("no arguments")
-                ))
-                .build()
+                ChatMessage::new_tool(format_tool_call(&tool_call)).build()
             }
             swiftide::chat_completion::ChatMessage::ToolOutput(tool_call, _) => {
-                ChatMessage::new_tool(format!(
-                    "tool `{}` with `{}` completed",
-                    tool_call.name(),
-                    tool_call.args().unwrap_or("no arguments")
-                ))
-                .build()
+                ChatMessage::new_tool(format!("tool `{}` completed", tool_call.name(),)).build()
             }
         }
     }
