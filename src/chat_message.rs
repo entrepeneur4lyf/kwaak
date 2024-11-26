@@ -101,11 +101,25 @@ impl From<swiftide::chat_completion::ChatMessage> for ChatMessage {
                 ChatMessage::new_system(msg).build()
             }
             swiftide::chat_completion::ChatMessage::User(msg) => ChatMessage::new_user(msg).build(),
-            swiftide::chat_completion::ChatMessage::Assistant(msg) => {
-                ChatMessage::new_assistant(msg).build()
-            }
-            swiftide::chat_completion::ChatMessage::ToolCall(tool_call) => {
-                ChatMessage::new_tool(format_tool_call(&tool_call)).build()
+            swiftide::chat_completion::ChatMessage::Assistant(msg, tool_calls) => {
+                let mut message = String::new();
+
+                if let Some(msg) = msg {
+                    message.push_str(&msg);
+                };
+
+                if let Some(tool_calls) = tool_calls {
+                    message.push_str(" with tools: ");
+                    message.push_str(
+                        &tool_calls
+                            .iter()
+                            .map(format_tool_call)
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    );
+                };
+
+                ChatMessage::new_assistant(message).build()
             }
             swiftide::chat_completion::ChatMessage::ToolOutput(tool_call, _) => {
                 ChatMessage::new_tool(format!("tool `{}` completed", tool_call.name(),)).build()
@@ -128,19 +142,16 @@ impl ChatMessageBuilder {
 fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
     // If args, parse them as a json value, then if its just one, render only the value, otherwise
     // limit the output to 20 characters
-    let formatted_args = tool_call.args().map_or("no arguments".to_string(), |args| {
+    let mut formatted_args = tool_call.args().map_or("no arguments".to_string(), |args| {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args) {
             if let Some(obj) = parsed.as_object() {
                 if obj.keys().count() == 1 {
                     let key = obj.keys().next().unwrap();
                     let val = obj[key].as_str().unwrap_or_default();
 
-                    if val.len() > 20 {
-                        return format!("{} ...", &val[..20]);
-                    }
-
                     return val.to_string();
                 }
+
                 return args.to_string();
             }
 
@@ -149,6 +160,11 @@ fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
             args.to_string()
         }
     });
+
+    if formatted_args.len() > 20 {
+        formatted_args.truncate(20);
+        formatted_args.push_str("...");
+    }
 
     format!(
         "calling tool `{}` with `{}`",
