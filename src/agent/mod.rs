@@ -18,6 +18,7 @@ use crate::{
     repository::Repository,
 };
 
+#[tracing::instrument(skip(repository, command_response_tx))]
 pub async fn build_agent(
     repository: &Repository,
     query: &str,

@@ -4120,6 +4120,8 @@ dependencies = [
  "rand",
  "serde_json",
  "thiserror 1.0.64",
+ "tokio",
+ "tokio-stream",
  "tracing",
 ]
 

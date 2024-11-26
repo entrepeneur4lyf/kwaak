@@ -1,8 +1,6 @@
 use crate::repository::Repository;
 use anyhow::Result;
-use log::LevelFilter;
-use opentelemetry::trace::TracerProvider as _;
-use opentelemetry_sdk::trace::TracerProvider;
+use tracing::level_filters::LevelFilter;
 use tracing::Subscriber;
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::prelude::*;
@@ -20,29 +18,33 @@ pub fn init(repository: &Repository) -> Result<()> {
     let fmt_layer = fmt::layer().with_writer(file_appender);
 
     // Logs the file layer will capture
-    let env_filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("kwaak=info,swiftide=info,error"))?;
-
-    let tui_layer = tui_logger::tracing_subscriber_layer();
+    let env_filter_layer = EnvFilter::builder()
+        .with_default_directive(LevelFilter::WARN.into())
+        .try_from_env()
+        .expect("Failed to parse filter from env")
+        .add_directive("h2=error".parse().unwrap())
+        .add_directive("tower=error".parse().unwrap())
+        .add_directive("tui_markdown=error".parse().unwrap());
 
     // The log level tui logger will capture
     let default_level = if cfg!(debug_assertions) {
-        LevelFilter::Trace
+        log::LevelFilter::Info
     } else {
-        LevelFilter::Info
+        log::LevelFilter::Warn
     };
+    let tui_layer = tui_logger::tracing_subscriber_layer();
     tui_logger::init_logger(default_level)?;
-    tui_logger::set_default_level(default_level);
 
     let mut layers = vec![
+        // env_filter_layer.boxed(),
         tui_layer.boxed(),
-        env_filter_layer.boxed(),
         fmt_layer.boxed(),
     ];
 
     if cfg!(feature = "otel") {
         let provider = otel_provider();
-        let tracer = provider.tracer("readme_example");
+        let tracer = provider.tracer("kwaak");
+        opentelemetry::global::set_tracer_provider(provider);
 
         // Create a tracing layer with the configured tracer
         let layer = OpenTelemetryLayer::new(tracer);
@@ -50,20 +52,36 @@ pub fn init(repository: &Repository) -> Result<()> {
         layers.push(layer.boxed());
     }
 
-    let registry = tracing_subscriber::registry().with(layers);
+    let registry = tracing_subscriber::registry()
+        .with(env_filter_layer)
+        .with(layers);
     registry.try_init()?;
 
     Ok(())
 }
 
 #[cfg(feature = "otel")]
+use opentelemetry::trace::TracerProvider as _;
+#[cfg(feature = "otel")]
+use opentelemetry_sdk::trace::TracerProvider;
+
+#[cfg(feature = "otel")]
 fn otel_provider() -> TracerProvider {
+    use opentelemetry_sdk::runtime;
+    use opentelemetry_sdk::trace::TracerProvider;
+
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_tonic()
         .build()
         .expect("failed to create otlp exporter");
 
     TracerProvider::builder()
-        .with_simple_exporter(exporter)
+        .with_batch_exporter(exporter, runtime::Tokio)
+        .with_config(opentelemetry_sdk::trace::Config::default().with_resource(
+            opentelemetry_sdk::Resource::new(vec![opentelemetry::KeyValue::new(
+                "service.name",
+                "kwaak",
+            )]),
+        ))
         .build()
 }

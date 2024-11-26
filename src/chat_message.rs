@@ -109,13 +109,13 @@ impl From<swiftide::chat_completion::ChatMessage> for ChatMessage {
                 };
 
                 if let Some(tool_calls) = tool_calls {
-                    message.push_str(" with tools: ");
+                    message.push_str("\nWith tools: ");
                     message.push_str(
                         &tool_calls
                             .iter()
                             .map(format_tool_call)
                             .collect::<Vec<_>>()
-                            .join(", "),
+                            .join("\n"),
                     );
                 };
 
