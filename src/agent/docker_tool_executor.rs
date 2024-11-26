@@ -247,7 +247,6 @@ impl RunningDockerExecutor {
 
         };
 
-        dbg!(&cmd);
         self.exec_shell(&cmd).await
     }
 }

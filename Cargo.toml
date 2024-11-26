@@ -36,6 +36,15 @@ async-openai = "0.26.0"
 dirs = "5.0.1"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-appender = "0.2.3"
+tracing-opentelemetry = { version = "0.28.0", optional = true }
+opentelemetry_sdk = { version = "0.27.0", optional = true, features = [
+  "rt-tokio",
+] }
+opentelemetry = { version = "0.27.0", optional = true }
+opentelemetry-otlp = { version = "0.27.0", optional = true, features = [
+  "tonic",
+] }
+
 derive_more = { version = "1.0.0", features = ["full"] }
 # tui-markdown = { git = "https://github.com/timonv/tui-markdown.git", branch = "code-highlighting", features = [
 #   "highlight-code",
@@ -78,7 +87,14 @@ missing_fields_in_debug = "allow"
 multiple_crate_versions = "allow"
 
 [features]
+default = ["otel"]
 "test-markdown" = []
+"otel" = [
+  "dep:tracing-opentelemetry",
+  "dep:opentelemetry_sdk",
+  "dep:opentelemetry",
+  "dep:opentelemetry-otlp",
+]
 
 [patch.crates-io]
 swiftide = { path = "../swiftide/swiftide" }

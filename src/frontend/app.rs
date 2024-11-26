@@ -180,6 +180,7 @@ impl App {
         self.mode.on_key(self, key);
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn dispatch_command(&mut self, cmd: &Command) {
         self.current_chat_mut().transition(ChatState::Loading);
 
@@ -195,6 +196,7 @@ impl App {
         chat.add_message(message);
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn run<B: ratatui::backend::Backend>(
         &mut self,
         terminal: &mut Terminal<B>,

@@ -8,7 +8,7 @@ use anyhow::Result;
 use docker_tool_executor::DockerExecutor;
 use env_setup::EnvSetup;
 use swiftide::{
-    agents::{Agent, DefaultContext},
+    agents::{system_prompt::SystemPrompt, Agent, DefaultContext},
     chat_completion::{self, ChatCompletion, Tool},
 };
 use tokio::sync::mpsc;
@@ -18,6 +18,7 @@ use crate::{
     repository::Repository,
 };
 
+#[tracing::instrument(skip(repository, command_response_tx))]
 pub async fn build_agent(
     repository: &Repository,
     query: &str,
@@ -69,9 +70,14 @@ pub async fn build_agent(
         project_name = repository.config().project_name,
         lang = repository.config().language
     };
+    let system_prompt =
+    SystemPrompt::builder()
+        .role("You are an ai agent tasked with helping a user with a code project.")
+        .constraints(["If you need to create a pull request, ensure you are on a new branch and have committed your changes"]).build()?;
 
     let agent = Agent::builder()
         .context(context)
+        .system_prompt(system_prompt)
         .tools(tools)
         .before_all(move |context| {
             let repository = repository.clone();

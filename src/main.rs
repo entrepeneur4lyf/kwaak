@@ -11,6 +11,7 @@ use ratatui::{
     Terminal,
 };
 
+use ::tracing::Instrument as _;
 use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -41,6 +42,11 @@ async fn main() -> Result<()> {
 
     crate::tracing::init(&repository)?;
 
+    let span = ::tracing::span!(::tracing::Level::INFO, "main");
+    start_app(&repository).instrument(span).await
+}
+
+async fn start_app(repository: &repository::Repository) -> Result<()> {
     ::tracing::info!("Loaded configuration: {:?}", repository.config());
 
     // Setup terminal
@@ -55,7 +61,7 @@ async fn main() -> Result<()> {
     }
 
     let app_result = {
-        let mut handler = commands::CommandHandler::from_repository(&repository);
+        let mut handler = commands::CommandHandler::from_repository(repository);
         handler.register_ui(&mut app);
 
         let _guard = handler.start();
@@ -63,9 +69,10 @@ async fn main() -> Result<()> {
         app.run(&mut terminal).await
     };
 
-    // TODO: Add panic unwind hook to alwqays restore terminal
-    // Restore terminal
     restore_tui()?;
+    if cfg!(feature = "otel") {
+        opentelemetry::global::shutdown_tracer_provider();
+    }
     terminal.show_cursor()?;
 
     if let Err(error) = app_result {
@@ -74,11 +81,16 @@ async fn main() -> Result<()> {
 
     Ok(())
 }
+
 pub fn init_panic_hook() {
     let original_hook = take_hook();
     set_hook(Box::new(move |panic_info| {
         // intentionally ignore errors here since we're already in a panic
         let _ = restore_tui();
+
+        if cfg!(feature = "otel") {
+            opentelemetry::global::shutdown_tracer_provider();
+        }
         original_hook(panic_info);
     }));
 }

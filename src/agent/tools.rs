@@ -54,7 +54,17 @@ pub async fn write_file(
 
     let output = context.exec_cmd(&cmd).await?;
 
-    Ok(output.into())
+    match output {
+        Output::Shell { success, .. } if success => return Ok("File written succesfully".into()),
+        Output::Shell {
+            success, stderr, ..
+        } if !success => {
+            return Err(anyhow::anyhow!("Failed to write file: {}", stderr).into());
+        }
+        _ => {
+            return Err(anyhow::anyhow!("Unexpected output from write file").into());
+        }
+    };
 }
 
 #[tool(
@@ -134,9 +144,8 @@ impl<'a> CreatePullRequest {
             }
         };
 
-        // Main branch leaks from github session intentionally as it would be cool to use other
-        // branches as well. However, if that's never the case, just simplify the api.
-        let pull_request = self
+        // Any errors we just forward to the llm at this point
+        let response = self
             .github_session
             .create_pull_request(
                 current_branch,
@@ -144,12 +153,14 @@ impl<'a> CreatePullRequest {
                 title,
                 pull_request_body,
             )
-            .await?;
+            .await
+            .map_or_else(
+                |e| Ok::<String, ToolError>(e.to_string()),
+                |pr| Ok(format!("Created a pull request at `{}`", pr.url)),
+            )
+            .unwrap();
 
-        Ok(ToolOutput::Text(format!(
-            "Created a pull request at `{}`",
-            pull_request.url
-        )))
+        Ok(response.into())
     }
 }
 
