@@ -239,7 +239,7 @@ impl RunningDockerExecutor {
         content: &str,
     ) -> std::result::Result<Output, anyhow::Error> {
         let cmd = indoc::formatdoc! {r#"
-            cat << EOFKWAAK > {path}
+            cat << 'EOFKWAAK' > {path}
             {content}
             EOFKWAAK"#,
             path = path.display(),
@@ -385,6 +385,65 @@ mod tests {
         let executor = DockerExecutor::default()
             .with_context_path(".")
             .with_image_name("test-files")
+            .with_working_dir("/app")
+            .to_owned()
+            .start()
+            .await
+            .unwrap();
+
+        // Write the content to the file
+        let output = executor
+            .exec_cmd(&Command::write_file(path, content))
+            .await
+            .unwrap();
+
+        let Output::Shell { success, .. } = output else {
+            panic!("Expected shell output")
+        };
+
+        dbg!(&output);
+        assert!(success);
+
+        let output = executor.exec_cmd(&Command::shell("ls")).await.unwrap();
+
+        dbg!(output);
+
+        // Read the content from the file
+        //
+        let output = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
+
+        dbg!(&output);
+        let Output::Shell {
+            stdout, success, ..
+        } = output
+        else {
+            panic!("Expected shell output")
+        };
+
+        // Assert that the written content matches the read content
+        assert!(success);
+        assert_eq!(content, stdout);
+    }
+
+    #[test_log::test(tokio::test(flavor = "multi_thread"))]
+    async fn test_write_and_read_file_markdown() {
+        let content = r#"# Example
+
+        ```rust
+        fn main() {
+            let hello = "world";
+            println!("Hello, {}", hello);
+            }
+        ```
+
+        ```shell
+        $ cargo run
+        ```"#;
+        let path = Path::new("test_file.txt");
+
+        let executor = DockerExecutor::default()
+            .with_context_path(".")
+            .with_image_name("test-files-md")
             .with_working_dir("/app")
             .to_owned()
             .start()

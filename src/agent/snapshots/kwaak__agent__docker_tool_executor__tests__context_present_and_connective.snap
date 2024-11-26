@@ -10,6 +10,7 @@ Cargo.lock
 Cargo.toml
 Dockerfile
 bacon.toml
+compose.yml
 kwaak.toml
 src
 typos.toml
