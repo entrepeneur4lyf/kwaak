@@ -12,13 +12,13 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
 
     match key.code {
         KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
-        KeyCode::Down => {
+        KeyCode::PageDown => {
             app.vertical_scroll = app.vertical_scroll.saturating_add(1);
             app.vertical_scroll_state = app
                 .vertical_scroll_state
                 .position(app.vertical_scroll as usize);
         }
-        KeyCode::Up => {
+        KeyCode::PageUp => {
             app.vertical_scroll = app.vertical_scroll.saturating_sub(1);
             app.vertical_scroll_state = app
                 .vertical_scroll_state
