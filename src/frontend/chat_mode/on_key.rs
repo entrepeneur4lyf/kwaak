@@ -1,4 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent};
+use tui_textarea::TextArea;
 
 use crate::{
     chat_message::{ChatMessage, ChatMessageBuilder},
@@ -7,6 +8,8 @@ use crate::{
 };
 
 pub fn on_key(app: &mut App, key: KeyEvent) {
+    let current_input = app.text_input.lines().join("\n");
+
     match key.code {
         KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
         KeyCode::Down => {
@@ -21,39 +24,40 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
                 .vertical_scroll_state
                 .position(app.vertical_scroll as usize);
         }
-        KeyCode::Char(c) => {
-            app.input.push(c);
-        }
-        KeyCode::Backspace => {
-            app.input.pop();
-        }
-        KeyCode::Enter if !app.input.is_empty() => {
-            let message = if app.input.starts_with('/') {
+        KeyCode::Enter
+            if !current_input.is_empty()
+                && !key.modifiers == crossterm::event::KeyModifiers::SHIFT =>
+        {
+            let message = if current_input.starts_with('/') {
                 handle_input_command(app)
             } else {
                 // Currently just dispatch a user message command and answer the query
                 // Later, perhaps maint a 'chat', add message to that chat, and then send
                 // the whole thing
                 app.dispatch_command(&Command::Chat {
-                    message: app.input.clone(),
+                    message: current_input.clone(),
                     uuid: app.current_chat,
                 });
 
-                ChatMessage::new_user(&app.input)
+                ChatMessage::new_user(&current_input)
                     .uuid(app.current_chat)
                     .to_owned()
             };
 
             app.send_ui_event(message);
 
-            app.input.clear();
+            app.text_input = TextArea::default();
         }
-        _ => {}
+        _ => {
+            app.text_input.input(key);
+        }
     }
 }
 
 pub fn handle_input_command(app: &mut App) -> ChatMessageBuilder {
-    let Ok(cmd) = UserInputCommand::parse_from_input(&app.input) else {
+    let current_input = app.text_input.lines().join("\n");
+
+    let Ok(cmd) = UserInputCommand::parse_from_input(&current_input) else {
         return ChatMessage::new_system("Unknown command")
             .uuid(app.current_chat)
             .to_owned();

@@ -15,6 +15,7 @@ license = "MIT"
 anyhow = "1.0.88"
 crossterm = "0.28.1"
 ratatui = "0.29.0"
+tui-textarea = "0.7.0"
 tokio = { version = "1.40.0", features = ["full"] }
 strum = "0.26.3"
 strum_macros = "0.26.4"

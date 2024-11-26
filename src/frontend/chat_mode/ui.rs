@@ -18,8 +18,8 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0),    // Main area
-            Constraint::Length(3), // User input bar (2 lines)
-            Constraint::Length(3), // Commands display area
+            Constraint::Length(5), // User input bar (2 lines)
+            Constraint::Length(2), // Commands display area
         ])
         .areas(area);
 
@@ -123,24 +123,25 @@ fn format_chat_in_list(chat: &Chat) -> ListItem {
     ))
 }
 
-fn render_input_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {
+fn render_input_bar(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
+    let block = Block::default().borders(Borders::ALL);
+
     if app.current_chat().in_state(ChatState::Loading) {
-        let block = Block::default().title("Input").borders(Borders::ALL);
         let throbber = throbber_widgets_tui::Throbber::default().label("Kwaaking ...");
 
         f.render_widget(throbber, block.inner(area));
         return block.render(area, f.buffer_mut());
     }
 
-    let block = Block::default().title("Input").borders(Borders::ALL);
-    let input = Paragraph::new(app.input.as_str()).block(block);
-    f.render_widget(input, area);
+    // let input = Paragraph::new(app.input.as_str()).block(block);
+    app.text_input.set_block(block);
+    f.render_widget(&app.text_input, area);
     // Set cursor position
-    f.set_cursor_position(
-        // Put cursor past the end of the input text
-        #[allow(clippy::cast_possible_truncation)]
-        (area.x + app.input.len() as u16 + 1, area.y + 1),
-    );
+    // f.set_cursor_position(
+    //     // Put cursor past the end of the input text
+    //     #[allow(clippy::cast_possible_truncation)]
+    //     (area.x + app.input.len() as u16 + 1, area.y + 1),
+    // );
 }
 
 fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
@@ -152,7 +153,7 @@ fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
             .join(" "),
     )
     .wrap(Wrap { trim: true })
-    .block(Block::default().title("Commands").borders(Borders::ALL));
+    .block(Block::default().title("Commands").borders(Borders::TOP));
     f.render_widget(commands, area);
 }
 

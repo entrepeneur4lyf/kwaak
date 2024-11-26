@@ -3,6 +3,7 @@ use std::io;
 use std::time::Duration;
 use strum::IntoEnumIterator as _;
 use tui_logger::TuiWidgetState;
+use tui_textarea::TextArea;
 use uuid::Uuid;
 
 // use ratatui::{
@@ -32,9 +33,10 @@ use super::{chat_mode, logs_mode, UIEvent, UserInputCommand};
 const TICK_RATE: u64 = 250;
 
 /// Handles user and TUI interaction
-pub struct App {
-    /// The chat input
-    pub input: String,
+pub struct App<'a> {
+    // /// The chat input
+    // pub input: String,
+    pub text_input: TextArea<'a>,
 
     /// All known chats
     pub chats: Vec<Chat>,
@@ -113,7 +115,7 @@ impl AppMode {
     }
 }
 
-impl Default for App {
+impl Default for App<'_> {
     fn default() -> Self {
         let (ui_tx, ui_rx) = mpsc::unbounded_channel();
 
@@ -123,7 +125,7 @@ impl Default for App {
         };
 
         Self {
-            input: String::new(),
+            text_input: TextArea::default(),
             current_chat: chat.uuid,
             chats: vec![chat],
             ui_tx,
@@ -143,7 +145,7 @@ impl Default for App {
     }
 }
 
-impl App {
+impl App<'_> {
     async fn recv_messages(&mut self) -> Option<UIEvent> {
         self.ui_rx.recv().await
     }
