@@ -109,7 +109,7 @@ impl From<swiftide::chat_completion::ChatMessage> for ChatMessage {
                 };
 
                 if let Some(tool_calls) = tool_calls {
-                    message.push_str("\nWith tools: ");
+                    message.push_str("\nCalling tools: \n");
                     message.push_str(
                         &tool_calls
                             .iter()
