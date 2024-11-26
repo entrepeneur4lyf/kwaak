@@ -115,7 +115,7 @@ impl From<swiftide::chat_completion::ChatMessage> for ChatMessage {
                             .iter()
                             .map(format_tool_call)
                             .collect::<Vec<_>>()
-                            .join("\n"),
+                            .join(", "),
                     );
                 };
 
