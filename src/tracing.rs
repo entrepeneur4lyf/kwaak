@@ -1,6 +1,10 @@
 use crate::repository::Repository;
 use anyhow::Result;
 use log::LevelFilter;
+use opentelemetry::trace::TracerProvider as _;
+use opentelemetry_sdk::trace::TracerProvider;
+use tracing::Subscriber;
+use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, EnvFilter};
 
@@ -30,11 +34,36 @@ pub fn init(repository: &Repository) -> Result<()> {
     tui_logger::init_logger(default_level)?;
     tui_logger::set_default_level(default_level);
 
-    tracing_subscriber::registry()
-        .with(tui_layer)
-        .with(env_filter_layer)
-        .with(fmt_layer)
-        .try_init()?;
+    let mut layers = vec![
+        tui_layer.boxed(),
+        env_filter_layer.boxed(),
+        fmt_layer.boxed(),
+    ];
+
+    if cfg!(feature = "otel") {
+        let provider = otel_provider();
+        let tracer = provider.tracer("readme_example");
+
+        // Create a tracing layer with the configured tracer
+        let layer = OpenTelemetryLayer::new(tracer);
+
+        layers.push(layer.boxed());
+    }
+
+    let registry = tracing_subscriber::registry().with(layers);
+    registry.try_init()?;
 
     Ok(())
+}
+
+#[cfg(feature = "otel")]
+fn otel_provider() -> TracerProvider {
+    let exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_tonic()
+        .build()
+        .expect("failed to create otlp exporter");
+
+    TracerProvider::builder()
+        .with_simple_exporter(exporter)
+        .build()
 }
