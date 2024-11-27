@@ -228,6 +228,10 @@ impl App<'_> {
                     UIEvent::AgentReady(uuid) => {
                         self.find_chat_mut(uuid).transition(ChatState::Ready);
                     }
+                    UIEvent::AgentActivity(uuid, activity) => {
+                        self.find_chat_mut(uuid)
+                            .transition(ChatState::LoadingWithMessage(activity));
+                    }
 
                     UIEvent::Command(cmd) => match cmd {
                         Command::Quit { .. } => {

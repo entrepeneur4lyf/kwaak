@@ -14,23 +14,29 @@ use crate::frontend::App;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Create the main layout (vertical)
-    let [main_area, input_area, help_area] = Layout::default()
+    let [main_area, help_area] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0),    // Main area
-            Constraint::Length(5), // User input bar (2 lines)
+            Constraint::Min(0), // Main area
+            // Constraint::Length(5), // User input bar (2 lines)
             Constraint::Length(2), // Commands display area
         ])
         .areas(area);
 
     // Split the main area into two columns
-    let [chat_messages, chat_list] = Layout::default()
+    let [chat_area, chat_list] = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Percentage(80), // Left column (chat messages)
             Constraint::Percentage(20), // Right column (other info)
         ])
         .areas(main_area);
+
+    let [chat_messages, input_area] = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(0), Constraint::Length(8)])
+        .spacing(0)
+        .areas(chat_area);
 
     // Render chat messages
     render_chat_messages(f, app, chat_messages);
@@ -70,9 +76,16 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         }
     }
 
+    // Unify borders
+    let border_set = symbols::border::Set {
+        top_right: symbols::line::NORMAL.horizontal_down,
+        ..symbols::border::PLAIN
+    };
+
     let message_block = Block::default()
         .title("Chat")
-        .borders(Borders::ALL)
+        .border_set(border_set)
+        .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
         .padding(Padding::horizontal(1));
 
     #[allow(clippy::cast_possible_truncation)]
@@ -100,16 +113,17 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .collect::<List>()
         .highlight_spacing(HighlightSpacing::Always)
         .highlight_style(Style::default().fg(Color::Yellow).bg(Color::DarkGray))
-        .block(Block::default().title("Chats").borders(Borders::ALL));
+        .block(
+            Block::default()
+                .title("Chats")
+                .borders(Borders::RIGHT | Borders::BOTTOM | Borders::TOP),
+        );
 
     f.render_stateful_widget(list, area, &mut app.chats_state);
 }
 
 fn format_chat_in_list(chat: &Chat) -> ListItem {
-    let suffix = match chat.state {
-        ChatState::Loading => " ...",
-        ChatState::Ready => "",
-    };
+    let suffix = if chat.is_loading() { " ..." } else { "" };
 
     let new_message_count = if chat.new_message_count > 0 {
         format!(" ({})", chat.new_message_count)
@@ -124,10 +138,25 @@ fn format_chat_in_list(chat: &Chat) -> ListItem {
 }
 
 fn render_input_bar(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
-    let block = Block::default().borders(Borders::ALL);
+    let border_set = symbols::border::Set {
+        top_left: symbols::line::NORMAL.vertical_right,
+        top_right: symbols::line::NORMAL.vertical_left,
+        bottom_right: symbols::line::NORMAL.horizontal_up,
+        ..symbols::border::PLAIN
+    };
 
-    if app.current_chat().in_state(ChatState::Loading) {
-        let throbber = throbber_widgets_tui::Throbber::default().label("Kwaaking ...");
+    let block = Block::default()
+        .border_set(border_set)
+        .padding(Padding::horizontal(1))
+        .borders(Borders::ALL);
+
+    if app.current_chat().is_loading() {
+        let loading_msg = match &app.current_chat().state {
+            ChatState::Loading => "Kwaaking ...".to_string(),
+            ChatState::LoadingWithMessage(msg) => format!("Kwaaking ({msg}) ..."),
+            ChatState::Ready => unreachable!(),
+        };
+        let throbber = throbber_widgets_tui::Throbber::default().label(&loading_msg);
 
         f.render_widget(throbber, block.inner(area));
         return block.render(area, f.buffer_mut());
@@ -157,7 +186,18 @@ fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
     f.render_widget(commands, area);
 }
 
-fn format_chat_message(message: &ChatMessage) -> Text {
+fn format_chat_message(message: &ChatMessage) -> Text<'_> {
+    // Format completed tools on a single line
+    if message.role().is_tool() {
+        return Line::from_iter(vec![
+            Span::styled(
+                message.role().to_string() + " ",
+                Style::default().fg(Color::Green),
+            ),
+            message.content().into(),
+        ])
+        .into();
+    }
     let prefix: Span = Span::styled(
         message.role().as_ref().trim(),
         Style::default().fg(Color::Yellow),

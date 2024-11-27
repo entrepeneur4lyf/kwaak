@@ -49,6 +49,29 @@ pub enum Command {
 
 pub enum CommandResponse {
     Chat(ChatMessage),
+    ActivityUpdate(Uuid, String),
+}
+
+#[derive(Clone)]
+pub struct CommandResponder {
+    tx: mpsc::UnboundedSender<CommandResponse>,
+    uuid: Uuid,
+}
+
+impl CommandResponder {
+    pub fn send_system_message(&self, message: impl Into<String>) {
+        self.send_message(ChatMessage::new_system(message).build())
+    }
+
+    pub fn send_message(&self, msg: impl Into<ChatMessage>) {
+        self.tx
+            .send(CommandResponse::Chat(msg.into().with_uuid(self.uuid)));
+    }
+
+    pub fn send_update(&self, state: impl Into<String>) {
+        self.tx
+            .send(CommandResponse::ActivityUpdate(self.uuid, state.into()));
+    }
 }
 
 impl From<ChatMessage> for CommandResponse {
@@ -220,6 +243,8 @@ impl CommandHandler {
         }
 
         let (tx, mut rx) = mpsc::unbounded_channel::<CommandResponse>();
+        let command_responder = CommandResponder { tx, uuid };
+
         let ui_tx_clone = self.ui_tx.clone().expect("expected ui tx");
 
         let handle = task::spawn(async move {
@@ -228,10 +253,13 @@ impl CommandHandler {
                     CommandResponse::Chat(msg) => {
                         let _ = ui_tx_clone.send(msg.with_uuid(uuid).into());
                     }
+                    CommandResponse::ActivityUpdate(uuid, state) => {
+                        let _ = ui_tx_clone.send(UIEvent::AgentActivity(uuid, state));
+                    }
                 }
             }
         });
-        let agent = agent::build_agent(&self.repository, query, tx).await?;
+        let agent = agent::build_agent(&self.repository, query, command_responder).await?;
 
         let running_agent = RunningAgent {
             agent: Arc::new(Mutex::new(agent)),

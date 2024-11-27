@@ -14,25 +14,20 @@ use swiftide::{
 use tokio::sync::mpsc;
 
 use crate::{
-    chat_message::ChatMessage, commands::CommandResponse, git::github::GithubSession, indexing,
+    chat_message::ChatMessage,
+    commands::{CommandResponder, CommandResponse},
+    git::github::GithubSession,
+    indexing,
     repository::Repository,
 };
 
-#[tracing::instrument(skip(repository, command_response_tx))]
+#[tracing::instrument(skip(repository, command_responder))]
 pub async fn build_agent(
     repository: &Repository,
     query: &str,
-    command_response_tx: mpsc::UnboundedSender<CommandResponse>,
+    command_responder: CommandResponder,
 ) -> Result<Agent> {
-    command_response_tx
-        .send(
-            ChatMessage::new_system(
-                "Starting up agent for the first time, this might take a while ...",
-            )
-            .build()
-            .into(),
-        )
-        .unwrap();
+    command_responder.send_update("starting up agent for the first time, this might take a while");
 
     let query_provider: Box<dyn ChatCompletion> =
         repository.config().query_provider().try_into()?;
@@ -58,8 +53,12 @@ pub async fn build_agent(
         tools::RunTests::new(&repository.config().commands.test).boxed(),
     ];
 
-    let tx_1 = command_response_tx.clone();
-    let tx_2 = command_response_tx.clone();
+    let command_responder = Arc::new(command_responder);
+    // Maybe I'm just too tired but feels off.
+    let tx_1 = command_responder.clone();
+    let tx_2 = command_responder.clone();
+    let tx_3 = command_responder.clone();
+    let tx_4 = command_responder.clone();
 
     let context_query = indoc::formatdoc! {r#"
         What is the purpose of the {project_name} that is written in {lang}? Provide a detailed answer to help me understand the context.
@@ -81,17 +80,11 @@ pub async fn build_agent(
         .tools(tools)
         .before_all(move |context| {
             let repository = repository.clone();
-            let command_response_tx = tx_1.clone();
+            let command_responder = tx_1.clone();
             let context_query = context_query.clone();
 
             Box::pin(async move {
-                command_response_tx
-                    .send(
-                        ChatMessage::new_system("Generating initial context for agent ...")
-                            .build()
-                            .into(),
-                    )
-                    .unwrap();
+                command_responder.send_update("generating initial context");
 
                 let retrieved_context = indexing::query(&repository, &context_query).await?;
                 let formatted_context = format!("Additional information:\n\n{retrieved_context}");
@@ -104,14 +97,28 @@ pub async fn build_agent(
             })
         })
         .on_new_message(move |_, message| {
-            let command_response_tx = tx_2.clone();
+            let command_responder = tx_2.clone();
             let message = message.clone();
 
             Box::pin(async move {
-                command_response_tx
-                    .send(CommandResponse::Chat(message.into()))
-                    .unwrap();
+                command_responder.send_message(message);
 
+                Ok(())
+            })
+        })
+        // before each, update that we're running completions
+        .before_each(move |_| {
+            let command_responder = tx_3.clone();
+            Box::pin(async move {
+                command_responder.send_update("running completions");
+                Ok(())
+            })
+        })
+        .before_tool(move |_, tool| {
+            let command_responder = tx_4.clone();
+            let tool = tool.clone();
+            Box::pin(async move {
+                command_responder.send_update(format!("running tool {}", tool.name()));
                 Ok(())
             })
         })

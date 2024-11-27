@@ -20,6 +20,7 @@ pub enum UIEvent {
     NextChat,
     ChangeMode(AppMode),
     AgentReady(Uuid),
+    AgentActivity(Uuid, String),
 }
 
 impl From<ChatMessage> for UIEvent {

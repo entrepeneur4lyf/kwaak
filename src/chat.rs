@@ -23,14 +23,18 @@ impl Chat {
         self.state = state;
     }
 
-    pub fn in_state(&self, state: ChatState) -> bool {
-        self.state == state
+    pub fn is_loading(&self) -> bool {
+        matches!(
+            self.state,
+            ChatState::Loading | ChatState::LoadingWithMessage(_)
+        )
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, strum::EnumIs, PartialEq)]
+#[derive(Debug, Clone, Default, strum::EnumIs, PartialEq)]
 pub enum ChatState {
     Loading,
+    LoadingWithMessage(String),
     #[default]
     Ready,
 }
