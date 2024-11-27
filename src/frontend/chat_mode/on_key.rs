@@ -10,6 +10,35 @@ use crate::{
 pub fn on_key(app: &mut App, key: KeyEvent) {
     let current_input = app.text_input.lines().join("\n");
 
+    if key.code == KeyCode::Char('s')
+        && key
+            .modifiers
+            .contains(crossterm::event::KeyModifiers::CONTROL)
+        && !current_input.is_empty()
+    {
+        let message = if current_input.starts_with('/') {
+            handle_input_command(app)
+        } else {
+            // Currently just dispatch a user message command and answer the query
+            // Later, perhaps maint a 'chat', add message to that chat, and then send
+            // the whole thing
+            app.dispatch_command(&Command::Chat {
+                message: current_input.clone(),
+                uuid: app.current_chat,
+            });
+
+            ChatMessage::new_user(&current_input)
+                .uuid(app.current_chat)
+                .to_owned()
+        };
+
+        app.send_ui_event(message);
+
+        app.text_input = TextArea::default();
+
+        return;
+    }
+
     match key.code {
         KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
         KeyCode::PageDown => {
@@ -23,30 +52,6 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
             app.vertical_scroll_state = app
                 .vertical_scroll_state
                 .position(app.vertical_scroll as usize);
-        }
-        KeyCode::Enter
-            if !current_input.is_empty()
-                && !key.modifiers == crossterm::event::KeyModifiers::SHIFT =>
-        {
-            let message = if current_input.starts_with('/') {
-                handle_input_command(app)
-            } else {
-                // Currently just dispatch a user message command and answer the query
-                // Later, perhaps maint a 'chat', add message to that chat, and then send
-                // the whole thing
-                app.dispatch_command(&Command::Chat {
-                    message: current_input.clone(),
-                    uuid: app.current_chat,
-                });
-
-                ChatMessage::new_user(&current_input)
-                    .uuid(app.current_chat)
-                    .to_owned()
-            };
-
-            app.send_ui_event(message);
-
-            app.text_input = TextArea::default();
         }
         _ => {
             app.text_input.input(key);

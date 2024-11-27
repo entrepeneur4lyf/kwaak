@@ -158,7 +158,10 @@ fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
 }
 
 fn format_chat_message(message: &ChatMessage) -> Text {
-    let prefix: Span = Span::styled(message.role().as_ref(), Style::default().fg(Color::Yellow));
+    let prefix: Span = Span::styled(
+        message.role().as_ref().trim(),
+        Style::default().fg(Color::Yellow),
+    );
     let content: Text = tui_markdown::from_str(message.content());
 
     Text::from(prefix) + content
