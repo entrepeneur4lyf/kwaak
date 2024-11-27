@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::chat_message::ChatMessage;
 
 #[derive(Debug, Clone)]
@@ -9,12 +11,26 @@ pub struct Chat {
     pub messages: Vec<ChatMessage>,
     pub state: ChatState,
     pub new_message_count: usize,
+    pub completed_tool_call_ids: HashSet<String>,
 }
 
 impl Chat {
     pub(crate) fn add_message(&mut self, message: ChatMessage) {
         if !message.role().is_user() {
             self.new_message_count += 1;
+        }
+
+        // If it's a completed tool call, just register it is done and do not add the message
+        // The state is updated when rendering on the initial tool call
+        if message.role().is_tool() {
+            let tool_call_id = message
+                .maybe_completed_tool_call()
+                .expect("Expected tool call")
+                .id();
+            self.completed_tool_call_ids
+                .insert(tool_call_id.to_string());
+
+            return;
         }
         self.messages.push(message);
     }
@@ -28,6 +44,10 @@ impl Chat {
             self.state,
             ChatState::Loading | ChatState::LoadingWithMessage(_)
         )
+    }
+
+    pub fn is_tool_call_completed(&self, tool_call_id: &str) -> bool {
+        self.completed_tool_call_ids.contains(tool_call_id)
     }
 }
 
@@ -47,6 +67,7 @@ impl Default for Chat {
             messages: Vec::new(),
             state: ChatState::default(),
             new_message_count: 0,
+            completed_tool_call_ids: HashSet::new(),
         }
     }
 }

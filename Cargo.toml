@@ -89,7 +89,7 @@ multiple_crate_versions = "allow"
 
 [features]
 default = ["otel"]
-"test-markdown" = []
+"test-layout" = []
 "otel" = [
   "dep:tracing-opentelemetry",
   "dep:opentelemetry_sdk",

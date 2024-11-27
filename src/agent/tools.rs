@@ -4,7 +4,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use swiftide::{
     chat_completion::{errors::ToolError, ToolOutput},
-    traits::{AgentContext, Command, Output},
+    traits::{AgentContext, Command, CommandOutput},
 };
 use swiftide_macros::{tool, Tool};
 
@@ -55,8 +55,10 @@ pub async fn write_file(
     let output = context.exec_cmd(&cmd).await?;
 
     match output {
-        Output::Shell { success, .. } if success => return Ok("File written succesfully".into()),
-        Output::Shell {
+        CommandOutput::Shell { success, .. } if success => {
+            return Ok("File written succesfully".into())
+        }
+        CommandOutput::Shell {
             success, stderr, ..
         } if !success => {
             return Err(anyhow::anyhow!("Failed to write file: {}", stderr).into());
@@ -129,10 +131,10 @@ impl<'a> CreatePullRequest {
             .await?;
 
         let current_branch = match current_branch {
-            Output::Shell {
+            CommandOutput::Shell {
                 stdout, success, ..
             } if success => stdout,
-            Output::Shell {
+            CommandOutput::Shell {
                 stderr, success, ..
             } if !success => {
                 return Err(anyhow::anyhow!("Failed to get current branch: {}", stderr).into())

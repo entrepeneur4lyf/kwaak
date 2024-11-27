@@ -1,3 +1,4 @@
+mod message_formatting;
 mod on_key;
 mod ui;
 

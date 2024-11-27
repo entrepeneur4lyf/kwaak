@@ -12,6 +12,8 @@ use crate::chat::{Chat, ChatState};
 use crate::chat_message::ChatMessage;
 use crate::frontend::App;
 
+use super::message_formatting::format_chat_message;
+
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Create the main layout (vertical)
     let [main_area, help_area] = Layout::default()
@@ -52,8 +54,12 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
 }
 
 fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
-    let messages = app.current_chat().messages.clone();
-    let chat_content: Text = messages.iter().flat_map(format_chat_message).collect();
+    let current_chat = app.current_chat();
+    let messages = current_chat.messages.clone();
+    let chat_content: Text = messages
+        .iter()
+        .flat_map(|m| format_chat_message(current_chat, m))
+        .collect();
 
     let num_lines = chat_content.lines.len();
 
@@ -184,25 +190,4 @@ fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
     .wrap(Wrap { trim: true })
     .block(Block::default().title("Commands").borders(Borders::TOP));
     f.render_widget(commands, area);
-}
-
-fn format_chat_message(message: &ChatMessage) -> Text<'_> {
-    // Format completed tools on a single line
-    if message.role().is_tool() {
-        return Line::from_iter(vec![
-            Span::styled(
-                message.role().to_string() + " ",
-                Style::default().fg(Color::Green),
-            ),
-            message.content().into(),
-        ])
-        .into();
-    }
-    let prefix: Span = Span::styled(
-        message.role().as_ref().trim(),
-        Style::default().fg(Color::Yellow),
-    );
-    let content: Text = tui_markdown::from_str(message.content());
-
-    Text::from(prefix) + content
 }

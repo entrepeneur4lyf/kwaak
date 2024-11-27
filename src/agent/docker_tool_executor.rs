@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use swiftide::{
     query::StreamExt as _,
-    traits::{Command, Output, ToolExecutor},
+    traits::{Command, CommandOutput, ToolExecutor},
 };
 use tokio::io::AsyncReadExt as _;
 use tracing::{error, info};
@@ -89,7 +89,7 @@ impl DockerExecutor {
 #[async_trait]
 impl ToolExecutor for RunningDockerExecutor {
     #[tracing::instrument(skip(self))]
-    async fn exec_cmd(&self, cmd: &Command) -> Result<swiftide::traits::Output> {
+    async fn exec_cmd(&self, cmd: &Command) -> Result<swiftide::traits::CommandOutput> {
         // let Command::Shell(cmd) = cmd else {
         //     anyhow::bail!("Command not implemented")
         // };
@@ -176,7 +176,7 @@ impl RunningDockerExecutor {
         })
     }
 
-    async fn exec_shell(&self, cmd: &str) -> Result<Output> {
+    async fn exec_shell(&self, cmd: &str) -> Result<CommandOutput> {
         let cmd = vec!["sh", "-c", cmd];
         tracing::debug!("Executing command {cmd}", cmd = cmd.join(" "));
 
@@ -219,7 +219,7 @@ impl RunningDockerExecutor {
         let status = if stderr.is_empty() { 0 } else { 1 };
         let success = status == 0;
 
-        Ok(Output::Shell {
+        Ok(CommandOutput::Shell {
             stdout,
             stderr,
             status,
@@ -228,7 +228,7 @@ impl RunningDockerExecutor {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn read_file(&self, path: &Path) -> std::result::Result<Output, anyhow::Error> {
+    async fn read_file(&self, path: &Path) -> std::result::Result<CommandOutput, anyhow::Error> {
         self.exec_shell(&format!("cat {}", path.display())).await
     }
 
@@ -237,7 +237,7 @@ impl RunningDockerExecutor {
         &self,
         path: &Path,
         content: &str,
-    ) -> std::result::Result<Output, anyhow::Error> {
+    ) -> std::result::Result<CommandOutput, anyhow::Error> {
         let cmd = indoc::formatdoc! {r#"
             cat << 'EOFKWAAK' > {path}
             {content}
@@ -313,7 +313,7 @@ async fn build_context_as_tar(context_path: &Path) -> Result<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use swiftide::traits::Output;
+    use swiftide::traits::CommandOutput;
 
     use super::*;
 
@@ -361,7 +361,7 @@ mod tests {
             .await
             .unwrap();
 
-        let Output::Shell {
+        let CommandOutput::Shell {
             stdout,
             stderr,
             status,
@@ -397,7 +397,7 @@ mod tests {
             .await
             .unwrap();
 
-        let Output::Shell { success, .. } = output else {
+        let CommandOutput::Shell { success, .. } = output else {
             panic!("Expected shell output")
         };
 
@@ -413,7 +413,7 @@ mod tests {
         let output = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
 
         dbg!(&output);
-        let Output::Shell {
+        let CommandOutput::Shell {
             stdout, success, ..
         } = output
         else {
@@ -456,7 +456,7 @@ mod tests {
             .await
             .unwrap();
 
-        let Output::Shell { success, .. } = output else {
+        let CommandOutput::Shell { success, .. } = output else {
             panic!("Expected shell output")
         };
 
@@ -472,7 +472,7 @@ mod tests {
         let output = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
 
         dbg!(&output);
-        let Output::Shell {
+        let CommandOutput::Shell {
             stdout, success, ..
         } = output
         else {
