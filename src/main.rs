@@ -16,6 +16,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use swiftide::chat_completion::ToolCallBuilder;
 
 mod agent;
 mod chat;
@@ -55,9 +56,13 @@ async fn start_app(repository: &repository::Repository) -> Result<()> {
     // Start the application
     let mut app = App::default();
 
-    if cfg!(feature = "test-markdown") {
+    if cfg!(feature = "test-layout") {
         app.ui_tx
-            .send(chat_message::ChatMessage::new_system(MARKDOWN_TEST).into())?;
+            .send(chat_message::ChatMessage::new_user("Hello, show me some markdown!").into())?;
+        app.ui_tx
+            .send(chat_message::ChatMessage::new_system("showing markdown").into())?;
+        app.ui_tx
+            .send(chat_message::ChatMessage::new_assistant(MARKDOWN_TEST).into())?;
     }
 
     let app_result = {

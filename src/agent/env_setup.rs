@@ -7,7 +7,7 @@ use anyhow::bail;
 use anyhow::Result;
 use secrecy::ExposeSecret;
 use swiftide::traits::Command;
-use swiftide::traits::Output;
+use swiftide::traits::CommandOutput;
 use swiftide::traits::ToolExecutor as _;
 
 use crate::git::github::GithubSession;
@@ -37,7 +37,7 @@ impl EnvSetup<'_> {
 
     #[tracing::instrument(skip_all)]
     pub async fn exec_setup_commands(&self) -> Result<()> {
-        let Output::Shell {
+        let CommandOutput::Shell {
             stdout: origin_url, ..
         } = self
             .executor

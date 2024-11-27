@@ -10,6 +10,7 @@ use uuid::Uuid;
 pub struct ChatMessage {
     role: ChatRole,
     content: String,
+    original: Option<swiftide::chat_completion::ChatMessage>,
     uuid: Option<Uuid>,
 }
 
@@ -92,39 +93,35 @@ impl ChatMessage {
             ..self
         }
     }
+
+    pub fn original(&self) -> Option<&swiftide::chat_completion::ChatMessage> {
+        self.original.as_ref()
+    }
+
+    pub fn maybe_completed_tool_call(&self) -> Option<&swiftide::chat_completion::ToolCall> {
+        match self.original() {
+            Some(swiftide::chat_completion::ChatMessage::ToolOutput(tool_call, ..)) => {
+                Some(tool_call)
+            }
+            _ => None,
+        }
+    }
 }
 
 impl From<swiftide::chat_completion::ChatMessage> for ChatMessage {
     fn from(msg: swiftide::chat_completion::ChatMessage) -> Self {
-        match msg {
-            swiftide::chat_completion::ChatMessage::System(msg) => {
-                ChatMessage::new_system(msg).build()
-            }
-            swiftide::chat_completion::ChatMessage::User(msg) => ChatMessage::new_user(msg).build(),
-            swiftide::chat_completion::ChatMessage::Assistant(msg, tool_calls) => {
-                let mut message = String::new();
-
-                if let Some(msg) = msg {
-                    message.push_str(&msg);
-                };
-
-                if let Some(tool_calls) = tool_calls {
-                    message.push_str("\nCalling tools: \n");
-                    message.push_str(
-                        &tool_calls
-                            .iter()
-                            .map(format_tool_call)
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                    );
-                };
-
-                ChatMessage::new_assistant(message).build()
+        let mut builder = match &msg {
+            swiftide::chat_completion::ChatMessage::System(msg) => ChatMessage::new_system(msg),
+            swiftide::chat_completion::ChatMessage::User(msg) => ChatMessage::new_user(msg),
+            swiftide::chat_completion::ChatMessage::Assistant(msg, ..) => {
+                ChatMessage::new_assistant(msg.as_deref().unwrap_or_default())
             }
             swiftide::chat_completion::ChatMessage::ToolOutput(tool_call, _) => {
-                ChatMessage::new_tool(format!("tool `{}` completed", tool_call.name(),)).build()
+                ChatMessage::new_tool(format!("tool `{}` completed", tool_call.name()))
             }
-        }
+        };
+
+        builder.original(msg).build()
     }
 }
 
@@ -135,100 +132,7 @@ impl ChatMessageBuilder {
             content: self.content.clone().unwrap_or_default(),
             uuid: self.uuid.unwrap_or_default(),
             role: self.role.unwrap_or_default(),
+            original: self.original.clone().unwrap_or_default(),
         }
-    }
-}
-
-fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
-    // If args, parse them as a json value, then if its just one, render only the value, otherwise
-    // limit the output to 20 characters
-    let mut formatted_args = tool_call.args().map_or("no arguments".to_string(), |args| {
-        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args) {
-            if let Some(obj) = parsed.as_object() {
-                if obj.keys().count() == 1 {
-                    let key = obj.keys().next().unwrap();
-                    let val = obj[key].as_str().unwrap_or_default();
-
-                    return val.to_string();
-                }
-
-                return args.to_string();
-            }
-
-            args.to_string()
-        } else {
-            args.to_string()
-        }
-    });
-
-    if formatted_args.len() > 20 {
-        formatted_args.truncate(20);
-        formatted_args.push_str("...");
-    }
-
-    format!(
-        "calling tool `{}` with `{}`",
-        tool_call.name(),
-        formatted_args
-    )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use swiftide::chat_completion::ToolCall;
-
-    #[test]
-    fn test_format_tool_call_no_arguments() {
-        let tool_call = ToolCall::builder()
-            .name("test_tool")
-            .id("test_id")
-            .build()
-            .unwrap();
-
-        let result = format_tool_call(&tool_call);
-        assert_eq!(result, "calling tool `test_tool` with `no arguments`");
-    }
-
-    #[test]
-    fn test_format_tool_call_single_argument() {
-        let tool_call = ToolCall::builder()
-            .name("test_tool")
-            .id("test_id")
-            .args(r#"{"key": "value"}"#.to_string())
-            .build()
-            .unwrap();
-
-        let result = format_tool_call(&tool_call);
-        assert_eq!(result, "calling tool `test_tool` with `value`");
-    }
-
-    #[test]
-    fn test_format_tool_call_multiple_arguments() {
-        let tool_call = ToolCall::builder()
-            .name("test_tool")
-            .id("test_id")
-            .args(r#"{"key1": "value1", "key2": "value2"}"#.to_string())
-            .build()
-            .unwrap();
-
-        let result = format_tool_call(&tool_call);
-        assert_eq!(
-            result,
-            "calling tool `test_tool` with `{\"key1\": \"value1\", \"key2\": \"value2\"}`"
-        );
-    }
-
-    #[test]
-    fn test_format_tool_call_invalid_json() {
-        let tool_call = ToolCall::builder()
-            .name("test_tool")
-            .id("test_id")
-            .args("invalid json".to_string())
-            .build()
-            .unwrap();
-
-        let result = format_tool_call(&tool_call);
-        assert_eq!(result, "calling tool `test_tool` with `invalid json`");
     }
 }
