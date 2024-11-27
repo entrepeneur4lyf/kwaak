@@ -4,9 +4,11 @@ use std::sync::Arc;
 use anyhow::Result;
 use swiftide::{
     chat_completion::{errors::ToolError, ToolOutput},
+    query::{search_strategies, states},
     traits::{AgentContext, Command, CommandOutput},
 };
 use swiftide_macros::{tool, Tool};
+use tokio::sync::Mutex;
 
 use crate::git::github::GithubSession;
 
@@ -92,6 +94,55 @@ pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput
     let output = context.exec_cmd(&cmd).await?;
 
     Ok(output.into())
+}
+
+#[derive(Tool, Clone)]
+#[tool(
+    description = "Search code in human language",
+    param(
+        name = "query",
+        description = "A description, question, or literal code you want to search"
+    )
+)]
+pub struct SearchCode<'a> {
+    query_pipeline: Arc<
+        Mutex<
+            swiftide::query::Pipeline<
+                'a,
+                search_strategies::SimilaritySingleEmbedding,
+                states::Answered,
+            >,
+        >,
+    >,
+}
+
+impl<'a> SearchCode<'a> {
+    pub fn new(
+        query_pipeline: swiftide::query::Pipeline<
+            'a,
+            search_strategies::SimilaritySingleEmbedding,
+            states::Answered,
+        >,
+    ) -> Self {
+        Self {
+            query_pipeline: Arc::new(Mutex::new(query_pipeline)),
+        }
+    }
+    async fn search_code(
+        &self,
+        _context: &dyn AgentContext,
+        query: &str,
+    ) -> Result<ToolOutput, ToolError> {
+        let results = self
+            .query_pipeline
+            .lock()
+            .await
+            .query_mut(query)
+            .await?
+            .answer()
+            .to_string();
+        Ok(results.into())
+    }
 }
 
 #[derive(Tool, Clone, Debug)]

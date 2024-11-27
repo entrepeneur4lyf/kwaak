@@ -43,12 +43,14 @@ pub async fn build_agent(
 
     let context = DefaultContext::from_executor(executor);
 
+    let query_pipeline = indexing::build_query_pipeline(&repository)?;
     let tools = vec![
         tools::read_file(),
         tools::write_file(),
         tools::search_file(),
         tools::git(),
         tools::shell_command(),
+        tools::SearchCode::new(query_pipeline).boxed(),
         tools::CreatePullRequest::new(&github_session).boxed(),
         tools::RunTests::new(&repository.config().commands.test).boxed(),
     ];
