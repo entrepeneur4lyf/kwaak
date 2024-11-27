@@ -5,9 +5,10 @@ use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::treesitter::SupportedLanguages;
 
+use super::api_key::ApiKey;
 use super::defaults::{
-    default_cache_dir, default_docker_context, default_dockerfile, default_github_token,
-    default_log_dir, default_main_branch, default_project_name,
+    default_cache_dir, default_docker_context, default_dockerfile, default_log_dir,
+    default_main_branch, default_project_name,
 };
 use super::{CommandConfiguration, LLMConfiguration, LLMConfigurations};
 
@@ -56,11 +57,7 @@ pub struct GithubConfiguration {
     #[serde(default = "default_main_branch")]
     pub main_branch: String,
 
-    #[serde(
-        serialize_with = "serde_hidden_secret",
-        default = "default_github_token"
-    )]
-    pub token: SecretString,
+    pub token: ApiKey,
 }
 
 impl Config {
@@ -140,11 +137,11 @@ mod tests {
             [github]
             owner = "bosun-ai"
             repository = "kwaak"
-            token = "some-token"
+            token = "text:some-token"
 
             [llm]
             provider = "OpenAI"
-            api_key = "test-key"
+            api_key = "text:test-key"
             prompt_model = "gpt-4o-mini"
 
             "#;
@@ -176,21 +173,21 @@ mod tests {
             [github]
             owner = "bosun-ai"
             repository = "kwaak"
-            token = "my-token"
+            token = "text:some-token"
 
             [llm.indexing]
             provider = "OpenAI"
-            api_key = "test-key"
+            api_key = "text:test-key"
             prompt_model = "gpt-4o-mini"
 
             [llm.query]
             provider = "OpenAI"
-            api_key = "other-test-key"
+            api_key = "text:other-test-key"
             prompt_model = "gpt-4o-mini"
 
             [llm.embedding]
             provider = "OpenAI"
-            api_key = "other-test-key"
+            api_key = "text:other-test-key"
             embedding_model = "text-embedding-3-small"
             "#;
 

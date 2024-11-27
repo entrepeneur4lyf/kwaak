@@ -1,5 +1,4 @@
-use super::config::serde_hidden_secret;
-use super::defaults::default_openai_api_key;
+use super::{config::serde_hidden_secret, ApiKey};
 use anyhow::Result;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::{Deserialize, Serialize};
@@ -25,11 +24,7 @@ pub enum LLMConfigurations {
 #[serde(tag = "provider")]
 pub enum LLMConfiguration {
     OpenAI {
-        #[serde(
-            default = "default_openai_api_key",
-            serialize_with = "serde_hidden_secret"
-        )]
-        api_key: SecretString,
+        api_key: ApiKey,
         prompt_model: Option<OpenAIPromptModel>,
         embedding_model: Option<OpenAIEmbeddingModel>,
     },

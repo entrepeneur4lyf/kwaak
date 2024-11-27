@@ -5,11 +5,11 @@ use anyhow::{Context, Result};
 use octocrab::{models::pulls::PullRequest, Octocrab};
 use secrecy::{ExposeSecret, SecretString};
 
-use crate::repository::Repository;
+use crate::{config::ApiKey, repository::Repository};
 
 #[derive(Debug)]
 pub struct GithubSession {
-    token: SecretString,
+    token: ApiKey,
     octocrab: Octocrab,
     repository: Repository,
 }

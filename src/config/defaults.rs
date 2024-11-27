@@ -26,24 +26,12 @@ pub(super) fn default_log_dir() -> PathBuf {
     path
 }
 
-pub(super) fn default_openai_api_key() -> SecretString {
-    std::env::var("OPENAI_API_KEY")
-        .map(SecretString::from)
-        .expect("Missing OPENAI_API_KEY environment variable or config")
-}
-
 pub(super) fn default_dockerfile() -> PathBuf {
     "./Dockerfile".into()
 }
 
 pub(super) fn default_docker_context() -> PathBuf {
     ".".into()
-}
-
-pub(super) fn default_github_token() -> SecretString {
-    std::env::var("GITHUB_TOKEN")
-        .map(SecretString::from)
-        .expect("Missing GITHUB_TOKEN environment variable or config")
 }
 
 pub(super) fn default_main_branch() -> String {
