@@ -80,7 +80,7 @@ pub async fn build_agent(
             "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out",
             "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother",
             "Your first response to ANY user message, must ALWAYS be your thoughts on how to solve the problem",
-            "When writing code, consider how to do this ideomatically for the language",
+            "When writing code, you must consider how to do this ideomatically for the language",
             "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage before creating a new test.",
             "If you create a pull request, make sure the tests pass"
         ]).build()?;
