@@ -166,3 +166,50 @@ query::Pipeline::default()
     .query("How can I use the query pipeline in Swiftide?")
     .await?;
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use frontend::UIEvent;
+    use tokio::sync::mpsc;
+
+    #[tokio::test]
+    async fn test_start_app() -> Result<()> {
+        // Mock a repository
+        let config = Config::default();
+        let repository = repository::Repository::from_config(config);
+
+        // Mock terminal and app
+        let mut app = App::default();
+        let (ui_tx, ui_rx) = mpsc::unbounded_channel();
+        app.ui_tx = ui_tx;
+        app.ui_rx = ui_rx;
+
+        // Simulate a UI event
+        app.ui_tx.send(UIEvent::NewChat)?;
+
+        // Run a single tick
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            app.recv_messages(),
+        )
+        .await??;
+
+        match result {
+            UIEvent::NewChat => assert!(true),
+            _ => assert!(false, "Unexpected UI Event"),
+        }
+
+        // Check if the app handles a quit event correctly
+        app.ui_tx.send(UIEvent::ChangeMode(frontend::AppMode::Quit))?;
+        let _ = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            app.run(&mut init_tui()?),
+        )
+        .await;
+        assert_eq!(app.mode, frontend::AppMode::Quit);
+
+        Ok(())
+    }
+}
+
