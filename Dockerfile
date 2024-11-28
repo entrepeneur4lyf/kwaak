@@ -11,6 +11,7 @@ FROM rust:${RUST_VERSION} as builder
 # Install tool dependencies for app and git/ssh for the workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ripgrep fd-find git ssh curl  \
+  protobuf-compiler \
   pkg-config libssl-dev iputils-ping \
   && rm -rf /var/lib/apt/lists/* \
   && cp /usr/bin/fdfind /usr/bin/fd
