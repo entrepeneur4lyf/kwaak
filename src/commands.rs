@@ -276,3 +276,56 @@ impl CommandHandler {
         Ok(cloned)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repository;
+    use tokio::sync::mpsc;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_command_handler() -> Result<()> {
+        // Create a mock repository
+        let config = repository::Config::default();
+        let repository = repository::Repository::from_config(config);
+
+        // Setup CommandHandler with mocks
+        let mut command_handler = CommandHandler::from_repository(repository);
+
+        // Setup channels for sending and receiving UI events
+        let (ui_tx, mut ui_rx) = mpsc::unbounded_channel();
+        command_handler.ui_tx = Some(ui_tx.clone());
+
+        // Start the command handler
+        let _handler = command_handler.start();
+
+        // Simulate sending a command to show the current configuration
+        let command_uuid = Uuid::new_v4();
+        command_handler
+            .tx
+            .send(Command::ShowConfig { uuid: command_uuid })
+            .expect("Failed to send command");
+
+        // Verify that a UI event with configuration details is received
+        if let Some(UIEvent::ChatMessage(ChatMessage::System { content, .. })) = ui_rx.recv().await
+        {
+            assert!(content.contains("[package]")); // Example check
+        } else {
+            panic!("Expecting a system message about configuration");
+        }
+
+        // Simulate sending a quit command
+        let quit_uuid = Uuid::new_v4();
+        command_handler
+            .tx
+            .send(Command::Quit { uuid: quit_uuid })
+            .expect("Failed to send quit command");
+
+        // Verify that the command handler processes the quit command
+        assert!(ui_rx.recv().await.is_some());
+
+        Ok(())
+    }
+}
+
