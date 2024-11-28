@@ -8,10 +8,7 @@ use swiftide::{
 use tavily::Tavily;
 
 use crate::{
-    commands::CommandResponder,
-    git::github::GithubSession,
-    indexing,
-    repository::Repository,
+    commands::CommandResponder, git::github::GithubSession, indexing, repository::Repository,
 };
 
 use super::{docker_tool_executor::DockerExecutor, env_setup::EnvSetup, tools};
@@ -79,7 +76,8 @@ pub async fn build_agent(
         .constraints([
             "If you need to create a pull request, ensure you are on a new branch and have committed your changes",
             "Research your solution before providing it",
-            "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out"
+            "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out",
+            "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother"
         ]).build()?;
 
     let agent = Agent::builder()

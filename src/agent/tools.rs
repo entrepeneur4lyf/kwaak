@@ -59,10 +59,8 @@ pub async fn write_file(
 
     match output {
         CommandOutput::Shell { success, .. } if success => Ok("File written succesfully".into()),
-        CommandOutput::Shell {
-            success, stderr, ..
-        } if !success => Err(anyhow::anyhow!("Failed to write file: {}", stderr).into()),
-        _ => Err(anyhow::anyhow!("Unexpected output from write file").into()),
+        CommandOutput::Shell { stderr, .. } => Ok(ToolOutput::Fail(stderr)),
+        CommandOutput::Ok | CommandOutput::Text(..) => Ok("File written succesfully".into()),
     }
 }
 
