@@ -67,9 +67,15 @@ pub async fn build_agent(
 
         Also consider what else might be helpful to accomplish the following:
         `{query}`
+
+        This context is provided for an ai agent that has to accomplish the above. Additionally, the agent has access to the following tools:
+        `{tools}`
+
+        Do not make assumptions, instruct to investigate instead.
         "#,
         project_name = repository.config().project_name,
-        lang = repository.config().language
+        lang = repository.config().language,
+        tools = tools.iter().map(|tool| tool.name()).collect::<Vec<_>>().join(", "),
     };
     let system_prompt =
     SystemPrompt::builder()
