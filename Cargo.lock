@@ -3100,6 +3100,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "ratatui",
+ "regex",
  "secrecy 0.10.3",
  "serde",
  "serde_json",

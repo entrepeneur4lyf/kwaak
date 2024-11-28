@@ -67,6 +67,7 @@ url = "2.5.3"
 octocrab = "0.42.0"
 indoc = "2.0.5"
 tavily = "1.0.0"
+regex = "1.11.1"
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace"] }

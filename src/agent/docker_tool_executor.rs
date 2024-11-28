@@ -247,7 +247,29 @@ impl RunningDockerExecutor {
 
         };
 
-        self.exec_shell(&cmd).await
+        let output = self.exec_shell(&cmd).await?;
+
+        // no such file or directory regex
+        let nofile: regex::Regex =
+            regex::Regex::new(r#"(?P<path>.+): No such file or directory"#).unwrap();
+
+        let CommandOutput::Shell { stdout, stderr, .. } = &output else {
+            return Ok(output);
+        };
+
+        if nofile.is_match(&stderr) || nofile.is_match(&stdout) {
+            let path = nofile
+                .captures(&stderr)
+                .and_then(|captures| captures.name("path"))
+                .map(|path| path.as_str())
+                .unwrap();
+            let cmd = format!("mkdir -p {}", path);
+            let _ = self.exec_shell(&cmd).await?;
+
+            return self.write_file(path.as_ref(), content).await;
+        }
+
+        Ok(output)
     }
 }
 
