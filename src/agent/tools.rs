@@ -140,7 +140,7 @@ impl<'a> SearchCode<'a> {
 
 #[derive(Tool, Clone, Debug)]
 #[tool(
-    description = "Creates a pull request on Github with the current branch onto the main branch. Pushes the current branch to the remote repository.",
+    description = "Creates a pull request on Github with the current branch onto the main branch. Pushes the current branch to the remote repository. Always present the url of the pull request to the user after the tool call.",
     param(name = "title", description = "Title of the pull request"),
     param(name = "pull_request_body", description = "Body of the pull request")
 )]
@@ -203,10 +203,12 @@ impl<'a> CreatePullRequest {
             .map_or_else(
                 |e| Ok::<String, ToolError>(e.to_string()),
                 |pr| {
-                    Ok(format!(
-                        "Created a pull request at `{}`",
-                        pr.html_url
-                            .map_or_else(|| "--no_url_found".to_string(), |url| url.to_string())
+                    Ok(pr.html_url.map_or_else(
+                        || {
+                            "No pull request url found, are you sure you commited and pushed your changes?"
+                                .to_string()
+                        },
+                        |url| url.to_string(),
                     ))
                 },
             )
