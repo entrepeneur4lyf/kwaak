@@ -1,0 +1,27 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions/setup-rust@v1
+      with:
+        rust-version: stable
+
+    - name: Install Dependencies
+      run: |
+        cargo install cargo-audit
+        rustup component add clippy
+
+    - name: Test with cargo
+      run: cargo test
+
+    - name: Run Clippy
+      run: cargo clippy -- -D warnings
+
