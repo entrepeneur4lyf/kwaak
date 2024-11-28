@@ -3106,7 +3106,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swiftide",
- "swiftide-macros",
+ "swiftide-macros 0.14.3",
  "tavily",
  "test-log",
  "throbber-widgets-tui",
@@ -5719,6 +5719,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 [[package]]
 name = "swiftide"
 version = "0.14.3"
+source = "git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents#8e1e7896859e584baa0455e177ed4452d057dd5f"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5735,6 +5736,7 @@ dependencies = [
 [[package]]
 name = "swiftide-agents"
 version = "0.14.3"
+source = "git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents#8e1e7896859e584baa0455e177ed4452d057dd5f"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5747,7 +5749,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swiftide-core",
- "swiftide-macros",
+ "swiftide-macros 0.14.3 (git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents)",
  "tokio",
  "tracing",
 ]
@@ -5755,6 +5757,7 @@ dependencies = [
 [[package]]
 name = "swiftide-core"
 version = "0.14.3"
+source = "git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents#8e1e7896859e584baa0455e177ed4452d057dd5f"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5779,6 +5782,7 @@ dependencies = [
 [[package]]
 name = "swiftide-indexing"
 version = "0.14.3"
+source = "git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents#8e1e7896859e584baa0455e177ed4452d057dd5f"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5793,7 +5797,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swiftide-core",
- "swiftide-macros",
+ "swiftide-macros 0.14.3 (git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents)",
  "text-splitter",
  "tokio",
  "tokio-stream",
@@ -5803,6 +5807,7 @@ dependencies = [
 [[package]]
 name = "swiftide-integrations"
 version = "0.14.3"
+source = "git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents#8e1e7896859e584baa0455e177ed4452d057dd5f"
 dependencies = [
  "anyhow",
  "arrow-array",
@@ -5822,7 +5827,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swiftide-core",
- "swiftide-macros",
+ "swiftide-macros 0.14.3 (git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents)",
  "tokio",
  "tracing",
  "tree-sitter",
@@ -5850,8 +5855,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "swiftide-macros"
+version = "0.14.3"
+source = "git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents#8e1e7896859e584baa0455e177ed4452d057dd5f"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "convert_case",
+ "darling",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn 2.0.89",
+]
+
+[[package]]
 name = "swiftide-query"
 version = "0.14.3"
+source = "git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents#8e1e7896859e584baa0455e177ed4452d057dd5f"
 dependencies = [
  "anyhow",
  "async-trait",

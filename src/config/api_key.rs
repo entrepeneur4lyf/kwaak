@@ -74,7 +74,7 @@ impl<'de> Deserialize<'de> for ApiKey {
     }
 }
 
-impl<'se> Serialize for ApiKey {
+impl Serialize for ApiKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::ser::Serializer,
