@@ -29,6 +29,10 @@ pub struct Config {
     pub docker: DockerConfiguration,
 
     pub github: GithubConfiguration,
+
+    /// Optional: Use tavily as a search tool
+    #[serde(default)]
+    pub tavily_api_key: Option<ApiKey>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

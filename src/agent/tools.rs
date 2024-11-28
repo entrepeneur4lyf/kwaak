@@ -8,9 +8,10 @@ use swiftide::{
     traits::{AgentContext, Command, CommandOutput},
 };
 use swiftide_macros::{tool, Tool};
+use tavily::Tavily;
 use tokio::sync::Mutex;
 
-use crate::git::github::GithubSession;
+use crate::{config::ApiKey, git::github::GithubSession};
 
 static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/.*: //p'";
 
@@ -235,5 +236,58 @@ impl RunTests {
         let output = context.exec_cmd(&cmd).await?;
 
         Ok(output.into())
+    }
+}
+
+#[derive(Tool, Clone)]
+#[tool(
+    description = "Search the web to answer a question",
+    param(name = "query", description = "Search query")
+)]
+pub struct SearchWeb {
+    tavily_client: Arc<Tavily>,
+    api_key: ApiKey,
+}
+
+impl SearchWeb {
+    pub fn new(tavily_client: Tavily, api_key: ApiKey) -> Self {
+        Self {
+            tavily_client: Arc::new(tavily_client),
+            api_key: api_key,
+        }
+    }
+    async fn search_web(
+        &self,
+        _context: &dyn AgentContext,
+        query: &str,
+    ) -> Result<ToolOutput, ToolError> {
+        let mut request = tavily::SearchRequest::new(self.api_key.expose_secret(), query);
+        request.search_depth("advanced");
+        request.include_answer(true);
+        request.include_images(false);
+        request.include_raw_content(false);
+        request.max_results(10);
+
+        let results = self
+            .tavily_client
+            .search(query)
+            .await
+            .map_err(anyhow::Error::from)?;
+
+        tracing::debug!(results = ?results, "Search results from tavily");
+
+        // Return the generated answer if available, otherwise concat the documents as is
+        // NOTE: Generating our own answer from documents might yield better results
+        Ok(results
+            .answer
+            .unwrap_or_else(|| {
+                results
+                    .results
+                    .iter()
+                    .map(|r| r.content.clone())
+                    .collect::<Vec<_>>()
+                    .join("---\n")
+            })
+            .into())
     }
 }
