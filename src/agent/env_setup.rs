@@ -1,7 +1,4 @@
 //! Series of commands to run before each agent starts inside the docker container
-//!
-//!
-//!
 
 use anyhow::bail;
 use anyhow::Result;
@@ -49,12 +46,16 @@ impl EnvSetup<'_> {
 
         let url_with_token = self.github_session.add_token_to_url(&origin_url)?;
 
-        self.executor
-            .exec_cmd(&Command::shell(format!(
+        for cmd in &[
+            Command::shell(format!(
                 "git remote set-url origin {}",
                 url_with_token.expose_secret()
-            )))
-            .await?;
+            )),
+            Command::shell("git config --global user.email \"kwaak@bosun.ai\""),
+            Command::shell("git config --global user.name \"kwaak\""),
+        ] {
+            self.executor.exec_cmd(cmd).await?;
+        }
 
         Ok(())
     }
