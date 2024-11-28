@@ -58,18 +58,12 @@ pub async fn write_file(
     let output = context.exec_cmd(&cmd).await?;
 
     match output {
-        CommandOutput::Shell { success, .. } if success => {
-            return Ok("File written succesfully".into())
-        }
+        CommandOutput::Shell { success, .. } if success => Ok("File written succesfully".into()),
         CommandOutput::Shell {
             success, stderr, ..
-        } if !success => {
-            return Err(anyhow::anyhow!("Failed to write file: {}", stderr).into());
-        }
-        _ => {
-            return Err(anyhow::anyhow!("Unexpected output from write file").into());
-        }
-    };
+        } if !success => Err(anyhow::anyhow!("Failed to write file: {}", stderr).into()),
+        _ => Err(anyhow::anyhow!("Unexpected output from write file").into()),
+    }
 }
 
 #[tool(
@@ -253,7 +247,7 @@ impl SearchWeb {
     pub fn new(tavily_client: Tavily, api_key: ApiKey) -> Self {
         Self {
             tavily_client: Arc::new(tavily_client),
-            api_key: api_key,
+            api_key,
         }
     }
     async fn search_web(
