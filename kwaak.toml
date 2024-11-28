@@ -1,4 +1,5 @@
 language = "rust"
+tavily_api_key = "env:TAVILY_API_KEY"
 
 [commands]
 test = "cargo test"
@@ -7,16 +8,20 @@ test = "cargo test"
 owner = "bosun-ai"
 repository = "kwaak"
 main_branch = "master"
+token = "env:GITHUB_TOKEN"
 
 [llm.indexing]
+api_key = "env:OPENAI_API_KEY"
 provider = "OpenAI"
 prompt_model = "gpt-4o-mini"
 
 [llm.query]
+api_key = "env:OPENAI_API_KEY"
 provider = "OpenAI"
 prompt_model = "gpt-4o"
 
 [llm.embedding]
+api_key = "env:OPENAI_API_KEY"
 provider = "OpenAI"
 embedding_model = "text-embedding-3-large"
 

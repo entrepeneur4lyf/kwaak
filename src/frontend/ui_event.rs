@@ -19,7 +19,7 @@ pub enum UIEvent {
     NewChat,
     NextChat,
     ChangeMode(AppMode),
-    AgentReady(Uuid),
+    CommandDone(Uuid),
     AgentActivity(Uuid, String),
 }
 

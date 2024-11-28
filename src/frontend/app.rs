@@ -225,7 +225,7 @@ impl App<'_> {
                     UIEvent::Tick => {
                         // Handle periodic tasks if necessary
                     }
-                    UIEvent::AgentReady(uuid) => {
+                    UIEvent::CommandDone(uuid) => {
                         self.find_chat_mut(uuid).transition(ChatState::Ready);
                     }
                     UIEvent::AgentActivity(uuid, activity) => {

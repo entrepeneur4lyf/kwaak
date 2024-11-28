@@ -162,6 +162,7 @@ impl CommandHandler {
 
                 tokio::spawn(async move {
                     let result = this_handler.handle_command(&repository, &ui_tx, &cmd).await;
+                    ui_tx.send(UIEvent::CommandDone(cmd.uuid())).unwrap();
 
                     if let Err(error) = result {
                         tracing::error!(?error, %cmd, "Failed to handle command {cmd} with error {error:#}");
@@ -175,7 +176,6 @@ impl CommandHandler {
                                 .into(),
                             )
                             .unwrap();
-                        ui_tx.send(UIEvent::AgentReady(cmd.uuid())).unwrap();
                     };
                 });
             }
@@ -213,8 +213,6 @@ impl CommandHandler {
                 let agent = self.find_or_start_agent_by_uuid(*uuid, message).await?;
 
                 agent.query(message).await?;
-
-                ui_tx.send(UIEvent::AgentReady(*uuid)).unwrap();
             }
             // Anything else we forward to the UI
             _ => ui_tx.send(cmd.clone().into()).unwrap(),
@@ -237,7 +235,6 @@ impl CommandHandler {
     }
 
     async fn find_or_start_agent_by_uuid(&self, uuid: Uuid, query: &str) -> Result<RunningAgent> {
-        // TODO: Can we do this nicer? Double arc is ugly
         if let Some(agent) = self.agents.read().await.get(&uuid) {
             return Ok(agent.clone());
         }
@@ -247,11 +244,15 @@ impl CommandHandler {
 
         let ui_tx_clone = self.ui_tx.clone().expect("expected ui tx");
 
+        // TODO: Perhaps nicer to have a single loop for all agents
+        // Then the majority of this can be moved to i.e. agents/running_agent
+        // Design wise: Agents should not know about UI, command handler and UI should not know
+        // about agent internals
         let handle = task::spawn(async move {
             while let Some(response) = rx.recv().await {
                 match response {
                     CommandResponse::Chat(msg) => {
-                        let _ = ui_tx_clone.send(msg.with_uuid(uuid).into());
+                        let _ = ui_tx_clone.send(msg.into());
                     }
                     CommandResponse::ActivityUpdate(uuid, state) => {
                         let _ = ui_tx_clone.send(UIEvent::AgentActivity(uuid, state));
