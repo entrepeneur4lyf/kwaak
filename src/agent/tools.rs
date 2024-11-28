@@ -44,7 +44,7 @@ pub async fn read_file(
 }
 
 #[tool(
-    description = "Write a file",
+    description = "Write a file, make sure you always write the full file, as the file is overwritten",
     param(name = "file_name", description = "Full path of the file"),
     param(name = "content", description = "Content to write to the file")
 )]
