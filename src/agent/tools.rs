@@ -17,7 +17,7 @@ static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/
 
 /// WARN: Experimental
 #[tool(
-    description = "Run any shell command in the current repository",
+    description = "Run any shell command in the current repository, use this if other tools are not enough.",
     param(
         name = "cmd",
         description = "The shell command, including any arguments if needed, to run"
@@ -65,7 +65,7 @@ pub async fn write_file(
 }
 
 #[tool(
-    description = "Searches for a file",
+    description = "Searches for a file, leave the argument empty to list all files",
     param(name = "file_name", description = "Partial or full name of the file")
 )]
 pub async fn search_file(
