@@ -124,6 +124,7 @@ mod tests {
 
             [commands]
             test = "cargo test"
+            coverage = "cargo tarpaulin"
 
             [github]
             owner = "bosun-ai"
@@ -160,6 +161,7 @@ mod tests {
 
             [commands]
             test = "cargo test"
+            coverage = "cargo tarpaulin"
 
             [github]
             owner = "bosun-ai"

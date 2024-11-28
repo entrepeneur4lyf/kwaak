@@ -45,6 +45,7 @@ pub async fn build_agent(
         tools::SearchCode::new(query_pipeline).boxed(),
         tools::CreatePullRequest::new(&github_session).boxed(),
         tools::RunTests::new(&repository.config().commands.test).boxed(),
+        tools::RunCoverage::new(&repository.config().commands.coverage).boxed(),
     ];
 
     if let Some(tavily_api_key) = &repository.config().tavily_api_key {
@@ -77,7 +78,11 @@ pub async fn build_agent(
             "If you need to create a pull request, ensure you are on a new branch and have committed your changes",
             "Research your solution before providing it",
             "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out",
-            "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother"
+            "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother",
+            "Your first response to ANY user message, must ALWAYS be your thoughts on how to solve the problem",
+            "When writing code, consider how to do this ideomatically for the language",
+            "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage before creating a new test.",
+            "If you create a pull request, make sure the tests pass"
         ]).build()?;
 
     let agent = Agent::builder()

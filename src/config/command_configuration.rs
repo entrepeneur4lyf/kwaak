@@ -4,4 +4,5 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CommandConfiguration {
     pub test: String,
+    pub coverage: String,
 }

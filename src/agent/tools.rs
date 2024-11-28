@@ -231,6 +231,27 @@ impl RunTests {
     }
 }
 
+#[derive(Tool, Clone, Debug)]
+#[tool(description = "Get coverage of tests, this also runs the tests")]
+pub struct RunCoverage {
+    pub coverage_command: String,
+}
+
+impl RunCoverage {
+    pub fn new(coverage_command: impl AsRef<str>) -> Self {
+        Self {
+            coverage_command: coverage_command.as_ref().to_string(),
+        }
+    }
+
+    async fn run_coverage(&self, context: &dyn AgentContext) -> Result<ToolOutput, ToolError> {
+        let cmd = Command::Shell(self.coverage_command.clone());
+        let output = context.exec_cmd(&cmd).await?;
+
+        Ok(output.into())
+    }
+}
+
 #[derive(Tool, Clone)]
 #[tool(
     description = "Search the web to answer a question",
