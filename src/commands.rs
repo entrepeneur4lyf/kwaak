@@ -59,17 +59,20 @@ pub struct CommandResponder {
 }
 
 impl CommandResponder {
+    #[allow(dead_code)]
     pub fn send_system_message(&self, message: impl Into<String>) {
-        self.send_message(ChatMessage::new_system(message).build())
+        self.send_message(ChatMessage::new_system(message).build());
     }
 
     pub fn send_message(&self, msg: impl Into<ChatMessage>) {
-        self.tx
+        let _ = self
+            .tx
             .send(CommandResponse::Chat(msg.into().with_uuid(self.uuid)));
     }
 
     pub fn send_update(&self, state: impl Into<String>) {
-        self.tx
+        let _ = self
+            .tx
             .send(CommandResponse::ActivityUpdate(self.uuid, state.into()));
     }
 }

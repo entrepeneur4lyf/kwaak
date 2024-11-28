@@ -1,6 +1,5 @@
-use super::{config::serde_hidden_secret, ApiKey};
+use super::ApiKey;
 use anyhow::Result;
-use secrecy::{ExposeSecret as _, SecretString};
 use serde::{Deserialize, Serialize};
 use swiftide::{
     chat_completion::ChatCompletion,

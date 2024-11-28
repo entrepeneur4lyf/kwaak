@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::treesitter::SupportedLanguages;
 
@@ -104,24 +103,12 @@ impl Config {
     }
 }
 
-/// Serialize a secret as "****"
-pub(super) fn serde_hidden_secret<S>(
-    _secret: &SecretString,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_str("****")
-}
-
 #[cfg(test)]
 mod tests {
     #![allow(irrefutable_let_patterns)]
     use crate::config::{OpenAIEmbeddingModel, OpenAIPromptModel};
 
     use super::*;
-    use secrecy::ExposeSecret;
     use swiftide::integrations::treesitter::SupportedLanguages;
 
     #[test]

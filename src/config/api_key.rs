@@ -4,13 +4,13 @@
 //! i.e.:
 //!
 //! # From an environment variable
-//! key: "env:ENVIRONMENT_VARIABLE_NAME"
+//! key: "`env:ENVIRONMENT_VARIABLE_NAME`"
 //!
 //! # Directly in the configuration file
 //! key: "text:my-secret-key"
 //!
 //! # From a file
-//! key: "file:/path
+//! key: "<file:/path>
 //!
 //! It can also be used in Serde.
 //!

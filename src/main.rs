@@ -16,7 +16,6 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use swiftide::chat_completion::ToolCallBuilder;
 
 mod agent;
 mod chat;

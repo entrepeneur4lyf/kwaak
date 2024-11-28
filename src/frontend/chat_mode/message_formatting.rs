@@ -6,7 +6,7 @@ use crate::{
 };
 
 mod message_styles {
-    use super::*;
+    use super::{Color, Modifier, Style};
 
     pub const USER: Style = Style::new().fg(Color::Cyan).add_modifier(Modifier::ITALIC);
 
@@ -24,6 +24,7 @@ mod message_styles {
         .fg(Color::LightMagenta)
         .add_modifier(Modifier::BOLD);
 }
+#[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn get_style_and_prefix(role: &ChatRole) -> (&'static str, Style) {
     match role {
         ChatRole::User => ("▶ ", message_styles::USER),
@@ -64,7 +65,7 @@ pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) ->
             rendered_text.push_line(Line::from("\n\n"));
         }
         for tool_call in tool_calls {
-            let is_done = current_chat.is_tool_call_completed(&tool_call.id());
+            let is_done = current_chat.is_tool_call_completed(tool_call.id());
             let tool_call_text = format_tool_call(tool_call);
             let tool_prefix = "⚙ ";
 

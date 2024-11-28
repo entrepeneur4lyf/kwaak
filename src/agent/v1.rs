@@ -6,11 +6,9 @@ use swiftide::{
     chat_completion::{self, ChatCompletion, Tool},
 };
 use tavily::Tavily;
-use tokio::sync::mpsc;
 
 use crate::{
-    chat_message::ChatMessage,
-    commands::{CommandResponder, CommandResponse},
+    commands::CommandResponder,
     git::github::GithubSession,
     indexing,
     repository::Repository,

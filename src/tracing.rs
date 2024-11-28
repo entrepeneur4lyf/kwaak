@@ -1,7 +1,6 @@
 use crate::repository::Repository;
 use anyhow::Result;
 use tracing::level_filters::LevelFilter;
-use tracing::Subscriber;
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, EnvFilter};

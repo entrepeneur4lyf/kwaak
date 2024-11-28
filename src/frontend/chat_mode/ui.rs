@@ -4,12 +4,10 @@ use ratatui::widgets::{
 };
 use ratatui::{
     layout::{Constraint, Direction, Layout},
-    text::Span,
     widgets::{Block, Borders, Paragraph},
 };
 
 use crate::chat::{Chat, ChatState};
-use crate::chat_message::ChatMessage;
 use crate::frontend::App;
 
 use super::message_formatting::format_chat_message;

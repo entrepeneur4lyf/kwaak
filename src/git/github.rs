@@ -3,7 +3,7 @@
 //! It is responsible for providing tooling and interaction with github
 use anyhow::{Context, Result};
 use octocrab::{models::pulls::PullRequest, Octocrab};
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 
 use crate::{config::ApiKey, repository::Repository};
 
