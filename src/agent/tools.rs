@@ -202,7 +202,13 @@ impl<'a> CreatePullRequest {
             .await
             .map_or_else(
                 |e| Ok::<String, ToolError>(e.to_string()),
-                |pr| Ok(format!("Created a pull request at `{}`", pr.url)),
+                |pr| {
+                    Ok(format!(
+                        "Created a pull request at `{}`",
+                        pr.html_url
+                            .map_or_else(|| "--no_url_found".to_string(), |url| url.to_string())
+                    ))
+                },
             )
             .unwrap();
 
