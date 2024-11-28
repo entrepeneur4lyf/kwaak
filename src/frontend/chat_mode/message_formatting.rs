@@ -79,7 +79,7 @@ pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) ->
                 rendered_text.lines.push(Line::styled(
                     [tool_prefix, &tool_call_text].join(" "),
                     message_styles::TOOL_CALLED,
-                ))
+                ));
             }
         }
     }
@@ -111,9 +111,9 @@ fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
                 return args.to_string();
             }
 
-            args.to_string()
+            "no_arguments".to_string()
         } else {
-            args.to_string()
+            "no_arguments".to_string()
         }
     });
 
