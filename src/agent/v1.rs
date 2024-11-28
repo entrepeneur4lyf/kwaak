@@ -78,7 +78,11 @@ pub async fn build_agent(
     let system_prompt =
     SystemPrompt::builder()
         .role("You are an ai agent tasked with helping a user with a code project.")
-        .constraints(["If you need to create a pull request, ensure you are on a new branch and have committed your changes", "Research your solution before providing it"]).build()?;
+        .constraints([
+            "If you need to create a pull request, ensure you are on a new branch and have committed your changes",
+            "Research your solution before providing it",
+            "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out"
+        ]).build()?;
 
     let agent = Agent::builder()
         .context(context)
