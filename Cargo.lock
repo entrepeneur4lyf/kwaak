@@ -3106,7 +3106,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swiftide",
- "swiftide-macros 0.14.3",
+ "swiftide-macros",
  "tavily",
  "test-log",
  "throbber-widgets-tui",
@@ -5749,7 +5749,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swiftide-core",
- "swiftide-macros 0.14.3 (git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents)",
+ "swiftide-macros",
  "tokio",
  "tracing",
 ]
@@ -5797,7 +5797,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swiftide-core",
- "swiftide-macros 0.14.3 (git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents)",
+ "swiftide-macros",
  "text-splitter",
  "tokio",
  "tokio-stream",
@@ -5827,7 +5827,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swiftide-core",
- "swiftide-macros 0.14.3 (git+https://github.com/bosun-ai/swiftide?branch=feat/swiftide-agents)",
+ "swiftide-macros",
  "tokio",
  "tracing",
  "tree-sitter",
@@ -5837,21 +5837,6 @@ dependencies = [
  "tree-sitter-ruby",
  "tree-sitter-rust",
  "tree-sitter-typescript",
-]
-
-[[package]]
-name = "swiftide-macros"
-version = "0.14.3"
-dependencies = [
- "anyhow",
- "async-trait",
- "convert_case",
- "darling",
- "proc-macro2",
- "quote",
- "serde",
- "serde_json",
- "syn 2.0.89",
 ]
 
 [[package]]
