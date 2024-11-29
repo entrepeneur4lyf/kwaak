@@ -146,6 +146,9 @@ impl RunningDockerExecutor {
             tty: Some(true),
             host_config: Some(bollard::models::HostConfig {
                 auto_remove: Some(true),
+                binds: Some(vec![String::from(
+                    "/var/run/docker.sock:/var/run/docker.sock",
+                )]),
                 ..Default::default()
             }),
             ..Default::default()
