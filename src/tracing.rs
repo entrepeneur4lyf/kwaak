@@ -9,7 +9,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 pub fn init(repository: &Repository) -> Result<()> {
     let log_dir = repository.config().log_dir();
 
-    let file_appender = tracing_appender::rolling::never(
+    let file_appender = tracing_appender::rolling::daily(
         log_dir,
         format!("{}.log", repository.config().project_name),
     );
