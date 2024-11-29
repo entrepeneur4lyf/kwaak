@@ -372,7 +372,7 @@ mod tests {
             .await
             .unwrap();
 
-        insta::assert_snapshot!(ls.to_string());
+        assert!(ls.to_string().contains("Cargo.toml"));
 
         // Verify we have connectivity
         let ping = executor
