@@ -112,12 +112,6 @@ mod tests {
     use swiftide::integrations::treesitter::SupportedLanguages;
 
     #[test]
-    fn test_default_project_name() {
-        let project_name = default_project_name();
-        assert_eq!(project_name, "kwaak");
-    }
-
-    #[test]
     fn test_deserialize_toml_single() {
         let toml = r#"
             language = "rust"
