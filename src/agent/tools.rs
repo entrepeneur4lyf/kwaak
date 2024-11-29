@@ -89,15 +89,28 @@ pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput
     Ok(output.into())
 }
 
-#[derive(Tool, Clone)]
 #[tool(
-    description = "Search code in human language",
+    description = "Search code in the repository",
     param(
         name = "query",
-        description = "A description, question, or literal code you want to search"
+        description = "Code you would like to find in the repository"
     )
 )]
-pub struct SearchCode<'a> {
+pub async fn search_code(context: &dyn AgentContext, query: &str) -> Result<ToolOutput, ToolError> {
+    let cmd = Command::Shell(format!("rg {query}"));
+    let output = context.exec_cmd(&cmd).await?;
+    Ok(output.into())
+}
+
+#[derive(Tool, Clone)]
+#[tool(
+    description = "Explain code in human language",
+    param(
+        name = "query",
+        description = "A description, question, or literal code you want to know more about"
+    )
+)]
+pub struct ExplainCode<'a> {
     query_pipeline: Arc<
         Mutex<
             swiftide::query::Pipeline<
@@ -109,7 +122,7 @@ pub struct SearchCode<'a> {
     >,
 }
 
-impl<'a> SearchCode<'a> {
+impl<'a> ExplainCode<'a> {
     pub fn new(
         query_pipeline: swiftide::query::Pipeline<
             'a,
@@ -121,7 +134,7 @@ impl<'a> SearchCode<'a> {
             query_pipeline: Arc::new(Mutex::new(query_pipeline)),
         }
     }
-    async fn search_code(
+    async fn explain_code(
         &self,
         _context: &dyn AgentContext,
         query: &str,

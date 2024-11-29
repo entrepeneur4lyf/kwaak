@@ -2,7 +2,7 @@ language = "rust"
 tavily_api_key = "env:TAVILY_API_KEY"
 
 [commands]
-test = "cargo test"
+test = "cargo test --no-fail-fast --color=never"
 coverage = "cargo tarpaulin --skip-clean"
 
 [github]
