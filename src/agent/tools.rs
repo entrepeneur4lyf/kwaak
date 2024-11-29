@@ -153,7 +153,7 @@ impl<'a> ExplainCode<'a> {
 
 #[derive(Tool, Clone, Debug)]
 #[tool(
-    description = "Creates a pull request on Github with the current branch onto the main branch. Pushes the current branch to the remote repository. Always present the url of the pull request to the user after the tool call.",
+    description = "Creates a pull request on Github with the current branch onto the main branch. Always present the url of the pull request to the user after the tool call.",
     param(name = "title", description = "Title of the pull request"),
     param(name = "pull_request_body", description = "Body of the pull request")
 )]
@@ -161,7 +161,7 @@ pub struct CreatePullRequest {
     github_session: Arc<GithubSession>,
 }
 
-impl<'a> CreatePullRequest {
+impl CreatePullRequest {
     pub fn new(github_session: &Arc<GithubSession>) -> Self {
         Self {
             github_session: Arc::clone(github_session),
@@ -174,40 +174,25 @@ impl<'a> CreatePullRequest {
         title: &str,
         pull_request_body: &str,
     ) -> Result<ToolOutput, ToolError> {
+        // Create a new branch
+        // random string for branch
+        let branch_name = format!("kwaak-{}", uuid::Uuid::new_v4());
+        let cmd = Command::Shell(format!("git checkout -b {branch_name}"));
+        context.exec_cmd(&cmd).await?;
+
+        let cmd = Command::Shell(format!("git add . && git commit -m '{title}'"));
+        context.exec_cmd(&cmd).await?;
+
+        // Commit changes
         // Push the current branch first
         let cmd = Command::Shell("git push origin HEAD".to_string());
         context.exec_cmd(&cmd).await?;
-
-        // Get the current branch and main branch, then create the pull request
-        // TODO: Illustrates that current cmd output is too involved, should use Rust results
-        // properly instead
-        // Also, if input is shell, you kinda always expect a shell output? Maybe generics can
-        // solve this better
-        let current_branch = context
-            .exec_cmd(&Command::shell("git branch --show-current"))
-            .await?;
-
-        let current_branch = match current_branch {
-            CommandOutput::Shell {
-                stdout, success, ..
-            } if success => stdout,
-            CommandOutput::Shell {
-                stderr, success, ..
-            } if !success => {
-                return Err(anyhow::anyhow!("Failed to get current branch: {}", stderr).into())
-            }
-            _ => {
-                return Err(
-                    anyhow::anyhow!("Unexpected output from git branch --show-current").into(),
-                )
-            }
-        };
 
         // Any errors we just forward to the llm at this point
         let response = self
             .github_session
             .create_pull_request(
-                current_branch,
+                branch_name,
                 &self.github_session.main_branch(),
                 title,
                 pull_request_body,

@@ -112,7 +112,8 @@ pub async fn build_agent(
             "Do NOT rely on your own knowledge, always research and verify!",
             "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
             "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
-            "Verify assumptions you make about the code by researching the actual code first"
+            "Verify assumptions you make about the code by researching the actual code first",
+            "If you are stuck, consider using git to undo your changes"
         ]).build()?;
 
     let agent = Agent::builder()
