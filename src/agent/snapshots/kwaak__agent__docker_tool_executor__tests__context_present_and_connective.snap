@@ -4,6 +4,7 @@ expression: ls.to_string()
 ---
 .
 ..
+.dockerignore
 .git
 .gitignore
 Cargo.lock
