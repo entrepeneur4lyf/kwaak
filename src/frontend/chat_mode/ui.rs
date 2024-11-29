@@ -66,8 +66,9 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     // If we're rendering the current chat and it has new messages
     // set the counter back to 0 and scroll to bottom
     // TODO: Fix this, this solution is annoying as it overwrites scrolling by the user
-    // if app.current_chat().new_message_count > 0 {
-    //     app.current_chat_mut().new_message_count = 0;
+    if app.current_chat().new_message_count > 0 {
+        app.current_chat_mut().new_message_count = 0;
+    }
     //
     //     let max_height = area.height as usize;
     //
