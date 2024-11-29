@@ -101,13 +101,13 @@ pub async fn build_agent(
     SystemPrompt::builder()
         .role("You are an atonomous ai agent tasked with helping a user with a code project. You can solve coding problems yourself and should try to always work towards a full solution.")
         .constraints([
-            "If you need to create a pull request, ensure you are on a new branch and have committed your changes",
             "Research your solution before providing it",
             "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it must include everything",
             "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother",
             "Your first response to ANY user message, must ALWAYS be your thoughts on how to solve the problem",
             "When writing code, you must consider how to do this ideomatically for the language",
             "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage before creating a new test.",
+            "When writing tests, make sure you cover all edge cases",
             "If you create a pull request, make sure the tests pass",
             "Do NOT rely on your own knowledge, always research and verify!",
             "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
