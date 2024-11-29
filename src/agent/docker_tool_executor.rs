@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use swiftide::{
@@ -249,23 +249,17 @@ impl RunningDockerExecutor {
 
         let output = self.exec_shell(&cmd).await?;
 
-        // no such file or directory regex
-        let nofile: regex::Regex =
-            regex::Regex::new(r"(?P<path>.+): No such file or directory").unwrap();
-
-        let CommandOutput::Shell { stdout, stderr, .. } = &output else {
-            return Ok(output);
+        let CommandOutput::Shell { stderr, .. } = &output else {
+            unimplemented!("Expected shell output")
         };
 
-        if nofile.is_match(stderr) || nofile.is_match(stdout) {
-            let path = nofile
-                .captures(stderr)
-                .and_then(|captures| captures.name("path"))
-                .map(|path| path.as_str())
-                .unwrap();
-            let mkdircmd = format!("mkdir -p {path}");
+        if ["No such file or directory", "Directory nonexistent"]
+            .iter()
+            .any(|&s| stderr.contains(s))
+        {
+            let path = path.parent().context("No parent directory")?;
+            let mkdircmd = format!("mkdir -p {}", path.display());
             let _ = self.exec_shell(&mkdircmd).await?;
-
             return self.exec_shell(&cmd).await;
         }
 
@@ -505,4 +499,65 @@ mod tests {
         assert!(success);
         assert_eq!(content, stdout);
     }
+
+    #[test_log::test(tokio::test(flavor = "multi_thread"))]
+    async fn test_create_file_subdirectory_that_does_not_exist() {
+        let content = r#"# Example
+
+        ```rust
+        fn main() {
+            let hello = "world";
+            println!("Hello, {}", hello);
+            }
+        ```
+
+        ```shell
+        $ cargo run
+        ```"#;
+        let path = Path::new("doesnot/exist/test_file.txt");
+
+        let executor = DockerExecutor::default()
+            .with_context_path(".")
+            .with_image_name("test-files-missing-dir")
+            .with_working_dir("/app")
+            .to_owned()
+            .start()
+            .await
+            .unwrap();
+
+        // Write the content to the file
+        let output = executor
+            .exec_cmd(&Command::write_file(path, content))
+            .await
+            .unwrap();
+
+        let CommandOutput::Shell { success, .. } = output else {
+            panic!("Expected shell output")
+        };
+
+        dbg!(&output);
+        assert!(success);
+
+        let output = executor.exec_cmd(&Command::shell("ls")).await.unwrap();
+
+        dbg!(output);
+
+        // Read the content from the file
+        //
+        let output = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
+
+        dbg!(&output);
+        let CommandOutput::Shell {
+            stdout, success, ..
+        } = output
+        else {
+            panic!("Expected shell output")
+        };
+
+        // Assert that the written content matches the read content
+        assert!(success);
+        assert_eq!(content, stdout);
+    }
+
+    // TODO: Exit status can be extracted from full response, i.e. "sh: 1: Directory does not exist"
 }
