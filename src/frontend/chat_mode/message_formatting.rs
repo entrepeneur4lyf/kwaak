@@ -1,4 +1,5 @@
-use ratatui::prelude::*;
+use ratatui::text::{Line, Span, Text};
+use ratatui::style::{Style, Color, Modifier};
 
 use crate::{
     chat::Chat,
@@ -129,3 +130,58 @@ fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
         formatted_args
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::text::{Line, Span};
+    
+    #[test]
+    fn test_format_chat_message_user_role() {
+        let message = ChatMessage::new_user("Hello, user!").build();
+        let chat = Chat::default();
+        
+        let formatted_text = format_chat_message(&chat, &message);
+        
+        assert!(formatted_text
+            .lines
+            .first()
+            .map(|line| line.spans.first())
+            .flatten()
+            .map(|span| span.style == message_styles::USER)
+            .unwrap_or(false));
+    }
+
+    #[test]
+    fn test_format_chat_message_system_role() {
+        let message = ChatMessage::new_system("System message!").build();
+        let chat = Chat::default();
+        
+        let formatted_text = format_chat_message(&chat, &message);
+        
+        assert!(formatted_text
+            .lines
+            .first()
+            .map(|line| line.spans.first())
+            .flatten()
+            .map(|span| span.style == message_styles::SYSTEM)
+            .unwrap_or(false));
+    }
+
+    #[test]
+    fn test_format_chat_message_assistant_role() {
+        let message = ChatMessage::new_assistant("Here is a response with an assistant.").build();
+        let chat = Chat::default();
+        
+        let formatted_text = format_chat_message(&chat, &message);
+        
+        assert!(formatted_text
+            .lines
+            .first()
+            .map(|line| line.spans.first())
+            .flatten()
+            .map(|span| span.style == message_styles::ASSISTANT)
+            .unwrap_or(false));
+    }
+}
+
