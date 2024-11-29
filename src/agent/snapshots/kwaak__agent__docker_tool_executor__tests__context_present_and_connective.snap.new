@@ -1,0 +1,20 @@
+---
+source: src/agent/docker_tool_executor.rs
+assertion_line: 375
+expression: ls.to_string()
+snapshot_kind: text
+---
+.
+..
+.dockerignore
+.git
+.gitignore
+Cargo.lock
+Cargo.toml
+Dockerfile
+bacon.toml
+build_rs_cov.profraw
+compose.yml
+kwaak.toml
+src
+typos.toml

@@ -129,3 +129,38 @@ fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
         formatted_args
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_user_message() {
+        let chat = Chat::default();
+        let message = ChatMessage::new_user("Hello, this is a test.").build();
+        let formatted = format_chat_message(&chat, &message);
+
+        // Verify some expected content or attributes; here we check the prefix
+        assert!(formatted.to_string().contains("▶ Hello, this is a test."));
+    }
+
+    #[test]
+    fn test_format_assistant_message() {
+        let chat = Chat::default();
+        let message = ChatMessage::new_assistant("This is a response.").build();
+        let formatted = format_chat_message(&chat, &message);
+
+        // Verify some expected content or attributes
+        assert!(formatted.to_string().contains("✦ This is a response."));
+    }
+
+    #[test]
+    fn test_format_system_message() {
+        let chat = Chat::default();
+        let message = ChatMessage::new_system("System message").build();
+        let formatted = format_chat_message(&chat, &message);
+
+        assert!(formatted.to_string().contains("ℹ System message"));
+    }
+}
+
