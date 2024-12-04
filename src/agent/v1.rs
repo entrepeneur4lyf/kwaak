@@ -148,7 +148,7 @@ pub async fn build_agent(
             "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
             "When writing tests, make sure you cover all edge cases",
             "When writing code, make sure the code runs and is included in the build",
-            "If you create a pull request, make sure the tests pass",
+            "If you create a pull request, you must ensure the tests pass",
             "Do NOT rely on your own knowledge, always research and verify!",
             "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
             "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
@@ -175,7 +175,6 @@ pub async fn build_agent(
     let tx_3 = command_responder.clone();
     let tx_4 = command_responder.clone();
 
-    // NOTE: Kinda inefficient, copying over tools for the summarizer
     let tool_summarizer =
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
 

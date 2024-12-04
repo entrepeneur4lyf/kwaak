@@ -39,10 +39,14 @@ impl EnvSetup<'_> {
             return Ok(());
         }
 
-        let Some(github_session) = self.github_session else {
-            bail!("When running inside docker, a valid github token is required")
-        };
+        self.setup_github_auth().await?;
+        self.configure_git_user().await?;
+        self.switch_to_work_branch().await?;
 
+        Ok(())
+    }
+
+    async fn setup_github_auth(&self) -> Result<()> {
         let CommandOutput::Shell {
             stdout: origin_url, ..
         } = self
@@ -53,18 +57,36 @@ impl EnvSetup<'_> {
             bail!("Could not get origin url")
         };
 
+        let Some(github_session) = self.github_session else {
+            bail!("When running inside docker, a valid github token is required")
+        };
+
         let url_with_token = github_session.add_token_to_url(&origin_url)?;
 
+        let cmd = Command::shell(format!(
+            "git remote set-url origin {}",
+            url_with_token.expose_secret()
+        ));
+        self.executor.exec_cmd(&cmd).await?;
+
+        Ok(())
+    }
+
+    async fn configure_git_user(&self) -> Result<()> {
         for cmd in &[
-            Command::shell(format!(
-                "git remote set-url origin {}",
-                url_with_token.expose_secret()
-            )),
             Command::shell("git config --global user.email \"kwaak@bosun.ai\""),
             Command::shell("git config --global user.name \"kwaak\""),
         ] {
             self.executor.exec_cmd(cmd).await?;
         }
+
+        Ok(())
+    }
+
+    async fn switch_to_work_branch(&self) -> Result<()> {
+        let branch_name = format!("kwaak-{}", uuid::Uuid::new_v4());
+        let cmd = Command::Shell(format!("git checkout -b {branch_name}"));
+        self.executor.exec_cmd(&cmd).await?;
 
         Ok(())
     }

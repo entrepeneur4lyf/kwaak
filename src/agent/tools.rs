@@ -176,10 +176,8 @@ impl CreatePullRequest {
         pull_request_body: &str,
     ) -> Result<ToolOutput, ToolError> {
         // Create a new branch
-        // random string for branch
-        let branch_name = format!("kwaak-{}", uuid::Uuid::new_v4());
-        let cmd = Command::Shell(format!("git checkout -b {branch_name}"));
-        context.exec_cmd(&cmd).await?;
+        let cmd = Command::Shell("git rev-parse --abbrev-ref HEAD".to_string());
+        let branch_name = context.exec_cmd(&cmd).await?.to_string().trim().to_string();
 
         let cmd = Command::Shell(format!("git add . && git commit -m '{title}'"));
         context.exec_cmd(&cmd).await?;
