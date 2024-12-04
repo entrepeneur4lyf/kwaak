@@ -56,6 +56,13 @@ impl Default for DockerExecutor {
 impl DockerExecutor {
     pub fn from_repository(repository: &Repository) -> DockerExecutor {
         let mut executor = DockerExecutor::default();
+        let dockerfile = &repository.config().docker.dockerfile;
+
+        if std::fs::metadata(dockerfile).is_err() {
+            error!("Dockerfile not found at {}", dockerfile.display());
+            // TODO: Clean me up
+            panic!("Running in docker requires a Dockerfile");
+        }
         executor.with_context_path(&repository.config().docker.context);
         executor.with_image_name(&repository.config().project_name);
 
@@ -272,6 +279,10 @@ impl RunningDockerExecutor {
 
 impl Drop for RunningDockerExecutor {
     fn drop(&mut self) {
+        tracing::warn!(
+            "Stopping container {container_id}",
+            container_id = self.container_id
+        );
         let result = tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current().block_on(async {
                 self.docker

@@ -57,10 +57,11 @@ pub async fn write_file(
 
     let output = context.exec_cmd(&cmd).await?;
 
+    let success_message = format!("File written succesfully to {file_name}");
     match output {
-        CommandOutput::Shell { success, .. } if success => Ok("File written succesfully".into()),
+        CommandOutput::Shell { success, .. } if success => Ok(success_message.into()),
         CommandOutput::Shell { stderr, .. } => Ok(ToolOutput::Fail(stderr)),
-        CommandOutput::Ok | CommandOutput::Text(..) => unimplemented!(),
+        CommandOutput::Ok | CommandOutput::Text(..) => Ok(success_message.into()),
     }
 }
 
@@ -72,7 +73,7 @@ pub async fn search_file(
     context: &dyn AgentContext,
     file_name: &str,
 ) -> Result<ToolOutput, ToolError> {
-    let cmd = Command::Shell(format!("find . -name '*{file_name}*'"));
+    let cmd = Command::Shell(format!("fd '{file_name}'"));
     let output = context.exec_cmd(&cmd).await?;
 
     Ok(output.into())
@@ -97,7 +98,7 @@ pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput
     )
 )]
 pub async fn search_code(context: &dyn AgentContext, query: &str) -> Result<ToolOutput, ToolError> {
-    let cmd = Command::Shell(format!("rg {query}"));
+    let cmd = Command::Shell(format!("rg '{query}'"));
     let output = context.exec_cmd(&cmd).await?;
     Ok(output.into())
 }

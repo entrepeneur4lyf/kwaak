@@ -4,6 +4,8 @@ use std::{
 };
 
 use anyhow::Result;
+use clap::Parser;
+use commands::{CommandResponder, CommandResponse};
 use config::Config;
 use frontend::App;
 use ratatui::{
@@ -11,6 +13,7 @@ use ratatui::{
     Terminal,
 };
 
+use ::tracing::instrument;
 use ::tracing::Instrument as _;
 use crossterm::{
     execute,
@@ -20,33 +23,79 @@ use crossterm::{
 mod agent;
 mod chat;
 mod chat_message;
+mod cli;
 mod commands;
 mod config;
 mod frontend;
 mod git;
 mod indexing;
+mod kwaak_tracing;
 mod repository;
 mod storage;
-mod tracing;
 mod util;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = cli::Args::parse();
+
     init_panic_hook();
     // Load configuration
-    let config = Config::load().await?;
+    let config = Config::load(&args.config_path).await?;
     let repository = repository::Repository::from_config(config);
+
+    if args.print_config {
+        println!("{}", toml::to_string_pretty(repository.config())?);
+        return Ok(());
+    }
 
     std::fs::create_dir_all(repository.config().cache_dir())?;
     std::fs::create_dir_all(repository.config().log_dir())?;
 
-    crate::tracing::init(&repository)?;
+    crate::kwaak_tracing::init(&repository)?;
 
     let span = ::tracing::span!(::tracing::Level::INFO, "main");
-    start_app(&repository).instrument(span).await
+    match args.mode {
+        cli::ModeArgs::RunAgent => start_agent(&repository, &args).instrument(span).await,
+        cli::ModeArgs::Tui => start_tui(&repository).instrument(span).await,
+    }
 }
 
-async fn start_app(repository: &repository::Repository) -> Result<()> {
+#[instrument]
+async fn start_agent(repository: &repository::Repository, args: &cli::Args) -> Result<()> {
+    indexing::index_repository(repository).await?;
+
+    let mut command_responder = CommandResponder::default();
+    let responder_for_agent = command_responder.clone();
+
+    let handle = tokio::spawn(async move {
+        while let Some(response) = command_responder.recv().await {
+            match response {
+                CommandResponse::Chat(message) => {
+                    if let Some(original) = message.original() {
+                        println!("{original}");
+                    }
+                }
+                CommandResponse::ActivityUpdate(.., message) => {
+                    println!(">> {message}");
+                }
+            }
+        }
+    });
+
+    let query = args
+        .initial_message
+        .as_deref()
+        .expect("Expected initial query for the agent")
+        .to_string();
+    let mut agent = agent::build_agent(repository, &query, responder_for_agent).await?;
+
+    agent.query(&query).await?;
+    handle.abort();
+    Ok(())
+}
+
+#[instrument]
+async fn start_tui(repository: &repository::Repository) -> Result<()> {
     ::tracing::info!("Loaded configuration: {:?}", repository.config());
 
     // Setup terminal
@@ -90,6 +139,7 @@ pub fn init_panic_hook() {
     let original_hook = take_hook();
     set_hook(Box::new(move |panic_info| {
         // intentionally ignore errors here since we're already in a panic
+        ::tracing::error!("Panic: {:?}", panic_info);
         let _ = restore_tui();
 
         if cfg!(feature = "otel") {

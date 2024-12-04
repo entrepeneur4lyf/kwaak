@@ -1,15 +1,19 @@
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
 use swiftide::{
-    agents::{system_prompt::SystemPrompt, Agent, DefaultContext},
+    agents::{
+        system_prompt::SystemPrompt, tools::local_executor::LocalExecutor, Agent, DefaultContext,
+    },
     chat_completion::{self, ChatCompletion, Tool},
-    traits::SimplePrompt,
+    prompt::Prompt,
+    traits::{SimplePrompt, ToolExecutor},
 };
 use tavily::Tavily;
 
 use crate::{
-    commands::CommandResponder, git::github::GithubSession, indexing, repository::Repository,
+    commands::CommandResponder, config::SupportedToolExecutors, git::github::GithubSession,
+    indexing, repository::Repository,
 };
 
 use super::{
@@ -20,19 +24,46 @@ use super::{
 async fn generate_initial_context(
     repository: &Repository,
     query: &str,
+    original_system_prompt: &str,
     tools: &[Box<dyn Tool>],
 ) -> Result<String> {
+    let available_tools = tools
+        .iter()
+        .map(|tool| format!("- **{}**: {}", tool.name(), tool.tool_spec().description))
+        .collect::<Vec<String>>()
+        .join("\n");
+
+    // TODO: This would be a nice answer transformer in the query pipeline
     let context_query = indoc::formatdoc! {r#"
+        ## Role
+        You are helping an agent to get started on a task with an initial task and plan.
+
+        ## Task
         What is the purpose of the {project_name} that is written in {lang}? Provide a detailed answer to help me understand the context.
-        Also consider what else might be helpful to accomplish the following:
-        `{query}`
+
+        The agent starts with the following prompt:
+
+        ```markdown
+        {original_system_prompt}
+        ```
+
+        And has to complete the following task:
+        {query}
+
+
+        ## Additional information
         This context is provided for an ai agent that has to accomplish the above. Additionally, the agent has access to the following tools:
-        `{tools}`
-        Do not make assumptions, instruct to investigate instead.
+        `{available_tools}`
+
+        ## Constraints
+        - Do not make assumptions, instruct to investigate instead
+        - Respond only with the additional context and instructions
+        - Do not provide strict instructions, allow for flexibility
+        - Consider the constraints of the agent when formulating your response
+        - EXTREMELY IMPORTANT that when writing files, the agent ALWAYS writes the full files. If this does not happen, I will lose my job.
         "#,
         project_name = repository.config().project_name,
         lang = repository.config().language,
-        tools = tools.iter().map(Tool::name).collect::<Vec<_>>().join(", "),
     };
     let retrieved_context = indexing::query(repository, &context_query).await?;
     let formatted_context = format!("Additional information:\n\n{retrieved_context}");
@@ -41,7 +72,7 @@ async fn generate_initial_context(
 
 fn configure_tools(
     repository: &Repository,
-    github_session: &Arc<GithubSession>,
+    github_session: Option<&Arc<GithubSession>>,
 ) -> Result<Vec<Box<dyn Tool>>> {
     let query_pipeline = indexing::build_query_pipeline(repository)?;
 
@@ -53,10 +84,13 @@ fn configure_tools(
         tools::shell_command(),
         tools::search_code(),
         tools::ExplainCode::new(query_pipeline).boxed(),
-        tools::CreatePullRequest::new(github_session).boxed(),
         tools::RunTests::new(&repository.config().commands.test).boxed(),
         tools::RunCoverage::new(&repository.config().commands.coverage).boxed(),
     ];
+
+    if let Some(github_session) = github_session {
+        tools.push(tools::CreatePullRequest::new(github_session).boxed());
+    }
 
     if let Some(tavily_api_key) = &repository.config().tavily_api_key {
         // Client is a bit weird that it needs the api key twice
@@ -66,6 +100,18 @@ fn configure_tools(
     };
 
     Ok(tools)
+}
+
+async fn start_tool_executor(repository: &Repository) -> Result<Box<dyn ToolExecutor>> {
+    let boxed = match repository.config().tool_executor {
+        SupportedToolExecutors::Docker => {
+            Box::new(DockerExecutor::from_repository(repository).start().await?)
+                as Box<dyn ToolExecutor>
+        }
+        SupportedToolExecutors::Local => Box::new(LocalExecutor::new(".")) as Box<dyn ToolExecutor>,
+    };
+
+    Ok(boxed)
 }
 
 #[tracing::instrument(skip(repository, command_responder))]
@@ -82,17 +128,43 @@ pub async fn build_agent(
         repository.config().indexing_provider().try_into()?;
 
     let repository = Arc::new(repository.clone());
-    let github_session = Arc::new(GithubSession::from_repository(&repository)?);
-    let tools = configure_tools(&repository, &github_session)?;
+
+    let github_session = match repository.config().github.token {
+        Some(_) => Some(Arc::new(GithubSession::from_repository(&repository)?)),
+        None => None,
+    };
+
+    let tools = configure_tools(&repository, github_session.as_ref())?;
+
+    let system_prompt: Prompt =
+    SystemPrompt::builder()
+        .role("You are an atonomous ai agent tasked with helping a user with a code project. You can solve coding problems yourself and should try to always work towards a full solution.")
+        .constraints([
+            "Research your solution before providing it",
+            "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file",
+            "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother",
+            "Your first response to ANY user message, must ALWAYS be your thoughts on how to solve the problem",
+            "When writing code or tests, make sure this is ideomatic for the language",
+            "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
+            "When writing tests, make sure you cover all edge cases",
+            "When writing code, make sure the code runs and is included in the build",
+            "If you create a pull request, make sure the tests pass",
+            "Do NOT rely on your own knowledge, always research and verify!",
+            "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
+            "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
+            "Verify assumptions you make about the code by researching the actual code first",
+            "If you are stuck, consider using git to undo your changes"
+        ]).build()?.into();
 
     // Run executor and initial context in parallel
+    let rendered_system_prompt = system_prompt.render().await?;
     let (executor, initial_context) = tokio::try_join!(
-        DockerExecutor::from_repository(&repository).start(),
-        generate_initial_context(&repository, query, &tools)
+        start_tool_executor(&repository),
+        generate_initial_context(&repository, query, &rendered_system_prompt, &tools)
     )?;
 
     // Run a series of commands inside the executor so that everything is available
-    let env_setup = EnvSetup::new(&repository, &github_session, &executor);
+    let env_setup = EnvSetup::new(&repository, github_session.as_deref(), &*executor);
     env_setup.exec_setup_commands().await?;
 
     let context = DefaultContext::from_executor(executor);
@@ -102,25 +174,6 @@ pub async fn build_agent(
     let tx_2 = command_responder.clone();
     let tx_3 = command_responder.clone();
     let tx_4 = command_responder.clone();
-
-    let system_prompt =
-    SystemPrompt::builder()
-        .role("You are an atonomous ai agent tasked with helping a user with a code project. You can solve coding problems yourself and should try to always work towards a full solution.")
-        .constraints([
-            "Research your solution before providing it",
-            "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it must include everything",
-            "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother",
-            "Your first response to ANY user message, must ALWAYS be your thoughts on how to solve the problem",
-            "When writing code, you must consider how to do this ideomatically for the language",
-            "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage before creating a new test.",
-            "When writing tests, make sure you cover all edge cases",
-            "If you create a pull request, make sure the tests pass",
-            "Do NOT rely on your own knowledge, always research and verify!",
-            "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
-            "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
-            "Verify assumptions you make about the code by researching the actual code first",
-            "If you are stuck, consider using git to undo your changes"
-        ]).build()?;
 
     // NOTE: Kinda inefficient, copying over tools for the summarizer
     let tool_summarizer =

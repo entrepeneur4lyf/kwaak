@@ -5,25 +5,25 @@ use anyhow::Result;
 use secrecy::ExposeSecret;
 use swiftide::traits::Command;
 use swiftide::traits::CommandOutput;
+use swiftide::traits::ToolExecutor;
 use swiftide::traits::ToolExecutor as _;
 
+use crate::config::SupportedToolExecutors;
 use crate::git::github::GithubSession;
 use crate::repository::Repository;
-
-use super::docker_tool_executor::RunningDockerExecutor;
 
 pub struct EnvSetup<'a> {
     #[allow(dead_code)]
     repository: &'a Repository,
-    github_session: &'a GithubSession,
-    executor: &'a RunningDockerExecutor,
+    github_session: Option<&'a GithubSession>,
+    executor: &'a dyn ToolExecutor,
 }
 
 impl EnvSetup<'_> {
     pub fn new<'a>(
         repository: &'a Repository,
-        github_session: &'a GithubSession,
-        executor: &'a RunningDockerExecutor,
+        github_session: Option<&'a GithubSession>,
+        executor: &'a dyn ToolExecutor,
     ) -> EnvSetup<'a> {
         EnvSetup {
             repository,
@@ -34,6 +34,15 @@ impl EnvSetup<'_> {
 
     #[tracing::instrument(skip_all)]
     pub async fn exec_setup_commands(&self) -> Result<()> {
+        // Only run these commands if we are running inside a docker container
+        if self.repository.config().tool_executor != SupportedToolExecutors::Docker {
+            return Ok(());
+        }
+
+        let Some(github_session) = self.github_session else {
+            bail!("When running inside docker, a valid github token is required")
+        };
+
         let CommandOutput::Shell {
             stdout: origin_url, ..
         } = self
@@ -44,7 +53,7 @@ impl EnvSetup<'_> {
             bail!("Could not get origin url")
         };
 
-        let url_with_token = self.github_session.add_token_to_url(&origin_url)?;
+        let url_with_token = github_session.add_token_to_url(&origin_url)?;
 
         for cmd in &[
             Command::shell(format!(
