@@ -253,7 +253,7 @@ impl RunningDockerExecutor {
             {content}
             EOFKWAAK"#,
             path = path.display(),
-            content = content
+            content = content.trim_end()
 
         };
 
