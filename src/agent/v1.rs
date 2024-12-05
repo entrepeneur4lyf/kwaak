@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use swiftide::{
@@ -126,8 +126,6 @@ pub async fn build_agent(
         repository.config().query_provider().try_into()?;
     let fast_query_provider: Box<dyn SimplePrompt> =
         repository.config().indexing_provider().try_into()?;
-
-    let repository = Arc::new(repository.clone());
 
     let github_session = match repository.config().github.token {
         Some(_) => Some(Arc::new(GithubSession::from_repository(&repository)?)),

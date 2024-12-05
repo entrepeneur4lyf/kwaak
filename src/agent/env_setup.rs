@@ -6,7 +6,6 @@ use secrecy::ExposeSecret;
 use swiftide::traits::Command;
 use swiftide::traits::CommandOutput;
 use swiftide::traits::ToolExecutor;
-use swiftide::traits::ToolExecutor as _;
 
 use crate::config::SupportedToolExecutors;
 use crate::git::github::GithubSession;

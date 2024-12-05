@@ -24,6 +24,7 @@ impl std::fmt::Debug for ChatMessage {
                 &self.content[..std::cmp::min(10, self.content.len())].to_string(),
             )
             .field("uuid", &self.uuid)
+            .field("original", &self.original)
             .finish()
     }
 }
