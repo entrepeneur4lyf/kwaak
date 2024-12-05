@@ -19,9 +19,13 @@ pub struct Args {
     /// Print the configuration and exit
     #[arg(long)]
     pub print_config: bool,
+
+    /// Clear the the index and cache for this project and exit
+    #[arg(long, name = "clear-cache", default_value_t = false)]
+    pub clear_cache: bool,
 }
 
-#[derive(clap::ValueEnum, Clone, Debug, Default, strum::Display, strum::EnumString)]
+#[derive(clap::ValueEnum, Clone, Debug, Default)]
 pub enum ModeArgs {
     RunAgent,
     #[default]
