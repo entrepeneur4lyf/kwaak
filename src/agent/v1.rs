@@ -146,6 +146,7 @@ pub async fn build_agent(
             "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
             "When writing tests, make sure you cover all edge cases",
             "When writing code, make sure the code runs and is included in the build",
+            "When writing code, make sure all public facing functions, methods, modules, etc are documented ideomatically",
             "If you create a pull request, you must ensure the tests pass",
             "Do NOT rely on your own knowledge, always research and verify!",
             "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
