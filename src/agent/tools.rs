@@ -158,18 +158,18 @@ impl<'a> ExplainCode<'a> {
     param(name = "title", description = "Title of the pull request"),
     param(name = "pull_request_body", description = "Body of the pull request")
 )]
-pub struct CreatePullRequest {
+pub struct CreateOrUpdatePullRequest {
     github_session: Arc<GithubSession>,
 }
 
-impl CreatePullRequest {
+impl CreateOrUpdatePullRequest {
     pub fn new(github_session: &Arc<GithubSession>) -> Self {
         Self {
             github_session: Arc::clone(github_session),
         }
     }
 
-    async fn create_or_updatepull_request(
+    async fn create_or_update_pull_request(
         &self,
         context: &dyn AgentContext,
         title: &str,

@@ -8,7 +8,7 @@ use octocrab::{models::pulls::PullRequest, Octocrab};
 use secrecy::SecretString;
 use swiftide::chat_completion::ChatMessage;
 
-use crate::{config::ApiKey, repository::Repository, templates::TEMPLATES};
+use crate::{config::ApiKey, repository::Repository, templates::Templates};
 
 #[derive(Debug)]
 pub struct GithubSession {
@@ -91,7 +91,7 @@ impl GithubSession {
             "messages": messages.iter().map(|m| m.to_string().truncate(80)).collect::<Vec<_>>(),
         }))?;
 
-        let body = TEMPLATES.render("pull_request.md", &context)?;
+        let body = Templates::render("pull_request.md", &context)?;
 
         let maybe_pull = { self.active_pull_request.lock().unwrap().clone() };
 

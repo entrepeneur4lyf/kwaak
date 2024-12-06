@@ -89,7 +89,7 @@ fn configure_tools(
     ];
 
     if let Some(github_session) = github_session {
-        tools.push(tools::CreatePullRequest::new(github_session).boxed());
+        tools.push(tools::CreateOrUpdatePullRequest::new(github_session).boxed());
     }
 
     if let Some(tavily_api_key) = &repository.config().tavily_api_key {
