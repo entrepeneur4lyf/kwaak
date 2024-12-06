@@ -81,6 +81,14 @@ impl GithubSession {
             base_branch_name.as_ref()
         );
 
+        let formatted_messages = messages
+            .iter()
+            .map(|m| {
+                let mut m = m.to_string();
+                m.truncate(80);
+                m.trim().to_string()
+            })
+            .collect::<Vec<_>>();
         let context = tera::Context::from_serialize(serde_json::json!({
             "owner": owner,
             "repo": repo,
@@ -88,7 +96,7 @@ impl GithubSession {
             "base_branch_name": base_branch_name.as_ref(),
             "title": title.as_ref(),
             "description": description.as_ref(),
-            "messages": messages.iter().map(|m| m.to_string().truncate(80)).collect::<Vec<_>>(),
+            "messages": formatted_messages,
         }))?;
 
         let body = Templates::render("pull_request.md", &context)?;
@@ -131,5 +139,43 @@ impl GithubSession {
             .replace(pull_request.clone());
 
         Ok(pull_request)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_template_render() {
+        let chat_messages = vec![
+            ChatMessage::new_user("user message"),
+            ChatMessage::new_system("user message"),
+            ChatMessage::new_summary("user message"),
+        ];
+
+        let mut context = tera::Context::from_serialize(serde_json::json!({
+            "owner": "owner",
+            "repo": "repo",
+            "branch_name": "branch_name",
+            "base_branch_name": "base_branch_name",
+            "title": "title",
+            "description": "description",
+
+        }))
+        .unwrap();
+
+        let formatted = chat_messages
+            .iter()
+            .map(|m| {
+                let mut m = m.to_string();
+                m.truncate(80);
+                m.trim().to_string()
+            })
+            .collect::<Vec<_>>();
+        context.insert("messages", &formatted);
+        let rendered = Templates::render("pull_request.md", &context).unwrap();
+
+        insta::assert_snapshot!(rendered);
     }
 }
