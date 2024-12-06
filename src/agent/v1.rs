@@ -248,6 +248,11 @@ pub async fn build_agent(
                         .await
                         .map_err(|e| {
                             tracing::error!("Error running lint and fix: {:?}", e);
+                        })
+                        .map(|output| {
+                            if !output.is_success() {
+                                tracing::error!("Error running lint and fix: {:?}", output);
+                            }
                         });
                 }
 
