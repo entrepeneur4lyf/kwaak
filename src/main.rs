@@ -19,6 +19,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use tokio::fs;
 
 mod agent;
 mod chat;
@@ -48,8 +49,15 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    std::fs::create_dir_all(repository.config().cache_dir())?;
-    std::fs::create_dir_all(repository.config().log_dir())?;
+    fs::create_dir_all(repository.config().cache_dir()).await?;
+    fs::create_dir_all(repository.config().log_dir()).await?;
+
+    if args.clear_cache {
+        repository.clear_cache().await?;
+        println!("Cache cleared");
+
+        return Ok(());
+    }
 
     crate::kwaak_tracing::init(&repository)?;
 

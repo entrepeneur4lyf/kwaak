@@ -65,6 +65,9 @@ pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) ->
             rendered_text.push_line(Line::from("\n\n"));
         }
         for tool_call in tool_calls {
+            if tool_call.name() == "stop" {
+                continue;
+            }
             let is_done = current_chat.is_tool_call_completed(tool_call.id());
             let tool_call_text = format_tool_call(tool_call);
             let tool_prefix = "⚙ ";
@@ -99,33 +102,37 @@ pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) ->
 fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
     // If args, parse them as a json value, then if its just one, render only the value, otherwise
     // limit the output to 20 characters
-    let mut formatted_args = tool_call.args().map_or("no arguments".to_string(), |args| {
+    let formatted_args = tool_call.args().and_then(|args| {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args) {
             if let Some(obj) = parsed.as_object() {
+                if obj.is_empty() {
+                    return None;
+                }
                 if obj.keys().count() == 1 {
                     let key = obj.keys().next().unwrap();
                     let val = obj[key].as_str().unwrap_or_default();
 
-                    return val.to_string();
+                    if val.len() > 20 {
+                        return Some(format!("{} ...", &val[..20]));
+                    }
+
+                    return Some(val.to_string());
+                }
+                if args.len() > 20 {
+                    return Some(format!("{} ...", &args[..20]));
                 }
 
-                return args.to_string();
+                return Some(args.to_string());
             }
-
-            "no_arguments".to_string()
+            None
         } else {
-            "no_arguments".to_string()
+            None
         }
     });
 
-    if formatted_args.len() > 20 {
-        formatted_args.truncate(20);
-        formatted_args.push_str("...");
+    if let Some(args) = formatted_args {
+        format!("calling tool `{}` with `{}`", tool_call.name(), args)
+    } else {
+        format!("calling tool `{}`", tool_call.name())
     }
-
-    format!(
-        "calling tool `{}` with `{}`",
-        tool_call.name(),
-        formatted_args
-    )
 }

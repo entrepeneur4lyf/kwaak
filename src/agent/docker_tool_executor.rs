@@ -214,7 +214,11 @@ impl RunningDockerExecutor {
                 match msg {
                     LogOutput::StdErr { .. } => stderr.push_str(&msg.to_string()),
                     LogOutput::StdOut { .. } => stdout.push_str(&msg.to_string()),
-                    _ => (),
+                    _ => {
+                        stderr
+                            .push_str("Command appears to wait for input, which is not supported");
+                        break;
+                    }
                 }
             }
         } else {
@@ -253,7 +257,7 @@ impl RunningDockerExecutor {
             {content}
             EOFKWAAK"#,
             path = path.display(),
-            content = content
+            content = content.trim_end()
 
         };
 
@@ -343,6 +347,7 @@ async fn build_context_as_tar(context_path: &Path) -> Result<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
+    use bollard::secret::ContainerStateStatusEnum;
     use swiftide::traits::CommandOutput;
 
     use super::*;
@@ -515,6 +520,37 @@ mod tests {
     }
 
     #[test_log::test(tokio::test(flavor = "multi_thread"))]
+    async fn test_assert_container_stopped_on_drop() {
+        let executor = DockerExecutor::default()
+            .with_context_path(".")
+            .with_image_name("test-files")
+            .with_working_dir("/app")
+            .to_owned()
+            .start()
+            .await
+            .unwrap();
+
+        let docker = executor.docker.clone();
+        let container_id = executor.container_id.clone();
+
+        // assert it started
+        let container = docker.inspect_container(&container_id, None).await.unwrap();
+        assert_eq!(
+            container.state.as_ref().unwrap().status,
+            Some(ContainerStateStatusEnum::RUNNING)
+        );
+
+        drop(executor);
+
+        // assert it stopped
+        let container = docker.inspect_container(&container_id, None).await.unwrap();
+        assert_eq!(
+            container.state.as_ref().unwrap().status,
+            Some(ContainerStateStatusEnum::REMOVING)
+        );
+    }
+
+    #[test_log::test(tokio::test(flavor = "multi_thread"))]
     async fn test_create_file_subdirectory_that_does_not_exist() {
         let content = r#"# Example
 
@@ -572,6 +608,4 @@ mod tests {
         assert!(success);
         assert_eq!(content, stdout);
     }
-
-    // TODO: Exit status can be extracted from full response, i.e. "sh: 1: Directory does not exist"
 }

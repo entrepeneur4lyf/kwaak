@@ -1,4 +1,7 @@
+use anyhow::Result;
 use std::{path::PathBuf, str::FromStr as _};
+
+use tokio::fs;
 
 use crate::config::Config;
 
@@ -22,6 +25,11 @@ impl Repository {
 
     pub fn config(&self) -> &Config {
         &self.config
+    }
+
+    pub async fn clear_cache(&self) -> Result<()> {
+        fs::remove_dir_all(self.config.cache_dir()).await?;
+        Ok(())
     }
 }
 

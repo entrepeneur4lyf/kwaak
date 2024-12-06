@@ -17,12 +17,23 @@ pub fn init(repository: &Repository) -> Result<()> {
     let fmt_layer = fmt::layer().with_writer(file_appender);
 
     // Logs the file layer will capture
-    let env_filter_layer = EnvFilter::builder()
+    let mut env_filter_layer = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy()
         .add_directive("h2=error".parse().unwrap())
         .add_directive("tower=error".parse().unwrap())
         .add_directive("tui_markdown=error".parse().unwrap());
+
+    if cfg!(feature = "otel") {
+        env_filter_layer = env_filter_layer
+            .add_directive("swiftide=trace".parse().unwrap())
+            .add_directive("swiftide_indexing=trace".parse().unwrap())
+            .add_directive("swiftide_integrations=trace".parse().unwrap())
+            .add_directive("swiftide_query=trace".parse().unwrap())
+            .add_directive("swiftide_agents=trace".parse().unwrap())
+            .add_directive("swiftide_core=trace".parse().unwrap())
+            .add_directive("kwaak=trace".parse().unwrap());
+    }
 
     // The log level tui logger will capture
     let default_level = if cfg!(debug_assertions) {

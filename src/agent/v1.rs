@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use swiftide::{
@@ -7,7 +7,7 @@ use swiftide::{
     },
     chat_completion::{self, ChatCompletion, Tool},
     prompt::Prompt,
-    traits::{SimplePrompt, ToolExecutor},
+    traits::{Command, SimplePrompt, ToolExecutor},
 };
 use tavily::Tavily;
 
@@ -17,8 +17,8 @@ use crate::{
 };
 
 use super::{
-    docker_tool_executor::DockerExecutor, env_setup::EnvSetup, tool_summarizer::ToolSummarizer,
-    tools,
+    conversation_summarizer::ConversationSummarizer, docker_tool_executor::DockerExecutor,
+    env_setup::EnvSetup, tool_summarizer::ToolSummarizer, tools,
 };
 
 async fn generate_initial_context(
@@ -127,8 +127,6 @@ pub async fn build_agent(
     let fast_query_provider: Box<dyn SimplePrompt> =
         repository.config().indexing_provider().try_into()?;
 
-    let repository = Arc::new(repository.clone());
-
     let github_session = match repository.config().github.token {
         Some(_) => Some(Arc::new(GithubSession::from_repository(&repository)?)),
         None => None,
@@ -141,19 +139,22 @@ pub async fn build_agent(
         .role("You are an atonomous ai agent tasked with helping a user with a code project. You can solve coding problems yourself and should try to always work towards a full solution.")
         .constraints([
             "Research your solution before providing it",
-            "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file",
+            "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file. Do not make changes other than the ones requested.",
             "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother",
             "Your first response to ANY user message, must ALWAYS be your thoughts on how to solve the problem",
             "When writing code or tests, make sure this is ideomatic for the language",
             "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
             "When writing tests, make sure you cover all edge cases",
             "When writing code, make sure the code runs and is included in the build",
-            "If you create a pull request, make sure the tests pass",
+            "When writing code, make sure all public facing functions, methods, modules, etc are documented ideomatically",
+            "Your changes are automatically added to git, there is no need to commit files yourself",
+            "If you create a pull request, you must ensure the tests pass",
             "Do NOT rely on your own knowledge, always research and verify!",
             "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
             "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
             "Verify assumptions you make about the code by researching the actual code first",
-            "If you are stuck, consider using git to undo your changes"
+            "If you are stuck, consider using git to undo your changes",
+            "Keep a neutral tone, refrain from using superlatives and unnecessary adjectives",
         ]).build()?.into();
 
     // Run executor and initial context in parallel
@@ -175,9 +176,11 @@ pub async fn build_agent(
     let tx_3 = command_responder.clone();
     let tx_4 = command_responder.clone();
 
-    // NOTE: Kinda inefficient, copying over tools for the summarizer
     let tool_summarizer =
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
+
+    let conversation_summarizer = ConversationSummarizer::new(query_provider.clone(), &tools);
+    let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
     let agent = Agent::builder()
         .context(context)
@@ -188,7 +191,7 @@ pub async fn build_agent(
 
             Box::pin(async move {
                 context
-                    .add_message(&chat_completion::ChatMessage::User(initial_context))
+                    .add_message(chat_completion::ChatMessage::new_user(initial_context))
                     .await;
 
                 Ok(())
@@ -204,8 +207,7 @@ pub async fn build_agent(
                 Ok(())
             })
         })
-        // before each, update that we're running completions
-        .before_each(move |_| {
+        .before_completion(move |_, _| {
             let command_responder = tx_3.clone();
             Box::pin(async move {
                 command_responder.send_update("running completions");
@@ -221,6 +223,62 @@ pub async fn build_agent(
             })
         })
         .after_tool(tool_summarizer.summarize_hook())
+        // After each completion, lint and fix and commit
+        .after_each(move |context| {
+            let maybe_lint_fix_command = maybe_lint_fix_command.clone();
+            let command_responder = command_responder.clone();
+            Box::pin(async move {
+                // If no changed files, we can do an early return
+                if context
+                    .exec_cmd(&Command::shell(
+                        "git diff --exit-code && git ls-files --others --exclude-standard",
+                    ))
+                    .await?
+                    .is_empty()
+                {
+                    tracing::info!("No changes to commit, skipping commit");
+
+                    return Ok(());
+                }
+
+                if let Some(lint_fix_command) = &maybe_lint_fix_command {
+                    command_responder.send_update("running lint and fix");
+                    let _ = context
+                        .exec_cmd(&Command::shell(lint_fix_command))
+                        .await
+                        .map_err(|e| {
+                            tracing::error!("Error running lint and fix: {:?}", e);
+                        });
+                }
+
+                // Then commit the changes
+                let _ = context
+                    .exec_cmd(&Command::shell("git add ."))
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Error adding files to git: {:?}", e);
+                    });
+
+                let _ = context
+                    .exec_cmd(&Command::shell(
+                        "git commit -m \"Committed changes after completion\"",
+                    ))
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Error committing files to git: {:?}", e);
+                    });
+
+                let _ = context
+                    .exec_cmd(&Command::shell("git push"))
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Error pushing changes to git: {:?}", e);
+                    });
+
+                Ok(())
+            })
+        })
+        .after_each(conversation_summarizer.summarize_hook())
         .llm(&query_provider)
         .build()?;
 
