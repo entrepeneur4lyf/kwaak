@@ -268,6 +268,13 @@ pub async fn build_agent(
                         tracing::error!("Error committing files to git: {:?}", e);
                     });
 
+                let _ = context
+                    .exec_cmd(&Command::shell("git push"))
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Error pushing changes to git: {:?}", e);
+                    });
+
                 Ok(())
             })
         })
