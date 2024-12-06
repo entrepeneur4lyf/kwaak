@@ -147,6 +147,7 @@ pub async fn build_agent(
             "When writing tests, make sure you cover all edge cases",
             "When writing code, make sure the code runs and is included in the build",
             "When writing code, make sure all public facing functions, methods, modules, etc are documented ideomatically",
+            "Your changes are automatically added to git, there is no need to commit files yourself",
             "If you create a pull request, you must ensure the tests pass",
             "Do NOT rely on your own knowledge, always research and verify!",
             "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
