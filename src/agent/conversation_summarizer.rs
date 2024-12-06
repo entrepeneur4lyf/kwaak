@@ -43,13 +43,12 @@ impl ConversationSummarizer {
 
             let span = tracing::info_span!("summarize_conversation");
 
-            if self
+            let current_count = self
                 .num_completions_since_summary
-                .load(std::sync::atomic::Ordering::SeqCst)
-                < NUM_COMPLETIONS_FOR_SUMMARY
-            {
-                self.num_completions_since_summary
-                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+            if current_count < NUM_COMPLETIONS_FOR_SUMMARY {
+                tracing::debug!(current_count, "Not enough completions for summary");
 
                 return Box::pin(async move { Ok(()) });
             }
@@ -98,6 +97,7 @@ impl ConversationSummarizer {
         * If a previous solution did not work, include that in your response. If a reason was
             given, include that as well.
         * Include any previous summaries in your response
+        * Be extra detailed on the last step taken
         * Provide clear instructions on how to proceed. If applicable, include the tools that
             should be used.
 
@@ -113,6 +113,7 @@ impl ConversationSummarizer {
         # Summary
 
         ## Previously you did
+        * <concise summary of each step>
         * You tried to run the tests but they failed. Here is why <...>
 
         ## Since then you did
