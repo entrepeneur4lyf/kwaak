@@ -222,15 +222,13 @@ impl CommandHandler {
 
     /// TODO: Most commands should probably be handled in a tokio task
     /// Maybe generalize tasks to make ui updates easier?
-    #[tracing::instrument(parent = None, skip(self, repository, ui_tx), fields(cmd = %cmd.to_string(), uuid = cmd.uuid().to_string()))]
+    #[tracing::instrument(skip_all, fields(cmd = %cmd.to_string(), otel.name = %cmd.to_string(), uuid = cmd.uuid().to_string()))]
     async fn handle_command(
         &self,
         repository: &Repository,
         ui_tx: &mpsc::UnboundedSender<UIEvent>,
         cmd: &Command,
     ) -> Result<()> {
-        tracing::Span::current().record("otel.name", format!("command.{cmd}"));
-
         let now = std::time::Instant::now();
         tracing::warn!("Handling command {cmd}");
 

@@ -6,6 +6,7 @@ use swiftide::indexing::transformers;
 use swiftide::traits::EmbeddingModel;
 use swiftide::traits::SimplePrompt;
 
+#[tracing::instrument(skip_all)]
 pub async fn index_repository(repository: &Repository) -> Result<()> {
     let extensions = repository.config().language.file_extensions();
     let loader = loaders::FileLoader::new(repository.path()).with_extensions(extensions);
