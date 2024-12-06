@@ -33,6 +33,7 @@ mod indexing;
 mod kwaak_tracing;
 mod repository;
 mod storage;
+mod templates;
 mod util;
 
 #[tokio::main]

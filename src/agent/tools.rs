@@ -154,7 +154,7 @@ impl<'a> ExplainCode<'a> {
 
 #[derive(Tool, Clone, Debug)]
 #[tool(
-    description = "Creates a pull request on Github with the current branch onto the main branch. Always present the url of the pull request to the user after the tool call.",
+    description = "Creates or updates a pull request on Github. Always present the url of the pull request to the user after the tool call.",
     param(name = "title", description = "Title of the pull request"),
     param(name = "pull_request_body", description = "Body of the pull request")
 )]
@@ -169,7 +169,7 @@ impl CreatePullRequest {
         }
     }
 
-    async fn create_pull_request(
+    async fn create_or_updatepull_request(
         &self,
         context: &dyn AgentContext,
         title: &str,
@@ -190,11 +190,12 @@ impl CreatePullRequest {
         // Any errors we just forward to the llm at this point
         let response = self
             .github_session
-            .create_pull_request(
+            .create_or_update_pull_request(
                 branch_name,
                 &self.github_session.main_branch(),
                 title,
                 pull_request_body,
+                &context.history().await
             )
             .await
             .map_or_else(
