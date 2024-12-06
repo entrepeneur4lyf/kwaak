@@ -73,7 +73,7 @@ impl GithubSession {
         let owner = &self.repository.config().github.owner;
         let repo = &self.repository.config().github.repository;
 
-        tracing::debug!(
+        tracing::debug!(messages = ?messages,
             "Creating pull request for {}/{} from branch {} onto {}",
             owner,
             repo,

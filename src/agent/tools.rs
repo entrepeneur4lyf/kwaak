@@ -154,7 +154,7 @@ impl<'a> ExplainCode<'a> {
 
 #[derive(Tool, Clone, Debug)]
 #[tool(
-    description = "Creates or updates a pull request on Github. Always present the url of the pull request to the user after the tool call.",
+    description = "Creates or updates a pull request on Github. Always present the url of the pull request to the user after the tool call. Markdown links do not work",
     param(name = "title", description = "Title of the pull request"),
     param(name = "pull_request_body", description = "Body of the pull request")
 )]

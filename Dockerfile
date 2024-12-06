@@ -2,6 +2,8 @@
 ARG RUST_VERSION=1.82-slim
 FROM rust:${RUST_VERSION} as builder
 
+RUN rustup component add clippy rustfmt
+
 # Install tool dependencies for app and git/ssh for the workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ripgrep fd-find git ssh curl  \
