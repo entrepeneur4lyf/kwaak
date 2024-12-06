@@ -3,13 +3,16 @@
 //! The summarizer counts number of completions in an agent, and if the count surpasses a set
 //! value, the conversation is summarized and a summary is added to the conversation.
 //!
+//! Often when there are many messages, the context window can get too large for the agent to
+//! effectively complete. This summarizer helps to keep the context window small and steers the
+//! agent towards a more focused solution.
+//!
 //! The agent completes messages since the last summary.
 use std::sync::{atomic::AtomicUsize, Arc};
 
 use swiftide::{
-    agents::hooks::{AfterEachFn, AfterToolFn},
-    chat_completion::{ChatCompletion, ChatMessage, Tool, ToolCall, ToolOutput},
-    prompt::Prompt,
+    agents::hooks::AfterEachFn,
+    chat_completion::{ChatCompletion, ChatMessage, Tool},
     traits::SimplePrompt,
 };
 use tracing::Instrument as _;

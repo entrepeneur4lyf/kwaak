@@ -7,7 +7,7 @@ use swiftide::{
     },
     chat_completion::{self, ChatCompletion, Tool},
     prompt::Prompt,
-    traits::{SimplePrompt, ToolExecutor},
+    traits::{Command, SimplePrompt, ToolExecutor},
 };
 use tavily::Tavily;
 
@@ -179,6 +179,7 @@ pub async fn build_agent(
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
 
     let conversation_summarizer = ConversationSummarizer::new(query_provider.clone(), &tools);
+    let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
     let agent = Agent::builder()
         .context(context)
@@ -221,6 +222,54 @@ pub async fn build_agent(
             })
         })
         .after_tool(tool_summarizer.summarize_hook())
+        // After each completion, lint and fix and commit
+        .after_each(move |context| {
+            let maybe_lint_fix_command = maybe_lint_fix_command.clone();
+            let command_responder = command_responder.clone();
+            Box::pin(async move {
+                // If no changed files, we can do an early return
+                if context
+                    .exec_cmd(&Command::shell(
+                        "git diff --exit-code && git ls-files --others --exclude-standard",
+                    ))
+                    .await?
+                    .is_empty()
+                {
+                    tracing::info!("No changes to commit, skipping commit");
+
+                    return Ok(());
+                }
+
+                if let Some(lint_fix_command) = &maybe_lint_fix_command {
+                    command_responder.send_update("running lint and fix");
+                    let _ = context
+                        .exec_cmd(&Command::shell(lint_fix_command))
+                        .await
+                        .map_err(|e| {
+                            tracing::error!("Error running lint and fix: {:?}", e);
+                        });
+                }
+
+                // Then commit the changes
+                let _ = context
+                    .exec_cmd(&Command::shell("git add ."))
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Error adding files to git: {:?}", e);
+                    });
+
+                let _ = context
+                    .exec_cmd(&Command::shell(
+                        "git commit -m \"Committed changes after completion\"",
+                    ))
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Error committing files to git: {:?}", e);
+                    });
+
+                Ok(())
+            })
+        })
         .after_each(conversation_summarizer.summarize_hook())
         .llm(&query_provider)
         .build()?;

@@ -572,6 +572,4 @@ mod tests {
         assert!(success);
         assert_eq!(content, stdout);
     }
-
-    // TODO: Exit status can be extracted from full response, i.e. "sh: 1: Directory does not exist"
 }
