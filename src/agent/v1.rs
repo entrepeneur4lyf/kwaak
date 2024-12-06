@@ -132,6 +132,7 @@ pub async fn build_agent(
             "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
             "Verify assumptions you make about the code by researching the actual code first",
             "If you are stuck, consider using git to undo your changes",
+            "Focus on completing the task fully as requested by the user",
             "Keep a neutral tone, refrain from using superlatives and unnecessary adjectives",
         ]).build()?.into();
 
