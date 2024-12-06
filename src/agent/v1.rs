@@ -17,8 +17,8 @@ use crate::{
 };
 
 use super::{
-    docker_tool_executor::DockerExecutor, env_setup::EnvSetup, tool_summarizer::ToolSummarizer,
-    tools,
+    conversation_summarizer::ConversationSummarizer, docker_tool_executor::DockerExecutor,
+    env_setup::EnvSetup, tool_summarizer::ToolSummarizer, tools,
 };
 
 async fn generate_initial_context(
@@ -178,6 +178,8 @@ pub async fn build_agent(
     let tool_summarizer =
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
 
+    let conversation_summarizer = ConversationSummarizer::new(query_provider.clone(), &tools);
+
     let agent = Agent::builder()
         .context(context)
         .system_prompt(system_prompt)
@@ -187,7 +189,7 @@ pub async fn build_agent(
 
             Box::pin(async move {
                 context
-                    .add_message(&chat_completion::ChatMessage::User(initial_context))
+                    .add_message(chat_completion::ChatMessage::new_user(initial_context))
                     .await;
 
                 Ok(())
@@ -203,8 +205,7 @@ pub async fn build_agent(
                 Ok(())
             })
         })
-        // before each, update that we're running completions
-        .before_each(move |_| {
+        .before_completion(move |_, _| {
             let command_responder = tx_3.clone();
             Box::pin(async move {
                 command_responder.send_update("running completions");
@@ -220,6 +221,7 @@ pub async fn build_agent(
             })
         })
         .after_tool(tool_summarizer.summarize_hook())
+        .after_each(conversation_summarizer.summarize_hook())
         .llm(&query_provider)
         .build()?;
 

@@ -120,6 +120,7 @@ impl From<swiftide::chat_completion::ChatMessage> for ChatMessage {
             swiftide::chat_completion::ChatMessage::ToolOutput(tool_call, _) => {
                 ChatMessage::new_tool(format!("tool `{}` completed", tool_call.name()))
             }
+            swiftide::chat_completion::ChatMessage::Summary(_) => unimplemented!(),
         };
 
         builder.original(msg).build()
