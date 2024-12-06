@@ -13,7 +13,7 @@ use tavily::Tavily;
 
 use crate::{
     commands::CommandResponder, config::SupportedToolExecutors, git::github::GithubSession,
-    indexing, repository::Repository,
+    indexing, repository::Repository, templates::Templates,
 };
 
 use super::{
@@ -34,38 +34,16 @@ async fn generate_initial_context(
         .join("\n");
 
     // TODO: This would be a nice answer transformer in the query pipeline
-    let context_query = indoc::formatdoc! {r#"
-        ## Role
-        You are helping an agent to get started on a task with an initial task and plan.
 
-        ## Task
-        What is the purpose of the {project_name} that is written in {lang}? Provide a detailed answer to help me understand the context.
+    let mut template_context = tera::Context::new();
+    template_context.insert("project_name", &repository.config().project_name);
+    template_context.insert("lang", &repository.config().language);
+    template_context.insert("original_system_prompt", original_system_prompt);
+    template_context.insert("query", query);
+    template_context.insert("available_tools", &available_tools);
 
-        The agent starts with the following prompt:
-
-        ```markdown
-        {original_system_prompt}
-        ```
-
-        And has to complete the following task:
-        {query}
-
-
-        ## Additional information
-        This context is provided for an ai agent that has to accomplish the above. Additionally, the agent has access to the following tools:
-        `{available_tools}`
-
-        ## Constraints
-        - Do not make assumptions, instruct to investigate instead
-        - Respond only with the additional context and instructions
-        - Do not provide strict instructions, allow for flexibility
-        - Consider the constraints of the agent when formulating your response
-        - EXTREMELY IMPORTANT that when writing files, the agent ALWAYS writes the full files. If this does not happen, I will lose my job.
-        "#,
-        project_name = repository.config().project_name,
-        lang = repository.config().language,
-    };
-    let retrieved_context = indexing::query(repository, &context_query).await?;
+    let initial_context_prompt = Templates::render("v1_initial_context", &template_context)?;
+    let retrieved_context = indexing::query(repository, &initial_context_prompt).await?;
     let formatted_context = format!("Additional information:\n\n{retrieved_context}");
     Ok(formatted_context)
 }
@@ -179,6 +157,7 @@ pub async fn build_agent(
     let tool_summarizer =
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
 
+    // Would be nice if the summarizer also captured the initial query
     let conversation_summarizer = ConversationSummarizer::new(query_provider.clone(), &tools);
     let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
