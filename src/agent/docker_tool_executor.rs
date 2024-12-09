@@ -95,16 +95,13 @@ impl DockerExecutor {
 
 #[async_trait]
 impl ToolExecutor for RunningDockerExecutor {
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), err)]
     async fn exec_cmd(&self, cmd: &Command) -> Result<swiftide::traits::CommandOutput> {
-        // let Command::Shell(cmd) = cmd else {
-        //     anyhow::bail!("Command not implemented")
-        // };
         match cmd {
             Command::Shell(cmd) => self.exec_shell(cmd).await,
             Command::ReadFile(path) => self.read_file(path).await,
             Command::WriteFile(path, content) => self.write_file(path, content).await,
-            _ => todo!(),
+            _ => unimplemented!(),
         }
     }
 }

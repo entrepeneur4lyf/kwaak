@@ -13,7 +13,7 @@ use tavily::Tavily;
 
 use crate::{
     commands::CommandResponder, config::SupportedToolExecutors, git::github::GithubSession,
-    indexing, repository::Repository,
+    indexing, repository::Repository, templates::Templates,
 };
 
 use super::{
@@ -34,38 +34,16 @@ async fn generate_initial_context(
         .join("\n");
 
     // TODO: This would be a nice answer transformer in the query pipeline
-    let context_query = indoc::formatdoc! {r#"
-        ## Role
-        You are helping an agent to get started on a task with an initial task and plan.
 
-        ## Task
-        What is the purpose of the {project_name} that is written in {lang}? Provide a detailed answer to help me understand the context.
+    let mut template_context = tera::Context::new();
+    template_context.insert("project_name", &repository.config().project_name);
+    template_context.insert("lang", &repository.config().language);
+    template_context.insert("original_system_prompt", original_system_prompt);
+    template_context.insert("query", query);
+    template_context.insert("available_tools", &available_tools);
 
-        The agent starts with the following prompt:
-
-        ```markdown
-        {original_system_prompt}
-        ```
-
-        And has to complete the following task:
-        {query}
-
-
-        ## Additional information
-        This context is provided for an ai agent that has to accomplish the above. Additionally, the agent has access to the following tools:
-        `{available_tools}`
-
-        ## Constraints
-        - Do not make assumptions, instruct to investigate instead
-        - Respond only with the additional context and instructions
-        - Do not provide strict instructions, allow for flexibility
-        - Consider the constraints of the agent when formulating your response
-        - EXTREMELY IMPORTANT that when writing files, the agent ALWAYS writes the full files. If this does not happen, I will lose my job.
-        "#,
-        project_name = repository.config().project_name,
-        lang = repository.config().language,
-    };
-    let retrieved_context = indexing::query(repository, &context_query).await?;
+    let initial_context_prompt = Templates::render("v1_initial_context.md", &template_context)?;
+    let retrieved_context = indexing::query(repository, &initial_context_prompt).await?;
     let formatted_context = format!("Additional information:\n\n{retrieved_context}");
     Ok(formatted_context)
 }
@@ -89,7 +67,7 @@ fn configure_tools(
     ];
 
     if let Some(github_session) = github_session {
-        tools.push(tools::CreatePullRequest::new(github_session).boxed());
+        tools.push(tools::CreateOrUpdatePullRequest::new(github_session).boxed());
     }
 
     if let Some(tavily_api_key) = &repository.config().tavily_api_key {
@@ -145,6 +123,7 @@ pub async fn build_agent(
             "When writing code or tests, make sure this is ideomatic for the language",
             "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
             "When writing tests, make sure you cover all edge cases",
+            "When writing tests, if a specific test continues to be troublesome, think out of the box and try to solve the problem in a different way, or reset and focus on other tests first",
             "When writing code, make sure the code runs and is included in the build",
             "When writing code, make sure all public facing functions, methods, modules, etc are documented ideomatically",
             "Your changes are automatically added to git, there is no need to commit files yourself",
@@ -154,6 +133,8 @@ pub async fn build_agent(
             "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
             "Verify assumptions you make about the code by researching the actual code first",
             "If you are stuck, consider using git to undo your changes",
+            "Focus on completing the task fully as requested by the user",
+            "Make sure you understand the project layout in terms of files and directories",
             "Keep a neutral tone, refrain from using superlatives and unnecessary adjectives",
         ]).build()?.into();
 
@@ -179,6 +160,7 @@ pub async fn build_agent(
     let tool_summarizer =
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
 
+    // Would be nice if the summarizer also captured the initial query
     let conversation_summarizer = ConversationSummarizer::new(query_provider.clone(), &tools);
     let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
@@ -248,6 +230,11 @@ pub async fn build_agent(
                         .await
                         .map_err(|e| {
                             tracing::error!("Error running lint and fix: {:?}", e);
+                        })
+                        .map(|output| {
+                            if !output.is_success() {
+                                tracing::error!("Error running lint and fix: {:?}", output);
+                            }
                         });
                 }
 
