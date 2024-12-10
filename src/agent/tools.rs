@@ -5,7 +5,7 @@ use anyhow::{Context as _, Result};
 use swiftide::{
     chat_completion::{errors::ToolError, ToolOutput},
     query::{search_strategies, states},
-    traits::{AgentContext, Command, CommandError, CommandOutput},
+    traits::{AgentContext, Command, CommandError},
 };
 use swiftide_macros::{tool, Tool};
 use tavily::Tavily;
