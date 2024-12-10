@@ -5,7 +5,7 @@ use anyhow::{Context as _, Result};
 use swiftide::{
     chat_completion::{errors::ToolError, ToolOutput},
     query::{search_strategies, states},
-    traits::{AgentContext, Command, CommandOutput},
+    traits::{AgentContext, Command, CommandError, CommandOutput},
 };
 use swiftide_macros::{tool, Tool};
 use tavily::Tavily;
@@ -55,14 +55,11 @@ pub async fn write_file(
 ) -> Result<ToolOutput, ToolError> {
     let cmd = Command::WriteFile(file_name.into(), content.into());
 
-    let output = context.exec_cmd(&cmd).await?;
+    context.exec_cmd(&cmd).await?;
 
     let success_message = format!("File written succesfully to {file_name}");
-    match output {
-        CommandOutput::Shell { success, .. } if success => Ok(success_message.into()),
-        CommandOutput::Shell { stderr, .. } => Ok(ToolOutput::Fail(stderr)),
-        CommandOutput::Ok | CommandOutput::Text(..) => Ok(success_message.into()),
-    }
+
+    Ok(success_message.into())
 }
 
 #[tool(
@@ -229,9 +226,12 @@ impl RunTests {
 
     async fn run_tests(&self, context: &dyn AgentContext) -> Result<ToolOutput, ToolError> {
         let cmd = Command::Shell(self.test_command.clone());
-        let output = context.exec_cmd(&cmd).await?;
-
-        Ok(output.into())
+        match context.exec_cmd(&cmd).await {
+            Ok(test_result) => Ok(test_result.into()),
+            // Generally failed tests have a non-zero exit code
+            Err(CommandError::FailedWithOutput(test_result)) => Ok(test_result.into()),
+            Err(err) => Err(err.into()),
+        }
     }
 }
 
@@ -250,9 +250,12 @@ impl RunCoverage {
 
     async fn run_coverage(&self, context: &dyn AgentContext) -> Result<ToolOutput, ToolError> {
         let cmd = Command::Shell(self.coverage_command.clone());
-        let output = context.exec_cmd(&cmd).await?;
-
-        Ok(output.into())
+        match context.exec_cmd(&cmd).await {
+            Ok(test_result) => Ok(test_result.into()),
+            // Generally failed tests have a non-zero exit code
+            Err(CommandError::FailedWithOutput(test_result)) => Ok(test_result.into()),
+            Err(err) => Err(err.into()),
+        }
     }
 }
 
