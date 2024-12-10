@@ -193,12 +193,25 @@ impl CommandHandler {
         let this_handler = Arc::new(self);
 
         task::spawn(async move {
+            // Handle spawned commands gracefully on quit
+            // JoinSet invokes abort on drop
+            let mut joinset = tokio::task::JoinSet::new();
+
             while let Some(cmd) = rx.recv().await {
+                // On `Quit`, abort all running tasks, wait for them to finish then break.
+                if cmd.is_quit() {
+                    tracing::warn!("Backend received quit command, shutting down");
+                    joinset.shutdown().await;
+                    tracing::warn!("Backend shutdown complete");
+
+                    break;
+                }
+
                 let repository = Arc::clone(&repository);
                 let ui_tx = ui_tx.clone();
                 let this_handler = Arc::clone(&this_handler);
 
-                tokio::spawn(async move {
+                joinset.spawn(async move {
                     let result = this_handler.handle_command(&repository, &ui_tx, &cmd).await;
                     ui_tx.send(UIEvent::CommandDone(cmd.uuid())).unwrap();
 
@@ -217,6 +230,8 @@ impl CommandHandler {
                     };
                 });
             }
+
+            tracing::warn!("CommandHandler shutting down");
         })
     }
 
@@ -250,8 +265,7 @@ impl CommandHandler {
 
                 agent.query(message).await?;
             }
-            // Anything else we forward to the UI
-            _ => ui_tx.send(cmd.clone().into()).unwrap(),
+            Command::Quit { .. } => unreachable!("Quit should be handled earlier"),
         }
         // Sleep for a tiny bit to avoid racing with agent responses
         tokio::time::sleep(Duration::from_millis(50)).await;

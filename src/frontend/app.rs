@@ -168,8 +168,8 @@ impl App<'_> {
         if key.modifiers == crossterm::event::KeyModifiers::CONTROL
             && key.code == KeyCode::Char('c')
         {
-            self.mode = AppMode::Quit;
-            return;
+            tracing::warn!("Ctrl-C pressed, quitting");
+            return self.send_ui_event(UIEvent::Quit);
         }
 
         if let KeyCode::F(index) = key.code {
@@ -213,6 +213,10 @@ impl App<'_> {
                 self.mode.ui(f, base_area, self);
             })?;
 
+            if self.mode == AppMode::Quit {
+                break;
+            }
+
             // Handle events
             if let Some(event) = self.recv_messages().await {
                 if !matches!(event, UIEvent::Tick | UIEvent::Input(_)) {
@@ -232,17 +236,6 @@ impl App<'_> {
                         self.find_chat_mut(uuid)
                             .transition(ChatState::LoadingWithMessage(activity));
                     }
-
-                    UIEvent::Command(cmd) => match cmd {
-                        Command::Quit { .. } => {
-                            // If the backends tells us to quit we also do it
-                            self.change_mode(AppMode::Quit);
-                        }
-
-                        _ => {
-                            tracing::warn!("Unhandled command: {:?}", cmd);
-                        }
-                    },
                     UIEvent::ChatMessage(message) => {
                         self.add_chat_message(message);
                     }
@@ -251,11 +244,15 @@ impl App<'_> {
                     }
                     UIEvent::NextChat => self.next_chat(),
                     UIEvent::ChangeMode(mode) => self.change_mode(mode),
-                }
-            }
+                    UIEvent::Quit => {
+                        tracing::warn!("UI received quit event, quitting");
 
-            if self.mode == AppMode::Quit {
-                break;
+                        self.dispatch_command(&Command::Quit {
+                            uuid: self.current_chat,
+                        });
+                        self.change_mode(AppMode::Quit);
+                    }
+                }
             }
         }
 
