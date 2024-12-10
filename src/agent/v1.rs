@@ -215,8 +215,8 @@ pub async fn build_agent(
                     .exec_cmd(&Command::shell(
                         "git diff --exit-code && git ls-files --others --exclude-standard",
                     ))
-                    .await?
-                    .is_empty()
+                    .await
+                    .is_ok()
                 {
                     tracing::info!("No changes to commit, skipping commit");
 
@@ -229,14 +229,9 @@ pub async fn build_agent(
                         .exec_cmd(&Command::shell(lint_fix_command))
                         .await
                         .map_err(|e| {
-                            tracing::error!("Error running lint and fix: {:?}", e);
-                        })
-                        .map(|output| {
-                            if !output.is_success() {
-                                tracing::error!("Error running lint and fix: {:?}", output);
-                            }
+                            tracing::error!("Error running lint and fix: {:#}", e);
                         });
-                }
+                };
 
                 // Then commit the changes
                 let _ = context

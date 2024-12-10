@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use swiftide::{
     query::StreamExt as _,
-    traits::{Command, CommandOutput, ToolExecutor},
+    traits::{Command, CommandError, CommandOutput, ToolExecutor},
 };
 use tokio::io::AsyncReadExt as _;
 use tracing::{error, info};
@@ -11,7 +11,6 @@ use tracing::{error, info};
 use bollard::{
     container::{
         Config, CreateContainerOptions, KillContainerOptions, LogOutput, StartContainerOptions,
-        StopContainerOptions,
     },
     exec::{CreateExecOptions, StartExecResults},
     image::BuildImageOptions,
@@ -97,7 +96,7 @@ impl DockerExecutor {
 #[async_trait]
 impl ToolExecutor for RunningDockerExecutor {
     #[tracing::instrument(skip(self), err)]
-    async fn exec_cmd(&self, cmd: &Command) -> Result<swiftide::traits::CommandOutput> {
+    async fn exec_cmd(&self, cmd: &Command) -> Result<CommandOutput, CommandError> {
         match cmd {
             Command::Shell(cmd) => self.exec_shell(cmd).await,
             Command::ReadFile(path) => self.read_file(path).await,
@@ -184,7 +183,7 @@ impl RunningDockerExecutor {
         })
     }
 
-    async fn exec_shell(&self, cmd: &str) -> Result<CommandOutput> {
+    async fn exec_shell(&self, cmd: &str) -> Result<CommandOutput, CommandError> {
         let cmd = vec!["sh", "-c", cmd];
         tracing::debug!("Executing command {cmd}", cmd = cmd.join(" "));
 
@@ -199,14 +198,18 @@ impl RunningDockerExecutor {
                     ..Default::default()
                 },
             )
-            .await?
+            .await
+            .context("Failed to execute command in docker")?
             .id;
 
         let mut stdout = String::new();
         let mut stderr = String::new();
 
-        if let StartExecResults::Attached { mut output, .. } =
-            self.docker.start_exec(&exec, None).await?
+        if let StartExecResults::Attached { mut output, .. } = self
+            .docker
+            .start_exec(&exec, None)
+            .await
+            .context("Failed to attach to docker exec")?
         {
             while let Some(Ok(msg)) = output.next().await {
                 match msg {
@@ -223,33 +226,30 @@ impl RunningDockerExecutor {
             todo!();
         }
 
+        let exec_inspect = self
+            .docker
+            .inspect_exec(&exec)
+            .await
+            .context("Failed to inspect docker exec")?;
+        let exit_code = exec_inspect.exit_code.unwrap_or(0);
+
         // Trim both stdout and stderr to remove surrounding whitespace and newlines
-        let stdout = stdout.trim().to_string();
-        let stderr = stderr.trim().to_string();
+        let output = stdout.trim().to_string() + stderr.trim();
 
-        #[allow(clippy::bool_to_int_with_if)]
-        let status = if stderr.is_empty() { 0 } else { 1 };
-        let success = status == 0;
-
-        Ok(CommandOutput::Shell {
-            stdout,
-            stderr,
-            status,
-            success,
-        })
+        if exit_code == 0 {
+            Ok(output.into())
+        } else {
+            Err(CommandError::FailedWithOutput(output.into()))
+        }
     }
 
     #[tracing::instrument(skip(self))]
-    async fn read_file(&self, path: &Path) -> std::result::Result<CommandOutput, anyhow::Error> {
+    async fn read_file(&self, path: &Path) -> Result<CommandOutput, CommandError> {
         self.exec_shell(&format!("cat {}", path.display())).await
     }
 
     #[tracing::instrument(skip(self, content))]
-    async fn write_file(
-        &self,
-        path: &Path,
-        content: &str,
-    ) -> std::result::Result<CommandOutput, anyhow::Error> {
+    async fn write_file(&self, path: &Path, content: &str) -> Result<CommandOutput, CommandError> {
         let cmd = indoc::formatdoc! {r#"
             cat << 'EOFKWAAK' > {path}
             {content}
@@ -259,23 +259,23 @@ impl RunningDockerExecutor {
 
         };
 
-        let output = self.exec_shell(&cmd).await?;
+        let write_file_result = self.exec_shell(&cmd).await;
 
-        let CommandOutput::Shell { stderr, .. } = &output else {
-            unimplemented!("Expected shell output")
-        };
+        // If the directory or file does not exist, create it
+        if let Err(CommandError::FailedWithOutput(write_file)) = &write_file_result {
+            if ["No such file or directory", "Directory nonexistent"]
+                .iter()
+                .any(|&s| write_file.output.contains(s))
+            {
+                let path = path.parent().context("No parent directory")?;
+                let mkdircmd = format!("mkdir -p {}", path.display());
+                let _ = self.exec_shell(&mkdircmd).await?;
 
-        if ["No such file or directory", "Directory nonexistent"]
-            .iter()
-            .any(|&s| stderr.contains(s))
-        {
-            let path = path.parent().context("No parent directory")?;
-            let mkdircmd = format!("mkdir -p {}", path.display());
-            let _ = self.exec_shell(&mkdircmd).await?;
-            return self.exec_shell(&cmd).await;
+                return self.exec_shell(&cmd).await;
+            }
         }
 
-        Ok(output)
+        write_file_result
     }
 }
 
@@ -344,7 +344,6 @@ async fn build_context_as_tar(context_path: &Path) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use bollard::secret::ContainerStateStatusEnum;
-    use swiftide::traits::CommandOutput;
 
     use super::*;
 
@@ -392,20 +391,7 @@ mod tests {
             .await
             .unwrap();
 
-        let CommandOutput::Shell {
-            stdout,
-            stderr,
-            status,
-            success,
-        } = ping
-        else {
-            panic!("Expected shell output")
-        };
-
-        assert!(stdout.contains("1 packets transmitted, 1 received"));
-        assert!(stderr.is_empty());
-        assert!(success);
-        assert_eq!(status, 0);
+        assert!(ping.output.contains("1 packets transmitted, 1 received"));
     }
 
     #[test_log::test(tokio::test(flavor = "multi_thread"))]
@@ -423,17 +409,10 @@ mod tests {
             .unwrap();
 
         // Write the content to the file
-        let output = executor
+        let _ = executor
             .exec_cmd(&Command::write_file(path, content))
             .await
             .unwrap();
-
-        let CommandOutput::Shell { success, .. } = output else {
-            panic!("Expected shell output")
-        };
-
-        dbg!(&output);
-        assert!(success);
 
         let output = executor.exec_cmd(&Command::shell("ls")).await.unwrap();
 
@@ -441,19 +420,9 @@ mod tests {
 
         // Read the content from the file
         //
-        let output = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
+        let read_file = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
 
-        dbg!(&output);
-        let CommandOutput::Shell {
-            stdout, success, ..
-        } = output
-        else {
-            panic!("Expected shell output")
-        };
-
-        // Assert that the written content matches the read content
-        assert!(success);
-        assert_eq!(content, stdout);
+        assert_eq!(content, read_file.output);
     }
 
     #[test_log::test(tokio::test(flavor = "multi_thread"))]
@@ -482,17 +451,10 @@ mod tests {
             .unwrap();
 
         // Write the content to the file
-        let output = executor
+        let _ = executor
             .exec_cmd(&Command::write_file(path, content))
             .await
             .unwrap();
-
-        let CommandOutput::Shell { success, .. } = output else {
-            panic!("Expected shell output")
-        };
-
-        dbg!(&output);
-        assert!(success);
 
         let output = executor.exec_cmd(&Command::shell("ls")).await.unwrap();
 
@@ -500,19 +462,9 @@ mod tests {
 
         // Read the content from the file
         //
-        let output = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
+        let read_file = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
 
-        dbg!(&output);
-        let CommandOutput::Shell {
-            stdout, success, ..
-        } = output
-        else {
-            panic!("Expected shell output")
-        };
-
-        // Assert that the written content matches the read content
-        assert!(success);
-        assert_eq!(content, stdout);
+        assert_eq!(content, read_file.output);
     }
 
     #[test_log::test(tokio::test(flavor = "multi_thread"))]
@@ -572,17 +524,10 @@ mod tests {
             .unwrap();
 
         // Write the content to the file
-        let output = executor
+        let _ = executor
             .exec_cmd(&Command::write_file(path, content))
             .await
             .unwrap();
-
-        let CommandOutput::Shell { success, .. } = output else {
-            panic!("Expected shell output")
-        };
-
-        dbg!(&output);
-        assert!(success);
 
         let output = executor.exec_cmd(&Command::shell("ls")).await.unwrap();
 
@@ -590,18 +535,9 @@ mod tests {
 
         // Read the content from the file
         //
-        let output = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
-
-        dbg!(&output);
-        let CommandOutput::Shell {
-            stdout, success, ..
-        } = output
-        else {
-            panic!("Expected shell output")
-        };
+        let read_file = executor.exec_cmd(&Command::read_file(path)).await.unwrap();
 
         // Assert that the written content matches the read content
-        assert!(success);
-        assert_eq!(content, stdout);
+        assert_eq!(content, read_file.output);
     }
 }

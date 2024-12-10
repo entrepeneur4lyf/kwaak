@@ -1,10 +1,10 @@
 //! Series of commands to run before each agent starts inside the docker container
 
 use anyhow::bail;
+use anyhow::Context as _;
 use anyhow::Result;
 use secrecy::ExposeSecret;
 use swiftide::traits::Command;
-use swiftide::traits::CommandOutput;
 use swiftide::traits::ToolExecutor;
 
 use crate::config::SupportedToolExecutors;
@@ -46,15 +46,12 @@ impl EnvSetup<'_> {
     }
 
     async fn setup_github_auth(&self) -> Result<()> {
-        let CommandOutput::Shell {
-            stdout: origin_url, ..
-        } = self
+        let origin_url = self
             .executor
             .exec_cmd(&Command::shell("git remote get-url origin"))
-            .await?
-        else {
-            bail!("Could not get origin url")
-        };
+            .await
+            .context("Could not get origin url")?
+            .output;
 
         let Some(github_session) = self.github_session else {
             bail!("When running inside docker, a valid github token is required")
