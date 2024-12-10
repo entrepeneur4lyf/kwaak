@@ -12,15 +12,24 @@ use super::{app::AppMode, UserInputCommand};
 #[derive(Debug, Clone, strum::Display)]
 #[allow(dead_code)]
 pub enum UIEvent {
+    /// A key is pressed
     Input(KeyEvent),
+    /// A frontend tick event to trigger updates, etc
     Tick,
-    Command(Command),
+    /// A chat message is received
     ChatMessage(ChatMessage),
+    /// Start a new chat
     NewChat,
+    /// Switch to the next chat
     NextChat,
+    /// Change the view mode of the frontend
     ChangeMode(AppMode),
+    /// Command finished
     CommandDone(Uuid),
+    /// Agent has an update (for showing intermediate progress)
     AgentActivity(Uuid, String),
+    /// Quit from the frontend
+    Quit,
 }
 
 impl From<ChatMessage> for UIEvent {
@@ -40,11 +49,11 @@ impl From<&mut ChatMessageBuilder> for UIEvent {
         Self::ChatMessage(builder.build().clone())
     }
 }
-impl From<Command> for UIEvent {
-    fn from(cmd: Command) -> Self {
-        Self::Command(cmd)
-    }
-}
+// impl From<Command> for UIEvent {
+//     fn from(cmd: Command) -> Self {
+//         Self::Command(cmd)
+//     }
+// }
 
 impl From<KeyEvent> for UIEvent {
     fn from(key: KeyEvent) -> Self {

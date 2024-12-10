@@ -10,7 +10,8 @@ use tracing::{error, info};
 
 use bollard::{
     container::{
-        Config, CreateContainerOptions, LogOutput, StartContainerOptions, StopContainerOptions,
+        Config, CreateContainerOptions, KillContainerOptions, LogOutput, StartContainerOptions,
+        StopContainerOptions,
     },
     exec::{CreateExecOptions, StartExecResults},
     image::BuildImageOptions,
@@ -287,18 +288,16 @@ impl Drop for RunningDockerExecutor {
         let result = tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current().block_on(async {
                 self.docker
-                    .stop_container(
+                    .kill_container(
                         &self.container_id,
-                        Some(StopContainerOptions {
-                            ..Default::default()
-                        }),
+                        Some(KillContainerOptions { signal: "SIGKILL" }),
                     )
                     .await
             })
         });
 
         if let Err(e) = result {
-            tracing::error!(error = %e, "Could not stop container");
+            tracing::warn!(error = %e, "Error stopping container, might not be stopped");
         }
     }
 }
