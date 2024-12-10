@@ -256,6 +256,8 @@ impl App<'_> {
             }
         }
 
+        tracing::warn!("Quitting frontend");
+
         handle.abort();
 
         Ok(())

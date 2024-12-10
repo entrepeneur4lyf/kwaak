@@ -139,9 +139,11 @@ async fn start_tui(repository: &repository::Repository) -> Result<()> {
 
     if let Err(error) = app_result {
         ::tracing::error!(?error, "Application error");
+        std::process::exit(1);
     }
 
-    Ok(())
+    // Force exit the process, as any dangling threads can now safely be dropped
+    std::process::exit(0);
 }
 
 pub fn init_panic_hook() {
