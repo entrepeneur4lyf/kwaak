@@ -43,15 +43,11 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
         KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
         KeyCode::PageDown => {
             app.vertical_scroll = app.vertical_scroll.saturating_add(1);
-            app.vertical_scroll_state = app
-                .vertical_scroll_state
-                .position(app.vertical_scroll);
+            app.vertical_scroll_state = app.vertical_scroll_state.position(app.vertical_scroll);
         }
         KeyCode::PageUp => {
             app.vertical_scroll = app.vertical_scroll.saturating_sub(1);
-            app.vertical_scroll_state = app
-                .vertical_scroll_state
-                .position(app.vertical_scroll);
+            app.vertical_scroll_state = app.vertical_scroll_state.position(app.vertical_scroll);
         }
         _ => {
             app.text_input.input(key);

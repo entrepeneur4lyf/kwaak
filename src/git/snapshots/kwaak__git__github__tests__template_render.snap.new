@@ -1,0 +1,48 @@
+---
+source: src/git/github.rs
+assertion_line: 199
+expression: rendered
+snapshot_kind: text
+---
+description
+
+---
+
+_This pull request was created by [kwaak](https://github.com/bosun-ai/kwaak), a free, open-source, autonomous coding agent tool._
+
+<details>
+<summary>Message History</summary>
+
+
+
+<details>
+  <summary>User</summary>
+
+```markdown
+user message
+```
+
+</details>
+
+
+<details>
+  <summary>System</summary>
+
+```markdown
+system message
+```
+
+</details>
+
+
+<details>
+  <summary>Summary</summary>
+
+```markdown
+summary message
+```
+
+</details>
+
+
+</details>
