@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-
 pub(super) fn default_project_name() -> String {
     // Infer from the current directory
     std::env::current_dir()

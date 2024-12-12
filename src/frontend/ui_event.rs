@@ -1,10 +1,7 @@
 use crossterm::event::KeyEvent;
 use uuid::Uuid;
 
-use crate::{
-    chat_message::{ChatMessage, ChatMessageBuilder},
-    commands::Command,
-};
+use crate::chat_message::{ChatMessage, ChatMessageBuilder};
 
 use super::{app::AppMode, UserInputCommand};
 
