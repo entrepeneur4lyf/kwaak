@@ -23,6 +23,10 @@ pub struct Args {
     /// Clear the the index and cache for this project and exit
     #[arg(long, name = "clear-cache", default_value_t = false)]
     pub clear_cache: bool,
+
+    /// Initialize a new configuration interactively
+    #[arg(long, name = "init", default_value_t = false)]
+    pub init: bool,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug, Default)]
