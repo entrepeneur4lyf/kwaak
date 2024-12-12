@@ -31,22 +31,11 @@ use crate::{
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Command {
-    Quit {
-        uuid: Uuid,
-    },
-    ShowConfig {
-        uuid: Uuid,
-    },
-    IndexRepository {
-        uuid: Uuid,
-    },
-    StopAgent {
-        uuid: Uuid,
-    },
-    Chat {
-        uuid: Uuid,
-        message: String,
-    },
+    Quit { uuid: Uuid },
+    ShowConfig { uuid: Uuid },
+    IndexRepository { uuid: Uuid },
+    StopAgent { uuid: Uuid },
+    Chat { uuid: Uuid, message: String },
 }
 
 pub enum CommandResponse {
@@ -257,17 +246,24 @@ impl CommandHandler {
 
         #[allow(clippy::match_wildcard_for_single_variants)]
         match cmd {
-            Command::StopAgent { uuid  } => {
+            Command::StopAgent { uuid } => {
                 let mut locked_agents = self.agents.write().await;
                 let Some(agent) = locked_agents.get_mut(uuid) else {
-                    let _ = ui_tx.send(ChatMessage::new_system("No agent found (yet), is it starting up?").uuid(*uuid).into());
+                    let _ = ui_tx.send(
+                        ChatMessage::new_system("No agent found (yet), is it starting up?")
+                            .uuid(*uuid)
+                            .into(),
+                    );
                     return Ok(());
                 };
 
                 agent.stop();
 
-                let _ = ui_tx.send(ChatMessage::new_system("Agent will finish its current completions and stop").uuid(*uuid).into());
-                           
+                let _ = ui_tx.send(
+                    ChatMessage::new_system("Agent will finish its current completions and stop")
+                        .uuid(*uuid)
+                        .into(),
+                );
             }
             Command::IndexRepository { .. } => indexing::index_repository(repository).await?,
             Command::ShowConfig { uuid } => {
