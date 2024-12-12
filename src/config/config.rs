@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::treesitter::SupportedLanguages;
-use derive_builder::Builder;
 
 use super::api_key::ApiKey;
 use super::defaults::{

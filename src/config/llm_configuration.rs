@@ -25,7 +25,7 @@ pub enum LLMConfigurations {
 impl Default for LLMConfigurations {
     fn default() -> Self {
         LLMConfigurations::Single(LLMConfiguration::OpenAI {
-            api_key: ApiKey::new("your-default-api-key"),
+            api_key: ApiKey::new("your-default-api-key".into()),
             prompt_model: OpenAIPromptModel::default(),
             embedding_model: OpenAIEmbeddingModel::default(),
             base_url: None,
@@ -105,7 +105,8 @@ fn build_openai(
     prompt_model: &OpenAIPromptModel,
     base_url: Option<&Url>,
 ) -> Result<integrations::openai::OpenAI> {
-    let mut config = async_openai::config::OpenAIConfig::default().with_api_key(api_key.expose_secret());
+    let mut config =
+        async_openai::config::OpenAIConfig::default().with_api_key(api_key.expose_secret());
 
     if let Some(base_url) = base_url {
         config = config.with_api_base(base_url.to_string());
