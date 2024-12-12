@@ -1,17 +1,17 @@
-# Kwaak: Terminal User Interface for AI-Assisted Code Management
+# Kwaak: TUI for AI-Assisted Code Management
 
-Kwaak is a Terminal User Interface (TUI) application developed in Rust that integrates AI agents for managing and interacting with code projects. By leveraging AI-driven capabilities, Kwaak offers a unique platform for developers to engage with intelligent agents that can assist in writing code, testing, and even creating pull requests, all within a terminal environment.
+Kwaak is a Terminal User Interface (TUI) application built in Rust, designed for seamless interaction with AI agents to aid in code management and development tasks. It offers developers an innovative way to leverage AI in code generation, testing, and repository management directly within a terminal environment.
 
 ## Features
 
-- **AI Agent Interaction**: Run and chat with AI agents that can understand your codebase, generate solutions, and assist with various development tasks.
-- **TUI Interface**: Provides a straightforward terminal-based interface for managing interactions.
-- **Code Execution in Containers**: Each agent operates in a Docker container, allowing them to run tools and make changes confidently.
-- **GitHub Integration**: Agents can interact with repositories, making it easy to integrate updates or create pull requests directly.
+- **AI Agent Interaction**: Interact with AI agents that understand your codebase, provide solutions, and help in executing various development tasks.
+- **Comprehensive TUI**: Navigate through different application modes and manage interactions using a simple keyboard-driven interface.
+- **Command Execution in Containers**: Ensures isolated and safe execution of tasks by running all operations within Docker containers.
+- **GitHub Integration**: Facilitates seamless interaction with GitHub repositories, including updates and pull request creation.
 
 ## Installation
 
-Kwaak is primarily run as a binary. Docker is used internally by the agents to execute tools within isolated environments.
+Kwaak functions as a standalone binary and utilizes Docker to manage the execution of commands in secure environments.
 
 To build the project locally for development:
 
@@ -21,13 +21,13 @@ docker build -t kwaak .
 
 ## Configuration
 
-Before running Kwaak, make sure to set up the environment with necessary API keys:
+Ensure you set up the environment with the necessary API keys to utilize all features:
 
 - **TAVILY_API_KEY**: For Tavily services.
-- **KWAAK_OPENAI_API_KEY**: For AI integrations using OpenAI.
-- **GITHUB_TOKEN**: To enable GitHub repository interactions.
+- **KWAAK_OPENAI_API_KEY**: Integrates AI capabilities via OpenAI.
+- **GITHUB_TOKEN**: Enables full GitHub interaction.
 
-Set these as environment variables:
+Set these environment variables before running Kwaak:
 
 ```sh
 export TAVILY_API_KEY="your-tavily-api-key"
@@ -37,28 +37,28 @@ export GITHUB_TOKEN="your-github-token"
 
 ## Usage
 
-Kwaak can be operated in different modes using command-line arguments:
+Kwaak offers multiple operation modes:
 
-- **Run the AI Agent**: Start AI agents to assist with code tasks.
+- **AI Agent Mode**: Directly engage with AI agents for code assistance.
   ```bash
   ./kwaak --mode run-agent
   ```
 
-- **Launch the TUI**: Open the terminal interface to interact with agents and tasks.
+- **TUI Mode**: Launch the user interface for managing agent interactions and tasks.
   ```bash
   ./kwaak --mode tui
   ```
 
-Command-line options like `--clear-cache` and `--print-config` are available to manage settings and cache efficiently.
+Additional command-line options include `--clear-cache` to clean up caches and `--print-config` to display the current configuration.
 
-## Contributing
+## Contribution
 
-Contributions are welcome! Please ensure code quality with linting and testing tools before submitting pull requests. Follow the contribution guidelines documented in the repository.
+Contributions are welcome. Please ensure adherence to coding standards and comprehensive testing before submitting pull requests. Refer to the contribution guide in the repository for detailed information.
 
 ## License
 
-Kwaak is open-source software licensed under the MIT License. See `LICENSE` for more details.
+Kwaak is distributed under the MIT License. See the `LICENSE` file for more information.
 
 ## Support
 
-For additional support or to report issues, visit our GitHub repository or contact us through provided channels there.
+For support or to report issues, please visit our [GitHub repository](https://github.com/user/repo).
