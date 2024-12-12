@@ -161,7 +161,7 @@ impl RunningAgent {
     }
 
     pub async fn stop(&self) -> Result<()> {
-        self.agent.lock().await.stop().await;
+        self.agent.lock().await.stop();
         Ok(())
     }
 }
