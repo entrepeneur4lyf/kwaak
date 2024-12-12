@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
     init_panic_hook();
 
     if args.init {
-        return onboarding::start_onboarding().await;
+        return Ok(onboarding::init_onboarding());
     }
 
     // Load configuration
@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
 
     if args.print_config {
         println!("{}", toml::to_string_pretty(repository.config())?);
-        return Ok(());
+        return Ok(();
     }
 
     fs::create_dir_all(repository.config().cache_dir()).await?;
@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
         repository.clear_cache().await?;
         println!("Cache cleared");
 
-        return Ok(());
+        return Ok(();
     }
 
     crate::kwaak_tracing::init(&repository)?;
@@ -106,7 +106,7 @@ async fn start_agent(repository: &repository::Repository, args: &cli::Args) -> R
 
     agent.query(&query).await?;
     handle.abort();
-    Ok(())
+    Ok(()
 }
 
 #[instrument]
@@ -137,7 +137,7 @@ async fn start_tui(repository: &repository::Repository) -> Result<()> {
         app.run(&mut terminal).await
     };
 
-    restore_tui()?;
+    restore_tui()?
     if cfg!(feature = "otel") {
         opentelemetry::global::shutdown_tracer_provider();
     }
