@@ -21,19 +21,25 @@ docker build -t kwaak .
 
 ## Configuration
 
-Ensure you set up the environment with the necessary API keys to utilize all features:
+Kwaak requires a configuration file named `kwaak.toml` to specify settings for the application. This file should be placed in the root of your project directory.
 
-- **TAVILY_API_KEY**: For Tavily services.
-- **KWAAK_OPENAI_API_KEY**: Integrates AI capabilities via OpenAI.
-- **GITHUB_TOKEN**: Enables full GitHub interaction.
+Here's an example of what `kwaak.toml` might look like:
 
-Set these environment variables before running Kwaak:
+```toml
+[api]
+tavily_api_key = "your-tavily-api-key"
+openai_api_key = "your-openai-api-key"
 
-```sh
-export TAVILY_API_KEY="your-tavily-api-key"
-export KWAAK_OPENAI_API_KEY="your-openai-api-key"
-export GITHUB_TOKEN="your-github-token"
+github_token = "your-github-token"
+
+[repositories]
+# Define paths, ignored files, or other specific settings
+
+[agents]
+# Configuration for agent behavior, timeouts, retries, etc.
 ```
+
+Set this up to ensure Kwaak operates with the correct parameters for agent queries, repository interactions, and GitHub actions.
 
 ## Usage
 
