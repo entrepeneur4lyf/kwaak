@@ -11,13 +11,21 @@ Kwaak is a Terminal User Interface (TUI) application built in Rust, designed for
 
 ## Installation
 
-Kwaak functions as a standalone binary and utilizes Docker to manage the execution of commands in secure environments.
+Kwaak leverages Docker for running its agents within containers. Additionally, Docker Compose is used to start Jaeger for tracing purposes.
 
-To build the project locally for development:
+To set up the application:
 
-```bash
-docker build -t kwaak .
-```
+1. **Run Agents in Docker:**
+   The `Dockerfile` is used to create an environment for executing agents.
+   ```bash
+   docker build -t kwaak .
+   ````
+
+2. **Start Jaeger with Docker Compose:**
+   The `compose.yml` file sets up Jaeger, a tracing system, for monitoring and debugging.
+   ```bash
+   docker-compose up jaeger
+   ```
 
 ## Configuration
 
