@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result};
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::treesitter::SupportedLanguages;
+use derive_builder::Builder;
 
 use super::api_key::ApiKey;
 use super::defaults::{
@@ -12,7 +13,8 @@ use super::defaults::{
 use super::{CommandConfiguration, LLMConfiguration, LLMConfigurations};
 
 // TODO: Improving parsing by enforcing invariants
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Builder)]
+#[builder(setter(into), default)]
 pub struct Config {
     #[serde(default = "default_project_name")]
     pub project_name: String,
@@ -111,6 +113,29 @@ impl Config {
 
     pub fn log_dir(&self) -> &Path {
         self.log_dir.as_path()
+    }
+}
+
+// Implement Default for Config to be used with DeriveBuilder
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            project_name: default_project_name(),
+            language: SupportedLanguages::Rust, // Assuming a default; adjust if needed
+            llm: Box::new(LLMConfigurations::default()),
+            commands: CommandConfiguration::default(),
+            cache_dir: default_cache_dir(),
+            log_dir: default_log_dir(),
+            docker: DockerConfiguration::default(),
+            github: GithubConfiguration {
+                repository: "kwaak".into(), // Example default
+                owner: "bosun-ai".into(),   // Example default
+                main_branch: default_main_branch(),
+                token: None,
+            },
+            tavily_api_key: None,
+            tool_executor: SupportedToolExecutors::Docker,
+        }
     }
 }
 
