@@ -12,3 +12,14 @@ pub struct CommandConfiguration {
     #[serde(default)]
     pub lint_and_fix: Option<String>,
 }
+
+// Default implementation for CommandConfiguration
+impl Default for CommandConfiguration {
+    fn default() -> Self {
+        CommandConfiguration {
+            test: "cargo test --no-fail-fast --color=never".to_string(),
+            coverage: "cargo tarpaulin --skip-clean".to_string(),
+            lint_and_fix: Some("cargo clippy --fix --allow-dirty --allow-staged && cargo fmt".to_string()),
+        }
+    }
+}

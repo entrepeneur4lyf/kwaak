@@ -21,6 +21,18 @@ pub enum LLMConfigurations {
     },
 }
 
+// Default implementation for LLMConfigurations
+impl Default for LLMConfigurations {
+    fn default() -> Self {
+        LLMConfigurations::Single(LLMConfiguration::OpenAI {
+            api_key: ApiKey::new("your-default-api-key"),
+            prompt_model: OpenAIPromptModel::default(),
+            embedding_model: OpenAIEmbeddingModel::default(),
+            base_url: None,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "provider")]
 pub enum LLMConfiguration {
@@ -32,22 +44,6 @@ pub enum LLMConfiguration {
         embedding_model: OpenAIEmbeddingModel,
         base_url: Option<Url>,
     },
-    // Groq {
-    //     api_key: SecretString,
-    //     prompt_model: String,
-    // },
-    // Ollama {
-    //     prompt_model: Option<String>,
-    //     embedding_model: Option<String>,
-    //     vector_size: Option<usize>,
-    // },
-    // AWSBedrock {
-    //     prompt_model: String,
-    // },
-    // FastEmbed {
-    //     embedding_model: String,
-    //     vector_size: usize,
-    // },
 }
 
 impl LLMConfiguration {
@@ -109,8 +105,7 @@ fn build_openai(
     prompt_model: &OpenAIPromptModel,
     base_url: Option<&Url>,
 ) -> Result<integrations::openai::OpenAI> {
-    let mut config =
-        async_openai::config::OpenAIConfig::default().with_api_key(api_key.expose_secret());
+    let mut config = async_openai::config::OpenAIConfig::default().with_api_key(api_key.expose_secret());
 
     if let Some(base_url) = base_url {
         config = config.with_api_base(base_url.to_string());
