@@ -42,6 +42,11 @@ async fn main() -> Result<()> {
     let args = cli::Args::parse();
 
     init_panic_hook();
+
+    if args.init {
+        return onboarding::start_onboarding().await;
+    }
+
     // Load configuration
     let config = Config::load(&args.config_path).await?;
     let repository = repository::Repository::from_config(config);
