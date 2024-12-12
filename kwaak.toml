@@ -4,7 +4,7 @@ tool_executor = "docker"
 
 [commands]
 test = "cargo test --no-fail-fast --color=never"
-coverage = "cargo tarpaulin --skip-clean"
+coverage = "cargo tarpaulin --skip-clean --target-dir target/debug --engine llvm"
 lint_and_fix = "cargo clippy --fix --allow-dirty --allow-staged && cargo fmt"
 
 [github]
