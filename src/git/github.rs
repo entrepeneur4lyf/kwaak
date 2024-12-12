@@ -161,7 +161,7 @@ fn format_message(message: &ChatMessage) -> serde_json::Value {
             msg
         }
         ChatMessage::ToolOutput(tool_call, tool_output) => {
-            format!("{} => {}", tool_call, tool_output)
+            format!("{tool_call} => {tool_output}")
         }
     };
 
