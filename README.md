@@ -21,25 +21,46 @@ docker build -t kwaak .
 
 ## Configuration
 
-Kwaak requires a configuration file named `kwaak.toml` to specify settings for the application. This file should be placed in the root of your project directory.
+Kwaak requires a configuration file named `kwaak.toml` for its settings. This file should be placed in the root of your project directory.
 
-Here's an example of what `kwaak.toml` might look like:
+Example `kwaak.toml`:
 
 ```toml
-[api]
-tavily_api_key = "your-tavily-api-key"
-openai_api_key = "your-openai-api-key"
+language = "rust"
+tavily_api_key = "env:TAVILY_API_KEY"
+tool_executor = "docker"
 
-github_token = "your-github-token"
+[commands]
+test = "cargo test --no-fail-fast --color=never"
+coverage = "cargo tarpaulin --skip-clean"
+lint_and_fix = "cargo clippy --fix --allow-dirty --allow-staged && cargo fmt"
 
-[repositories]
-# Define paths, ignored files, or other specific settings
+[github]
+owner = "bosun-ai"
+repository = "kwaak"
+main_branch = "master"
+token = "env:GITHUB_TOKEN"
 
-[agents]
-# Configuration for agent behavior, timeouts, retries, etc.
+[llm.indexing]
+api_key = "env:KWAAK_OPENAI_API_KEY"
+provider = "OpenAI"
+prompt_model = "gpt-4o-mini"
+
+[llm.query]
+api_key = "env:KWAAK_OPENAI_API_KEY"
+provider = "OpenAI"
+prompt_model = "gpt-4o"
+
+[llm.embedding]
+api_key = "env:KWAAK_OPENAI_API_KEY"
+provider = "OpenAI"
+embedding_model = "text-embedding-3-large"
+
+[docker]
+dockerfile = "Dockerfile"
 ```
 
-Set this up to ensure Kwaak operates with the correct parameters for agent queries, repository interactions, and GitHub actions.
+Set this file up to ensure Kwaak operates with the correct parameters for agent queries, command executions, and GitHub interactions.
 
 ## Usage
 
