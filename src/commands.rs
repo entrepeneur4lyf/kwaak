@@ -160,8 +160,8 @@ impl RunningAgent {
         self.agent.lock().await.query(query).await
     }
 
-    pub async fn stop(&self) {
-        self.agent.lock().await.stop().await;
+    pub fn stop(&self) {
+        self.agent.lock().await.stop();
     }
 }
 
@@ -257,7 +257,7 @@ impl CommandHandler {
                     return Ok(());
                 };
 
-                agent.stop().await;
+                agent.stop();
 
                 let _ = ui_tx.send(
                     ChatMessage::new_system("Agent will finish its current completions and stop")
