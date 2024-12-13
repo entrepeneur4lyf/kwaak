@@ -1,1 +1,0 @@
-cargo run -- -c config.toml 2>&1 -m run-agent -i "Write unit tests for $FILE_PATH until it has 100% coverage"
