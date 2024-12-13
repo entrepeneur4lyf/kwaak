@@ -1,0 +1,29 @@
+language = "rust"
+tool_executor = "local"
+
+[github]
+owner = "bosun-ai"
+repository = "kwaak"
+main_branch = "master"
+
+[commands]
+test = "$TEST_COMMAND"
+coverage = "$TEST_COMMAND"
+
+[llm.indexing]
+api_key = "env:OPENAI_API_KEY"
+provider = "OpenAI"
+prompt_model = "gpt-4o-mini"
+base_url = "$OPENAI_API_BASE"
+
+[llm.query]
+api_key = "env:OPENAI_API_KEY"
+provider = "OpenAI"
+prompt_model = "gpt-4o"
+base_url = "$OPENAI_API_BASE"
+
+[llm.embedding]
+api_key = "env:OPENAI_API_KEY"
+provider = "OpenAI"
+embedding_model = "text-embedding-3-large"
+base_url = "$OPENAI_API_BASE"
