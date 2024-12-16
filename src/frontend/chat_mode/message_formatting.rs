@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use ratatui::prelude::*;
 
 use crate::{
@@ -36,11 +38,13 @@ pub fn get_style_and_prefix(role: &ChatRole) -> (&'static str, Style) {
 }
 
 // TODO: Maybe have tool state just on the message?
-pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) -> Text<'a> {
+pub fn format_chat_message<'a, 'b: 'a>(current_chat: &Chat, message: &'a ChatMessage) -> Text<'a> {
     let (prefix, style) = get_style_and_prefix(message.role());
 
-    // Render markdown first
-    let mut rendered_text = tui_markdown::from_str(message.content());
+    let content = replace_markdown_links_with_text_and_link(message.content()).to_string();
+
+    // Bit of borrowing shenanigans because tui_markdown always borrows
+    let mut rendered_text = tui_markdown::from_str(&content);
 
     // Prepend the styled prefix to the first line
     if let Some(first_line) = rendered_text.lines.first_mut() {
@@ -99,6 +103,10 @@ pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) ->
     rendered_text
 }
 
+fn render_markdown(content: &str) -> Text {
+    tui_markdown::from_str(&content)
+}
+
 fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
     // If args, parse them as a json value, then if its just one, render only the value, otherwise
     // limit the output to 20 characters
@@ -134,5 +142,32 @@ fn format_tool_call(tool_call: &swiftide::chat_completion::ToolCall) -> String {
         format!("calling tool `{}` with `{}`", tool_call.name(), args)
     } else {
         format!("calling tool `{}`", tool_call.name())
+    }
+}
+
+/// Replaces markdown links with just the text
+/// I.e. `[text](link)` -> `text (link)`
+fn replace_markdown_links_with_text_and_link<'a>(text: &'a str) -> Cow<'a, str> {
+    let re = regex::Regex::new(r"\[([^\]]+)\]\(([^)]+)\)").unwrap();
+    re.replace_all(text, "$1 ($2)")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_replace_markdown_links_with_text_and_link() {
+        let input = "This is a [link](http://example.com) in a sentence.";
+        let expected = "This is a link (http://example.com) in a sentence.";
+        assert_eq!(replace_markdown_links_with_text_and_link(input), expected);
+
+        let input = "Multiple [links](http://example1.com) in a [sentence](http://example2.com).";
+        let expected = "Multiple links (http://example1.com) in a sentence (http://example2.com).";
+        assert_eq!(replace_markdown_links_with_text_and_link(input), expected);
+
+        let input = "No links here.";
+        let expected = "No links here.";
+        assert_eq!(replace_markdown_links_with_text_and_link(input), expected);
     }
 }
