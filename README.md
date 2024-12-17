@@ -16,7 +16,7 @@
 - [License](#license)
   <!--toc:end-->
 
-      </details>
+</details>
 
 <a name="readme-top"></a>
 
