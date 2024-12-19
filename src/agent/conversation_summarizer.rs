@@ -14,7 +14,6 @@ use swiftide::{
     agents::hooks::AfterEachFn,
     chat_completion::{ChatCompletion, ChatMessage, Tool},
 };
-use futures::future::BoxFuture;
 use tracing::Instrument as _;
 
 const NUM_COMPLETIONS_FOR_SUMMARY: usize = 10;

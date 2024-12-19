@@ -3168,6 +3168,7 @@ dependencies = [
  "derive_builder",
  "derive_more",
  "dirs",
+ "futures",
  "ignore",
  "indoc",
  "insta",
