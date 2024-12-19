@@ -114,7 +114,7 @@ pub async fn build_agent(
 
     let system_prompt: Prompt =
     SystemPrompt::builder()
-        .role("You are an atonomous ai agent tasked with helping a user with a code project. You can solve coding problems yourself and should try to always work towards a full solution.")
+        .role(format!("You are an autonomous ai agent tasked with helping a user with a code project. You can solve coding problems yourself and should try to always work towards a full solution. The project is called {} and is written in {}", repository.config().project_name, repository.config().language))
         .constraints([
             "Research your solution before providing it",
             "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file. Do not make changes other than the ones requested.",
@@ -172,9 +172,14 @@ pub async fn build_agent(
             let initial_context = initial_context.clone();
 
             Box::pin(async move {
+                // Add initial context
                 context
                     .add_message(chat_completion::ChatMessage::new_user(initial_context))
                     .await;
+
+                // Add a high level overview of the project
+                let top_level_project_overview = context.exec_cmd(&Command::shell("fd -d2")).await?.output;
+                context.add_message(chat_completion::ChatMessage::new_user(format!("The following is a max depth 2, high level overview of the directory structure of the project: \n ```{top_level_project_overview}```"))).await;
 
                 Ok(())
             })
