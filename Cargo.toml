@@ -5,7 +5,7 @@ edition = "2021"
 categories = ["development-tools", "command-line-utilities"]
 readme = "README.md"
 repository = "https://github.com/bosun-ai/kwaak"
-keywords = ["terminal", "swiftide", "kwaak", "tui", "ai", "llm"]
+keywords = ["terminal", "swiftide", "tui", "ai", "llm"]
 description = "Run a team of autonomous agents on your code, right from your terminal"
 license = "MIT"
 
