@@ -14,7 +14,7 @@ use super::message_formatting::format_chat_message;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Create the main layout (vertical)
-    let [main_area, help_area] = Layout::default()
+    let [main_area, bottom_area] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0), // Main area
@@ -24,7 +24,7 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
         .areas(area);
 
     // Split the main area into two columns
-    let [chat_area, chat_list] = Layout::default()
+    let [chat_area, right_area] = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Percentage(80), // Left column (chat messages)
@@ -41,6 +41,12 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Render chat messages
     render_chat_messages(f, app, chat_messages);
 
+    Block::default()
+        .borders(Borders::RIGHT | Borders::BOTTOM | Borders::TOP)
+        .render(right_area, f.buffer_mut());
+
+    let [chat_list, help_area] =
+        Layout::vertical([Constraint::Min(10), Constraint::Length(20)]).areas(right_area);
     // Render other information
     render_chat_list(f, app, chat_list);
 
@@ -48,7 +54,7 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     render_input_bar(f, app, input_area);
 
     // Render commands display area
-    render_commands_display(f, app, help_area);
+    render_help(f, app, help_area);
 }
 
 fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
@@ -90,7 +96,6 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     };
 
     let message_block = Block::default()
-        .title("Chat")
         .border_set(border_set)
         .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
         .padding(Padding::horizontal(1));
@@ -122,8 +127,9 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .highlight_style(Style::default().fg(Color::Yellow).bg(Color::DarkGray))
         .block(
             Block::default()
-                .title("Chats")
-                .borders(Borders::RIGHT | Borders::BOTTOM | Borders::TOP),
+                .title("Chats".bold())
+                .title_alignment(Alignment::Center)
+                .padding(Padding::right(1)),
         );
 
     f.render_stateful_widget(list, area, &mut app.chats_state);
@@ -180,15 +186,53 @@ fn render_input_bar(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     // );
 }
 
-fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
-    let commands = Paragraph::new(
+fn render_help(f: &mut ratatui::Frame, app: &App, area: Rect) {
+    let border_set = symbols::border::Set {
+        top_right: symbols::line::NORMAL.vertical_left,
+        bottom_right: symbols::line::NORMAL.horizontal_up,
+        ..symbols::border::PLAIN
+    };
+    let [top, bottom] = Layout::vertical([
+        #[allow(clippy::cast_possible_truncation)]
+        Constraint::Length(app.supported_commands().len() as u16 + 3),
+        Constraint::Min(4),
+    ])
+    .areas(area);
+
+    Paragraph::new(
         app.supported_commands()
             .iter()
-            .map(|c| format!("/{c}"))
-            .collect::<Vec<_>>()
-            .join(" "),
+            .map(|c| Line::from(format!("/{c}").bold()))
+            .collect::<Vec<Line>>(),
     )
-    .wrap(Wrap { trim: true })
-    .block(Block::default().title("Commands").borders(Borders::TOP));
-    f.render_widget(commands, area);
+    .block(
+        Block::default()
+            .title("Chat commands".bold())
+            .title_alignment(Alignment::Center)
+            .borders(Borders::TOP | Borders::RIGHT)
+            .border_set(border_set)
+            .padding(Padding::uniform(1)),
+    )
+    .render(top, f.buffer_mut());
+
+    Paragraph::new(
+        [
+            "^s - Send message",
+            "^x - Stop agent",
+            "^n - New chat",
+            "^c - Quit",
+        ]
+        .iter()
+        .map(|h| Line::from(h.bold()))
+        .collect::<Vec<Line>>(),
+    )
+    .block(
+        Block::default()
+            .title("Keybindings".bold())
+            .title_alignment(Alignment::Center)
+            .border_set(border_set)
+            .borders(Borders::TOP | Borders::RIGHT)
+            .padding(Padding::uniform(1)),
+    )
+    .render(bottom, f.buffer_mut());
 }

@@ -3,7 +3,7 @@ use indoc::indoc;
 use std::io;
 use std::time::Duration;
 use strum::IntoEnumIterator as _;
-use text::ToSpan;
+use text::{ToLine as _, ToSpan};
 use tui_logger::TuiWidgetState;
 use tui_textarea::TextArea;
 use uuid::Uuid;
@@ -345,7 +345,7 @@ impl App<'_> {
             .block(
                 Block::default()
                     .borders(Borders::BOTTOM)
-                    .padding(Padding::top(1)),
+                    .padding(Padding::new(1, 0, 1, 0)),
             )
             .render(header_area, f.buffer_mut());
 
