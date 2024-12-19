@@ -14,6 +14,7 @@ use swiftide::{
     agents::hooks::AfterEachFn,
     chat_completion::{ChatCompletion, ChatMessage, Tool},
 };
+use futures::future::BoxFuture;
 use tracing::Instrument as _;
 
 const NUM_COMPLETIONS_FOR_SUMMARY: usize = 10;
@@ -161,6 +162,7 @@ mod tests {
     use std::sync::Arc;
     use swiftide::chat_completion::{ChatCompletion, ChatMessage, CompletionResult, Tool};
 
+    #[derive(Clone)]
     struct MockChatCompletion;
 
     #[async_trait]
@@ -174,6 +176,7 @@ mod tests {
         }
     }
 
+    #[derive(Clone)]
     struct MockTool;
 
     impl Tool for MockTool {
@@ -223,7 +226,7 @@ mod tests {
         }
 
         async fn add_message(&self, message: ChatMessage) {
-            self.messages.lock().unwrap().push(message.text().to_string());
+            self.messages.lock().unwrap().push(message.to_text().to_string());
         }
 
         async fn history(&self) -> Vec<String> {
