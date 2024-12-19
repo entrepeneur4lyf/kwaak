@@ -118,7 +118,7 @@ impl Default for App<'_> {
         };
 
         Self {
-            text_input: TextArea::default(),
+            text_input: new_text_area(),
             current_chat: chat.uuid,
             chats: vec![chat],
             ui_tx,
@@ -134,6 +134,16 @@ impl Default for App<'_> {
             selected_tab: 0,
         }
     }
+}
+
+fn new_text_area() -> TextArea<'static> {
+    let mut text_area = TextArea::default();
+
+    text_area.set_placeholder_text("Send a message to an agent ...");
+    text_area.set_placeholder_style(Style::default().fg(Color::Gray));
+    text_area.set_cursor_line_style(Style::reset());
+
+    text_area
 }
 
 impl App<'_> {
@@ -152,6 +162,10 @@ impl App<'_> {
         if let Err(err) = self.ui_tx.send(event) {
             tracing::error!("Failed to send ui event {err}");
         }
+    }
+
+    pub fn reset_text_input(&mut self) {
+        self.text_input = new_text_area();
     }
 
     fn on_key(&mut self, key: KeyEvent) {
