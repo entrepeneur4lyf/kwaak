@@ -1,14 +1,16 @@
 use anyhow::Result;
+use indoc::indoc;
 use std::io;
 use std::time::Duration;
 use strum::IntoEnumIterator as _;
+use text::ToSpan;
 use tui_logger::TuiWidgetState;
 use tui_textarea::TextArea;
 use uuid::Uuid;
 
 use ratatui::{
     prelude::*,
-    widgets::{Block, Borders, ListState, Padding, Tabs},
+    widgets::{Block, Borders, ListState, Padding, Paragraph, Tabs},
 };
 
 use crossterm::event::{self, KeyCode, KeyEvent};
@@ -25,6 +27,7 @@ use crate::{
 use super::{chat_mode, logs_mode, UIEvent, UserInputCommand};
 
 const TICK_RATE: u64 = 250;
+const HEADER: &str = include_str!("ascii_logo");
 
 /// Handles user and TUI interaction
 pub struct App<'a> {
@@ -307,18 +310,30 @@ impl App<'_> {
     }
 
     fn draw_base_ui(&self, f: &mut Frame) -> Rect {
-        let [tabs_area, main_area] =
-            Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).areas(f.area());
+        let [top_area, main_area] =
+            Layout::vertical([Constraint::Length(6), Constraint::Min(0)]).areas(f.area());
+
+        // Hardcoded tabs length for now to right align
+        let [header_area, tabs_area] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(24)]).areas(top_area);
 
         Tabs::new(self.tab_names.iter().copied())
             .block(
                 Block::default()
                     .borders(Borders::BOTTOM)
-                    .padding(Padding::top(1)),
+                    .padding(Padding::top(top_area.height - 2)),
             )
             .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
             .select(self.selected_tab)
             .render(tabs_area, f.buffer_mut());
+
+        Paragraph::new(HEADER)
+            .block(
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .padding(Padding::top(1)),
+            )
+            .render(header_area, f.buffer_mut());
 
         main_area
     }
