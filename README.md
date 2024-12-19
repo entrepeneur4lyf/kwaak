@@ -48,7 +48,7 @@
   <h3 align="center">Swiftide</h3>
 
   <p align="center">
-    Run autonomous AI agents on your code!
+    Run a team of autonomous AI agents on your code, right from your terminal!
     <br />
     <a href="https://swiftide.rs"><strong>Powered by swiftide »</strong></a>
     <br />
@@ -72,7 +72,7 @@ Always wanted to run a team of AI agents locally from your own machine? Kwaak pr
 
 <<DEMO HERE>>
 
-Powered by Swiftide, Kwaak is aware of your codebase and can answer questions about your code, find examples, write and execute code, create pull requests, and more. Unlike other tools, Kwaak is focussed on atonomous agents, and can run multiple agents at the same time.
+Powered by [Swiftide](https://github.com/bosun-ai/swiftide), Kwaak is aware of your codebase and can answer questions about your code, find examples, write and execute code, create pull requests, and more. Unlike other tools, Kwaak is focussed on autonomous agents, and can run multiple agents at the same time.
 
 > [!CAUTION]
 > Kwaak is in early development and can be considered alpha software. The project is under active development, expect breaking changes. Contributions, feedback, and bug reports are very welcome.
@@ -134,12 +134,17 @@ Keybindings:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Example prompts
+## How does it work?
 
-- "Identify uncovered code paths, write a test for them, and create a pull request"
-- "Add technical documentation to the module `foo`, and create a pull request"
-- "Refactor the function `bar` to use a match statement, and create a pull request"
-- "Implement a function that calculates the nth fibonacci number, and create a pull request"
+On initial boot up, Kwaak will index your codebase. This can take a while, depending on the size. Once indexing has been completed once, subsequent startups will be faster. Indexes are stored with [lancedb](https://github.com/lancedb/lancedb), and indexing is cached with [redb](https://github.com/cberner/redb).
+
+Kwaak provides a chat interface similar to other LLM chat applications. You can type messages to the agent, and the agent will try to accomplish the task and respond.
+
+When starting a chat, the code of the current branch is copied into a on-the-fly created docker container. This container is then used to run the code and execute the commands.
+
+After each chat completion, kwaak will lint, commit, and push the code to the remote repository if any code changes have been made. Kwaak can also create a pull request.
+
+Our initial demo agent runs as a single operator, starting with a vector based context from the initial prompt, and will use tools to enrich the prompt as needed.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
