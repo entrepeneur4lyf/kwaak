@@ -14,7 +14,7 @@ use super::message_formatting::format_chat_message;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Create the main layout (vertical)
-    let [main_area, bottom_area] = Layout::default()
+    let [main_area, _bottom_area] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0), // Main area
