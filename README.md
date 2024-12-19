@@ -68,7 +68,7 @@
 
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
-Always wanted to run an army of AI agents locally from your own machine? Kwaak provides a terminal interface to operate autonomous AI agents on your codebase.
+Always wanted to run a team of AI agents locally from your own machine? Kwaak provides a terminal interface to operate autonomous AI agents on your codebase.
 
 <<DEMO HERE>>
 
