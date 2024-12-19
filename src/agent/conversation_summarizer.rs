@@ -153,3 +153,87 @@ fn filter_messages_since_summary(messages: Vec<ChatMessage>) -> Vec<ChatMessage>
 
     messages
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+    use std::sync::Arc;
+    use swiftide::chat_completion::{ChatCompletion, ChatMessage, CompletionResult, Tool};
+
+    struct MockChatCompletion;
+
+    #[async_trait]
+    impl ChatCompletion for MockChatCompletion {
+        async fn complete(&self, _: &[ChatMessage]) -> Result<CompletionResult, String> {
+            Ok(CompletionResult::new(Some("Mock Summary".to_string()), None))
+        }
+
+        fn name(&self) -> &'static str {
+            "mock"
+        }
+    }
+
+    struct MockTool;
+
+    impl Tool for MockTool {
+        fn name(&self) -> &'static str {
+            "mock_tool"
+        }
+
+        fn tool_spec(&self) -> Box<dyn swiftide::tool::ToolSpec> {
+            Box::new(MockToolSpec {})
+        }
+    }
+
+    struct MockToolSpec;
+
+    impl swiftide::tool::ToolSpec for MockToolSpec {
+        fn description(&self) -> &'static str {
+            "Mock Tool Description"
+        }
+    }
+
+    #[tokio::test]
+    async fn test_summarize_hook() {
+        let mock_llm = Box::new(MockChatCompletion);
+        let mock_tool = Box::new(MockTool);
+        let summarizer = ConversationSummarizer::new(mock_llm, &[mock_tool]);
+
+        let mock_context = MockContext::new();
+        let summarize_hook = summarizer.summarize_hook();
+
+        for _ in 0..NUM_COMPLETIONS_FOR_SUMMARY {
+            summarize_hook(mock_context.clone()).await.unwrap();
+        }
+        // Validate that the completion summary logic executes after enough completions
+        assert_eq!(mock_context.history().await, vec!["Mock Summary"]);
+    }
+
+    #[derive(Clone)]
+    struct MockContext {
+        messages: Arc<std::sync::Mutex<Vec<String>>>,
+    }
+
+    impl MockContext {
+        fn new() -> Self {
+            Self {
+                messages: Arc::new(std::sync::Mutex::new(Vec::new())),
+            }
+        }
+
+        async fn add_message(&self, message: ChatMessage) {
+            self.messages.lock().unwrap().push(message.text().to_string());
+        }
+
+        async fn history(&self) -> Vec<String> {
+            self.messages.lock().unwrap().clone()
+        }
+    }
+
+    impl AfterEachFn for MockContext {
+        fn call_box(&self) -> BoxFuture<'_, Result<(), Box<dyn std::error::Error + Send>>> {
+            Box::pin(async { Ok(()) })
+        }
+    }
+}
