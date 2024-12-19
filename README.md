@@ -142,7 +142,7 @@ Kwaak provides a chat interface similar to other LLM chat applications. You can 
 
 When starting a chat, the code of the current branch is copied into a on-the-fly created docker container. This container is then used to run the code and execute the commands.
 
-After each chat completion, kwaak will lint, commit, and push the code to the remote repository if any code changes have been made. Kwaak can also create a pull request.
+After each chat completion, kwaak will lint, commit, and push the code to the remote repository if any code changes have been made. Kwaak can also create a pull request and will include the full conversation history in the pull request.
 
 Our initial demo agent runs as a single operator, starting with a vector based context from the initial prompt, and will use tools to enrich the prompt as needed.
 
