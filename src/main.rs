@@ -195,6 +195,7 @@ pub fn restore_tui() -> io::Result<()> {
     Ok(())
 }
 
+// This is a test comment added for the pull request
 static MARKDOWN_TEST: &str = r#"
 # Main header
 ## Examples
