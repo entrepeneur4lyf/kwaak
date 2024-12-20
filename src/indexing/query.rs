@@ -26,7 +26,7 @@ pub fn build_query_pipeline<'b>(
 
     let lancedb = storage::build_lancedb(repository)?;
     let search_strategy: SimilaritySingleEmbedding<()> = SimilaritySingleEmbedding::default()
-        .with_top_k(40)
+        .with_top_k(20)
         .to_owned();
 
     Ok(query::Pipeline::from_search_strategy(search_strategy)

@@ -35,7 +35,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
 
         app.send_ui_event(message);
 
-        app.text_input = TextArea::default();
+        app.reset_text_input();
 
         return;
     }
