@@ -76,6 +76,8 @@ Powered by [Swiftide](https://github.com/bosun-ai/swiftide), Kwaak is aware of y
 > [!CAUTION]
 > Kwaak is in early development and can be considered alpha software. The project is under active development, expect breaking changes. Contributions, feedback, and bug reports are very welcome.
 
+Part of the [bosun.ai](https://bosun.ai) project. An upcoming platform for autonomous code improvement.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Features
