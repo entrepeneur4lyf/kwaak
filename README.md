@@ -67,27 +67,27 @@
 
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
-Always wanted to run a team of AI agents locally from your own machine? Kwaak provides a terminal interface to operate autonomous AI agents on your codebase.
+Always wanted to run a team of AI agents locally from your own machine? Improve test coverage, write documentation, or improve code quality, while you focus on building the cool stuff? Kwaak enables you to run a team of autonomous AI agents right from your terminal.
 
 <!-- demo here -->
 
 Powered by [Swiftide](https://github.com/bosun-ai/swiftide), Kwaak is aware of your codebase and can answer questions about your code, find examples, write and execute code, create pull requests, and more. Unlike other tools, Kwaak is focussed on autonomous agents, and can run multiple agents at the same time.
 
 > [!CAUTION]
-> Kwaak is in early development and can be considered alpha software. The project is under active development, expect breaking changes. Contributions, feedback, and bug reports are very welcome.
+> Kwaak can be considered alpha software. The project is under active development, expect breaking changes. Contributions, feedback, and bug reports are very welcome.
 
-Part of the [bosun.ai](https://bosun.ai) project. An upcoming platform for autonomous code improvement.
+Kwaak is part of the [bosun.ai](https://bosun.ai) project. An upcoming platform for autonomous code improvement.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Features
+## High level features
 
-- Run multiple agents at the same time, each with their own copy of the code
-- Agents have access to your code, can use a variety of tools, and can be interact with the user
-- Currently only works with `OpenAI`. More are planned, the project is not tied to a single LLM.
-- Tools are safely executed in a docker based sandbox environment
-- Broad language support: Python, TypeScript/Javascript, Java, Ruby, and Rust. Language support is easily extendable, and limited to what Swiftide supports.
-- Rich terminal markdown rendering
+- Run multiple agents in parallel
+- Quacking terminal interface
+- As fast as it gets; written in Rust, powered by Swiftide
+- Agents operate on code, use tools, and can be interacted with
+- Sandboxed execution in docker
+- Python, TypeScript/Javascript, Java, Ruby, and Rust
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -107,7 +107,7 @@ If you already have a Dockerfile for other purposes, you can either extend it or
 
 _For an example Dockerfile in Rust, see [this projects Dockerfile](/Dockerfile)_
 
-Additionally, you will need an OpenAI API key and a github token.
+Additionally, you will need an OpenAI API key and a [github token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -123,7 +123,7 @@ Api keys can be prefixed by `env:`, `text:` and `file:` to read secrets from the
 
 ### Running Kwaak
 
-You can then run `kwaak` in the root of your project. This will start the Kwaak terminal interface. On initial bootup, Kwaak will index your codebase. This can take a while, depending on the size of your codebase. Once indexing has been completed once, subsequent startups will be faster.
+You can then run `kwaak` in the root of your project. This will start the Kwaak terminal interface. On initial bootup, Kwaak will index your codebase. This can take a while, depending on the size. Once indexing has been completed, subsequent startups will be faster.
 
 Keybindings:
 
@@ -131,6 +131,8 @@ Keybindings:
 - **_ctrl-x_**: Exit the agent
 - **_ctrl-c_**: Exit kwaak
 - **_ctrl-n_**: Create a new agent
+- **_Page Up_**: Scroll chat up
+- **_Page Down_**: Scroll chat down
 - **_tab_**: Switch between agents
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -145,13 +147,11 @@ When starting a chat, the code of the current branch is copied into a on-the-fly
 
 After each chat completion, kwaak will lint, commit, and push the code to the remote repository if any code changes have been made. Kwaak can also create a pull request and will include the full conversation history in the pull request.
 
-Our initial demo agent runs as a single operator, starting with a vector based context from the initial prompt, and will use tools to enrich the prompt as needed.
-
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 
-## Roadmap
+## Upcoming
 
 - Support for more LLMs
 - Tools for code documentation
@@ -169,9 +169,11 @@ If you want to get more involved with `kwaak`, have questions or want to chat, y
 
 ## Contributing
 
-If you have a great idea, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+If you have a great idea, please fork the repo and create a pull request.
 
 Don't forget to give the project a star! Thanks again!
+
+Testing agents is not a trivial matter. We have internal benchmarks to verify agent behaviour across larger datasets.
 
 If you just want to contribute (bless you!), see [our issues](https://github.com/bosun-ai/kwaak/issues) or join us on Discord.
 
