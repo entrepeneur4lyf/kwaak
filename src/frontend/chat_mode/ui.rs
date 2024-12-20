@@ -14,7 +14,7 @@ use super::message_formatting::format_chat_message;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Create the main layout (vertical)
-    let [main_area, help_area] = Layout::default()
+    let [main_area, _bottom_area] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0), // Main area
@@ -24,7 +24,7 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
         .areas(area);
 
     // Split the main area into two columns
-    let [chat_area, chat_list] = Layout::default()
+    let [chat_area, right_area] = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Percentage(80), // Left column (chat messages)
@@ -41,6 +41,8 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Render chat messages
     render_chat_messages(f, app, chat_messages);
 
+    let [chat_list, help_area] =
+        Layout::vertical([Constraint::Min(10), Constraint::Length(20)]).areas(right_area);
     // Render other information
     render_chat_list(f, app, chat_list);
 
@@ -48,11 +50,11 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     render_input_bar(f, app, input_area);
 
     // Render commands display area
-    render_commands_display(f, app, help_area);
+    render_help(f, app, help_area);
 }
 
 fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
-    let current_chat = app.current_chat();
+    let current_chat = app.current_chat_mut();
     let messages = current_chat.messages.clone();
     let chat_content: Text = messages
         .iter()
@@ -61,13 +63,14 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 
     let num_lines = chat_content.lines.len();
 
-    app.vertical_scroll_state = app.vertical_scroll_state.content_length(num_lines);
+    current_chat.vertical_scroll_state =
+        current_chat.vertical_scroll_state.content_length(num_lines);
 
     // If we're rendering the current chat and it has new messages
     // set the counter back to 0 and scroll to bottom
     // TODO: Fix this, this solution is annoying as it overwrites scrolling by the user
-    if app.current_chat().new_message_count > 0 {
-        app.current_chat_mut().new_message_count = 0;
+    if current_chat.new_message_count > 0 {
+        current_chat.new_message_count = 0;
     }
     //
     //     let max_height = area.height as usize;
@@ -89,7 +92,6 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     };
 
     let message_block = Block::default()
-        .title("Chat")
         .border_set(border_set)
         .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
         .padding(Padding::horizontal(1));
@@ -98,7 +100,7 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     let chat_messages = Paragraph::new(chat_content)
         .block(message_block)
         .wrap(Wrap { trim: false })
-        .scroll((app.vertical_scroll as u16, 0));
+        .scroll((current_chat.vertical_scroll as u16, 0));
 
     f.render_widget(chat_messages, area);
 
@@ -108,7 +110,7 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
             .begin_symbol(Some("↑"))
             .end_symbol(Some("↓")),
         area,
-        &mut app.vertical_scroll_state,
+        &mut current_chat.vertical_scroll_state,
     );
 }
 fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
@@ -121,8 +123,10 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .highlight_style(Style::default().fg(Color::Yellow).bg(Color::DarkGray))
         .block(
             Block::default()
-                .title("Chats")
-                .borders(Borders::RIGHT | Borders::BOTTOM | Borders::TOP),
+                .title("Chats".bold())
+                .title_alignment(Alignment::Center)
+                .borders(Borders::TOP | Borders::RIGHT)
+                .padding(Padding::right(1)),
         );
 
     f.render_stateful_widget(list, area, &mut app.chats_state);
@@ -179,15 +183,56 @@ fn render_input_bar(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     // );
 }
 
-fn render_commands_display(f: &mut ratatui::Frame, app: &App, area: Rect) {
-    let commands = Paragraph::new(
+fn render_help(f: &mut ratatui::Frame, app: &App, area: Rect) {
+    let border_set = symbols::border::Set {
+        top_right: symbols::line::NORMAL.vertical_left,
+        ..symbols::border::PLAIN
+    };
+    let [top, bottom] = Layout::vertical([
+        #[allow(clippy::cast_possible_truncation)]
+        Constraint::Length(app.supported_commands().len() as u16 + 3),
+        Constraint::Min(4),
+    ])
+    .areas(area);
+
+    Paragraph::new(
         app.supported_commands()
             .iter()
-            .map(|c| format!("/{c}"))
-            .collect::<Vec<_>>()
-            .join(" "),
+            .map(|c| Line::from(format!("/{c}").bold()))
+            .collect::<Vec<Line>>(),
     )
-    .wrap(Wrap { trim: true })
-    .block(Block::default().title("Commands").borders(Borders::TOP));
-    f.render_widget(commands, area);
+    .block(
+        Block::default()
+            .title("Chat commands".bold())
+            .title_alignment(Alignment::Center)
+            .borders(Borders::TOP | Borders::RIGHT)
+            .border_set(border_set)
+            .padding(Padding::uniform(1)),
+    )
+    .render(top, f.buffer_mut());
+
+    let border_set = symbols::border::Set {
+        top_right: symbols::line::NORMAL.vertical_left,
+        ..symbols::border::PLAIN
+    };
+    Paragraph::new(
+        [
+            "^s - Send message",
+            "^x - Stop agent",
+            "^n - New chat",
+            "^c - Quit",
+        ]
+        .iter()
+        .map(|h| Line::from(h.bold()))
+        .collect::<Vec<Line>>(),
+    )
+    .block(
+        Block::default()
+            .title("Keybindings".bold())
+            .title_alignment(Alignment::Center)
+            .border_set(border_set)
+            .borders(Borders::TOP | Borders::RIGHT | Borders::BOTTOM)
+            .padding(Padding::uniform(1)),
+    )
+    .render(bottom, f.buffer_mut());
 }

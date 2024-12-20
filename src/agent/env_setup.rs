@@ -72,6 +72,7 @@ impl EnvSetup<'_> {
         for cmd in &[
             Command::shell("git config --global user.email \"kwaak@bosun.ai\""),
             Command::shell("git config --global user.name \"kwaak\""),
+            Command::shell("git config --global push.autoSetupRemote true"),
         ] {
             self.executor.exec_cmd(cmd).await?;
         }

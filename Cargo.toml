@@ -2,13 +2,11 @@
 name = "kwaak"
 version = "0.1.0"
 edition = "2021"
-# TODO: Find good categories
-categories = ["tui"]
+categories = ["development-tools", "command-line-utilities"]
 readme = "README.md"
 repository = "https://github.com/bosun-ai/kwaak"
-# TODO: Find good keywords
-keywords = ["tui", "swiftide", "kwaak"]
-description = "Run autonomous agents on your code"
+keywords = ["terminal", "swiftide", "tui", "ai", "llm"]
+description = "Run a team of autonomous agents on your code, right from your terminal"
 license = "MIT"
 
 [dependencies]
@@ -53,9 +51,7 @@ derive_more = { version = "1.0.0", features = ["full"] }
 tui-markdown = "0.3.0"
 uuid = { version = "1.10.0", features = ["v4"] }
 derive_builder = "0.20.2"
-tui-logger = { features = [
-  "tracing-support",
-], git = "https://github.com/gin66/tui-logger" }
+tui-logger = { features = ["tracing-support"], version = "0.14" }
 # Only needed for tui-logger filtering
 log = "0.4"
 throbber-widgets-tui = "0.8.0"
@@ -71,11 +67,12 @@ regex = "1.11.1"
 clap = { version = "4.5.21", features = ["derive"] }
 tera = "1.20.0"
 lazy_static = "1.5.0"
-rust-embed = "8.5.0"
+rust-embed = { version = "8.5.0", features = ["debug-embed"] }
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace"] }
 insta = "1.41.1"
+tempfile = "3.14.0"
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -106,6 +103,11 @@ default = ["otel"]
 ]
 
 [patch.crates-io]
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
 # swiftide = { git = "https://github.com/bosun-ai/swiftide", branch = "feat/swiftide-agents" }
 # swiftide-macros = { git = "https://github.com/bosun-ai/swiftide", branch = "feat/swiftide-agents" }
 # swiftide = { path = "../swiftide/swiftide" }
