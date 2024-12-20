@@ -30,13 +30,12 @@
 -->
 
 ![CI](https://img.shields.io/github/actions/workflow/status/bosun-ai/kwaak/test.yml?style=flat-square)
-![Coverage Status](https://img.shields.io/coverallsCoverage/github/bosun-ai/kwaak?style=flat-square)
 [![Crate Badge]][Crate]
-[![Docs Badge]][API Docs]
 [![Contributors][contributors-shield]][contributors-url]
 [![Stargazers][stars-shield]][stars-url]
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
+![Discord](https://img.shields.io/discord/1257672801553354802?style=flat-square&link=https%3A%2F%2Fdiscord.gg%2F3jjXYen9UY)
 
 <!-- PROJECT LOGO -->
 <br />
