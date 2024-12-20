@@ -113,7 +113,21 @@ Additionally, you will need an OpenAI API key and a [github token](https://docs.
 
 ### Installation and setup
 
-Currently, Kwaak is not available on crates.io. You can install it by cloning the repository and running `cargo install --path .` in the root of the repository. Proper releases will be available soon.
+Pre-built binaries are available from the [releases page](https://github.com/bosun-ai/kwaak/releases).
+
+#### Linux and MacOS (using curl)
+
+```shell
+ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/bosun-ai/kwaak/releases/latest/kwaak-installer.sh | sh
+```
+
+#### Cargo
+
+```shell
+cargo install kwaak
+```
+
+#### Setup
 
 Once installed, you can run `kwaak --init` in the project you want to use Kwaak in. This will create a `kwaak.toml` in your project root. You can edit this file to configure Kwaak.
 
