@@ -24,3 +24,4 @@ pr-run-mode = "upload"
 
 [dist.dependencies.apt]
 protobuf-compiler = "*"
+libssl-dev = "*"
