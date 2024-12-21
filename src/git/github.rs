@@ -209,7 +209,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_template_render() {
+    fn test_format_message() {
         let chat_messages = vec![
             ChatMessage::new_user("user message"),
             ChatMessage::new_system("system message"),
@@ -217,20 +217,11 @@ mod tests {
             ChatMessage::new_summary("summary message"),
         ];
 
-        let context = tera::Context::from_serialize(serde_json::json!({
-            "owner": "owner",
-            "repo": "repo",
-            "branch_name": "branch_name",
-            "base_branch_name": "base_branch_name",
-            "title": "title",
-            "description": "description",
-            "messages": chat_messages.iter().map(format_message).collect::<Vec<_>>(),
+        let formatted_messages: Vec<_> = chat_messages.iter().map(format_message).collect();
 
-
-        }))
-        .unwrap();
-        let rendered = "Test"; // Placeholder as Templates::render has been removed
-
-        insta::assert_snapshot!(rendered);
+        assert_eq!(formatted_messages[0]["role"], "\u{25b6} User");
+        assert_eq!(formatted_messages[1]["role"], "\u{2139} System");
+        assert_eq!(formatted_messages[2]["role"], "\u{2726} Assistant");
+        assert_eq!(formatted_messages[3]["role"], ">> Summary");
     }
 }
