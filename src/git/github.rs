@@ -8,7 +8,7 @@ use octocrab::{models::pulls::PullRequest, Octocrab};
 use secrecy::SecretString;
 use swiftide::chat_completion::ChatMessage;
 use reqwest::Client;
-use base64;
+use base64::{engine::general_purpose, Engine as _};
 
 use crate::{config::ApiKey, repository::Repository, templates::Templates};
 
@@ -77,7 +77,7 @@ impl GithubSession {
 
         // Upload messages to a file on GitHub
         let file_path = format!("messages/{}_messages.md", branch_name.as_ref());
-        let serialized_messages = serde_json::to_string(messages)?;
+        let serialized_messages = serde_json::to_string(&messages.iter().map(format_message).collect::<Vec<_>>())?;
         self.upload_file_to_github(owner, repo, &file_path, &serialized_messages).await?;
 
         let body = format!(
@@ -142,7 +142,7 @@ impl GithubSession {
         let url = format!("https://api.github.com/repos/{}/{}/contents/{}", owner, repo, path);
         let payload = serde_json::json!({
             "message": "Upload messages",
-            "content": base64::encode(content),
+            "content": general_purpose::STANDARD.encode(content),
         });
 
         let response = client
@@ -163,12 +163,12 @@ impl GithubSession {
 
 fn format_message(message: &ChatMessage) -> serde_json::Value {
     let role = match message {
-        ChatMessage::User(_) => "▶ User",
-        ChatMessage::System(_) => "ℹ System",
+        ChatMessage::User(_) => "\u25b6 User",
+        ChatMessage::System(_) => "\u2139 System",
         // Add a nice uncoloured glyph for the summary
         ChatMessage::Summary(_) => ">> Summary",
-        ChatMessage::Assistant(..) => "✦ Assistant",
-        ChatMessage::ToolOutput(..) => "⚙ Tool Output",
+        ChatMessage::Assistant(..) => "\u2726 Assistant",
+        ChatMessage::ToolOutput(..) => "\u2699 Tool Output",
     };
     let content = match message {
         ChatMessage::User(msg) | ChatMessage::System(msg) | ChatMessage::Summary(msg) => {
