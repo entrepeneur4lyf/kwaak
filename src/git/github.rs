@@ -9,7 +9,6 @@ use secrecy::SecretString;
 use swiftide::chat_completion::ChatMessage;
 use reqwest::Client;
 use base64::{engine::general_purpose, Engine as _};
-
 use crate::{config::ApiKey, repository::Repository};
 
 #[derive(Debug)]
