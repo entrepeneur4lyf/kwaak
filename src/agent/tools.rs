@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::sync::Arc;
 
-use anyhow::{Context as _, Result};
+use anyhow::Result;
 use swiftide::{
     chat_completion::{errors::ToolError, ToolOutput},
     query::{search_strategies, states},
@@ -11,7 +11,7 @@ use swiftide_macros::{tool, Tool};
 use tavily::Tavily;
 use tokio::sync::Mutex;
 
-use crate::{config::ApiKey, git::github::GithubSession, util::accept_non_zero_exit};
+use crate::{config::ApiKey, git::github::GithubSession};
 
 fn create_error_message(error: ToolError) -> String {
     format!("Tool execution failed: {}", error)
