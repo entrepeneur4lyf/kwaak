@@ -31,7 +31,15 @@ impl std::fmt::Debug for ChatMessage {
 }
 
 #[derive(
-    Debug, Clone, Copy, Default, strum::EnumString, strum::Display, strum::AsRefStr, strum::EnumIs, serde::Serialize,
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    strum::EnumString,
+    strum::Display,
+    strum::AsRefStr,
+    strum::EnumIs,
+    serde::Serialize,
 )]
 pub enum ChatRole {
     User,

@@ -3,13 +3,13 @@
 //! It is responsible for providing tooling and interaction with github
 use std::sync::Mutex;
 
+use crate::{config::ApiKey, repository::Repository};
 use anyhow::{Context, Result};
+use base64::{engine::general_purpose, Engine as _};
 use octocrab::{models::pulls::PullRequest, Octocrab};
+use reqwest::Client;
 use secrecy::SecretString;
 use swiftide::chat_completion::ChatMessage;
-use reqwest::Client;
-use base64::{engine::general_purpose, Engine as _};
-use crate::{config::ApiKey, repository::Repository};
 
 #[derive(Debug)]
 pub struct GithubSession {
@@ -76,8 +76,10 @@ impl GithubSession {
 
         // Upload messages to a file on GitHub
         let file_path = format!("messages/{}_messages.md", branch_name.as_ref());
-        let serialized_messages = serde_json::to_string(&messages.iter().map(format_message).collect::<Vec<_>>())?;
-        self.upload_file_to_github(owner, repo, &file_path, &serialized_messages).await?;
+        let serialized_messages =
+            serde_json::to_string(&messages.iter().map(format_message).collect::<Vec<_>>())?;
+        self.upload_file_to_github(owner, repo, &file_path, &serialized_messages)
+            .await?;
 
         let body = format!(
             "{}\n\nMessages have been saved to [{}](https://github.com/{}/{}/blob/{}/{})",
@@ -146,14 +148,20 @@ impl GithubSession {
 
         let response = client
             .put(&url)
-            .header("Authorization", format!("token {}", self.token.expose_secret()))
+            .header(
+                "Authorization",
+                format!("token {}", self.token.expose_secret()),
+            )
             .header("Accept", "application/vnd.github.v3+json")
             .json(&payload)
             .send()
             .await?;
 
         if !response.status().is_success() {
-            anyhow::bail!("Failed to upload file to GitHub: {}", response.text().await?);
+            anyhow::bail!(
+                "Failed to upload file to GitHub: {}",
+                response.text().await?
+            );
         }
 
         Ok(())
