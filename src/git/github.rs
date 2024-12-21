@@ -7,6 +7,8 @@ use anyhow::{Context, Result};
 use octocrab::{models::pulls::PullRequest, Octocrab};
 use secrecy::SecretString;
 use swiftide::chat_completion::ChatMessage;
+use reqwest::Client;
+use base64;
 
 use crate::{config::ApiKey, repository::Repository, templates::Templates};
 
@@ -73,26 +75,20 @@ impl GithubSession {
         let owner = &self.repository.config().github.owner;
         let repo = &self.repository.config().github.repository;
 
-        tracing::debug!(messages = ?messages,
-            "Creating pull request for {}/{} from branch {} onto {}",
+        // Upload messages to a file on GitHub
+        let file_path = format!("messages/{}_messages.md", branch_name.as_ref());
+        let serialized_messages = serde_json::to_string(messages)?;
+        self.upload_file_to_github(owner, repo, &file_path, &serialized_messages).await?;
+
+        let body = format!(
+            "{}\n\nMessages have been saved to [{}](https://github.com/{}/{}/blob/{}/{})",
+            description.as_ref(),
+            file_path,
             owner,
             repo,
             branch_name.as_ref(),
-            base_branch_name.as_ref()
+            file_path
         );
-
-        // TODO: Formatting should not be here
-        let context = tera::Context::from_serialize(serde_json::json!({
-            "owner": owner,
-            "repo": repo,
-            "branch_name": branch_name.as_ref(),
-            "base_branch_name": base_branch_name.as_ref(),
-            "title": title.as_ref(),
-            "description": description.as_ref(),
-            "messages": messages.iter().map(format_message).collect::<Vec<_>>(),
-        }))?;
-
-        let body = Templates::render("pull_request.md", &context)?;
 
         let maybe_pull = { self.active_pull_request.lock().unwrap().clone() };
 
@@ -132,6 +128,36 @@ impl GithubSession {
             .replace(pull_request.clone());
 
         Ok(pull_request)
+    }
+
+    /// Upload a file to the GitHub repository
+    async fn upload_file_to_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        path: &str,
+        content: &str,
+    ) -> Result<()> {
+        let client = Client::new();
+        let url = format!("https://api.github.com/repos/{}/{}/contents/{}", owner, repo, path);
+        let payload = serde_json::json!({
+            "message": "Upload messages",
+            "content": base64::encode(content),
+        });
+
+        let response = client
+            .put(&url)
+            .header("Authorization", format!("token {}", self.token.expose_secret()))
+            .header("Accept", "application/vnd.github.v3+json")
+            .json(&payload)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            anyhow::bail!("Failed to upload file to GitHub: {}", response.text().await?);
+        }
+
+        Ok(())
     }
 }
 
