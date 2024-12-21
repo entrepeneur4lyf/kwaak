@@ -10,7 +10,7 @@ use swiftide::chat_completion::ChatMessage;
 use reqwest::Client;
 use base64::{engine::general_purpose, Engine as _};
 
-use crate::{config::ApiKey, repository::Repository, templates::Templates};
+use crate::{config::ApiKey, repository::Repository};
 
 #[derive(Debug)]
 pub struct GithubSession {
@@ -139,7 +139,7 @@ impl GithubSession {
         content: &str,
     ) -> Result<()> {
         let client = Client::new();
-        let url = format!("https://api.github.com/repos/{}/{}/contents/{}", owner, repo, path);
+        let url = format!("https://api.github.com/repos/{owner}/{repo}/contents/{path}");
         let payload = serde_json::json!({
             "message": "Upload messages",
             "content": general_purpose::STANDARD.encode(content),
@@ -163,12 +163,12 @@ impl GithubSession {
 
 fn format_message(message: &ChatMessage) -> serde_json::Value {
     let role = match message {
-        ChatMessage::User(_) => "\u25b6 User",
-        ChatMessage::System(_) => "\u2139 System",
+        ChatMessage::User(_) => "\u{25b6} User",
+        ChatMessage::System(_) => "\u{2139} System",
         // Add a nice uncoloured glyph for the summary
         ChatMessage::Summary(_) => ">> Summary",
-        ChatMessage::Assistant(..) => "\u2726 Assistant",
-        ChatMessage::ToolOutput(..) => "\u2699 Tool Output",
+        ChatMessage::Assistant(..) => "\u{2726} Assistant",
+        ChatMessage::ToolOutput(..) => "\u{2699} Tool Output",
     };
     let content = match message {
         ChatMessage::User(msg) | ChatMessage::System(msg) | ChatMessage::Summary(msg) => {
