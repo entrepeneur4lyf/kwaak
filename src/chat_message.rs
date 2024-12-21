@@ -5,7 +5,7 @@ use uuid::Uuid;
 ///
 /// Messages are expected to be formatted strings and are displayed as-is. Markdown is rendered
 /// using `tui-markdown`.
-#[derive(Clone, Default, Builder)]
+#[derive(Clone, Default, Builder, serde::Serialize)]
 #[builder(setter(into, strip_option), build_fn(skip))]
 pub struct ChatMessage {
     role: ChatRole,
