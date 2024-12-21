@@ -5,12 +5,12 @@ use uuid::Uuid;
 ///
 /// Messages are expected to be formatted strings and are displayed as-is. Markdown is rendered
 /// using `tui-markdown`.
-#[derive(Clone, Default, Builder, serde::Serialize)]
+#[derive(Clone, Default, Builder)]
 #[builder(setter(into, strip_option), build_fn(skip))]
+// Removed serde trait and serialization for this structure
 pub struct ChatMessage {
     role: ChatRole,
     content: String,
-    #[serde(skip)] // Skip serialization for 'original' field
     original: Option<swiftide::chat_completion::ChatMessage>,
     uuid: Option<Uuid>,
 }
