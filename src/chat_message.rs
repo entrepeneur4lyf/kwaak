@@ -10,6 +10,7 @@ use uuid::Uuid;
 pub struct ChatMessage {
     role: ChatRole,
     content: String,
+    #[serde(skip)] // Skip serialization for 'original' field
     original: Option<swiftide::chat_completion::ChatMessage>,
     uuid: Option<Uuid>,
 }
