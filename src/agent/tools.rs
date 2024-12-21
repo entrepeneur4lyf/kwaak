@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Result, Context};
 use swiftide::{
     chat_completion::{errors::ToolError, ToolOutput},
     query::{search_strategies, states},
@@ -13,7 +13,7 @@ use tokio::sync::Mutex;
 
 use crate::{config::ApiKey, git::github::GithubSession};
 
-fn create_error_message(error: ToolError) -> String {
+fn create_error_message<E: std::fmt::Display>(error: E) -> String {
     format!("Tool execution failed: {}", error)
 }
 
@@ -27,10 +27,10 @@ static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/
         description = "The shell command, including any arguments if needed, to run"
     )
 )]
-pub async fn shell_command(context: &dyn AgentContext, cmd: &str) -> Result<ToolOutput, anyhow::Error> {
+pub async fn shell_command(context: &dyn AgentContext, cmd: &str) -> Result<ToolOutput, ToolError> {
     let output = context.exec_cmd(&Command::Shell(cmd.into())).await.map_err(|e| {
         tracing::error!("Shell command execution failed: {}", e);
-        anyhow::anyhow!("Shell command execution error: {}", e)
+        ToolError::ExecutionError(create_error_message(e))
     })?;
     Ok(output.into())
 }
@@ -42,12 +42,12 @@ pub async fn shell_command(context: &dyn AgentContext, cmd: &str) -> Result<Tool
 pub async fn read_file(
     context: &dyn AgentContext,
     file_name: &str,
-) -> Result<ToolOutput, anyhow::Error> {
+) -> Result<ToolOutput, ToolError> {
     let cmd = Command::ReadFile(file_name.into());
 
     let output = context.exec_cmd(&cmd).await.map_err(|e| {
         tracing::error!("Reading file failed: {}", e);
-        anyhow::anyhow!("Reading file error: {}", e)
+        ToolError::ExecutionError(create_error_message(e))
     })?;
 
     Ok(output.into())
@@ -62,12 +62,12 @@ pub async fn write_file(
     context: &dyn AgentContext,
     file_name: &str,
     content: &str,
-) -> Result<ToolOutput, anyhow::Error> {
+) -> Result<ToolOutput, ToolError> {
     let cmd = Command::WriteFile(file_name.into(), content.into());
 
     context.exec_cmd(&cmd).await.map_err(|e| {
         tracing::error!("Writing file failed: {}", e);
-        anyhow::anyhow!("Writing file error: {}", e)
+        ToolError::ExecutionError(create_error_message(e))
     })?;
 
     let success_message = format!("File written successfully to {file_name}");
@@ -82,11 +82,11 @@ pub async fn write_file(
 pub async fn search_file(
     context: &dyn AgentContext,
     file_name: &str,
-) -> Result<ToolOutput, anyhow::Error> {
+) -> Result<ToolOutput, ToolError> {
     let cmd = Command::Shell(format!("fd '{file_name}'"));
     let output = context.exec_cmd(&cmd).await.map_err(|e| {
         tracing::error!("Searching file failed: {}", e);
-        anyhow::anyhow!("Searching file error: {}", e)
+        ToolError::ExecutionError(create_error_message(e))
     })?;
 
     Ok(output.into())
@@ -96,11 +96,11 @@ pub async fn search_file(
     description = "Invoke a git command on the current repository",
     param(name = "command", description = "Git sub-command to run")
 )]
-pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput, anyhow::Error> {
+pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput, ToolError> {
     let cmd = Command::Shell(format!("git {command}"));
     let output = context.exec_cmd(&cmd).await.map_err(|e| {
         tracing::error!("Git command execution failed: {}", e);
-        anyhow::anyhow!("Git command execution error: {}", e)
+        ToolError::ExecutionError(create_error_message(e))
     })?;
 
     Ok(output.into())
@@ -113,11 +113,11 @@ pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput
         description = "Code you would like to find in the repository"
     )
 )]
-pub async fn search_code(context: &dyn AgentContext, query: &str) -> Result<ToolOutput, anyhow::Error> {
+pub async fn search_code(context: &dyn AgentContext, query: &str) -> Result<ToolOutput, ToolError> {
     let cmd = Command::Shell(format!("rg '{query}'"));
     let output = context.exec_cmd(&cmd).await.map_err(|e| {
         tracing::error!("Code search failed: {}", e);
-        anyhow::anyhow!("Code search error: {}", e)
+        ToolError::ExecutionError(create_error_message(e))
     })?;
     Ok(output.into())
 }
@@ -158,7 +158,7 @@ impl<'a> ExplainCode<'a> {
         &self,
         _context: &dyn AgentContext,
         query: &str,
-    ) -> Result<ToolOutput, anyhow::Error> {
+    ) -> Result<ToolOutput, ToolError> {
         let results = self
             .query_pipeline
             .lock()
@@ -193,12 +193,12 @@ impl CreateOrUpdatePullRequest {
         context: &dyn AgentContext,
         title: &str,
         pull_request_body: &str,
-    ) -> Result<ToolOutput, anyhow::Error> {
+    ) -> Result<ToolOutput, ToolError> {
         // Create a new branch
         let cmd = Command::Shell("git rev-parse --abbrev-ref HEAD".to_string());
         let branch_name = context.exec_cmd(&cmd).await.map_err(|e| {
             tracing::error!("Failed to get current git branch: {}", e);
-            anyhow::anyhow!("Failed to get current git branch: {}", e)
+            ToolError::ExecutionError(create_error_message(e))
         })?
             .to_string()
             .trim()
@@ -207,7 +207,7 @@ impl CreateOrUpdatePullRequest {
         let cmd = Command::Shell(format!("git add . && git commit -m '{title}'"));
         context.exec_cmd(&cmd).await.map_err(|e| {
             tracing::error!("Failed to commit changes: {}", e);
-            anyhow::anyhow!("Failed to commit changes: {}", e)
+            ToolError::ExecutionError(create_error_message(e))
         })?;
 
         // Commit changes
@@ -215,7 +215,7 @@ impl CreateOrUpdatePullRequest {
         let cmd = Command::Shell("git push origin HEAD".to_string());
         context.exec_cmd(&cmd).await.map_err(|e| {
             tracing::error!("Failed to push git branch: {}", e);
-            anyhow::anyhow!("Failed to push git branch: {}", e)
+            ToolError::ExecutionError(create_error_message(e))
         })?;
 
         let response = self
@@ -255,11 +255,11 @@ impl RunTests {
         }
     }
 
-    async fn run_tests(&self, context: &dyn AgentContext) -> Result<ToolOutput, anyhow::Error> {
+    async fn run_tests(&self, context: &dyn AgentContext) -> Result<ToolOutput, ToolError> {
         let cmd = Command::Shell(self.test_command.clone());
         let output = context.exec_cmd(&cmd).await.map_err(|e| {
             tracing::error!("Test execution failed: {}", e);
-            anyhow::anyhow!("Test execution error: {}", e)
+            ToolError::ExecutionError(create_error_message(e))
         })?;
 
         Ok(output.into())
@@ -279,11 +279,11 @@ impl RunCoverage {
         }
     }
 
-    async fn run_coverage(&self, context: &dyn AgentContext) -> Result<ToolOutput, anyhow::Error> {
+    async fn run_coverage(&self, context: &dyn AgentContext) -> Result<ToolOutput, ToolError> {
         let cmd = Command::Shell(self.coverage_command.clone());
         let output = context.exec_cmd(&cmd).await.map_err(|e| {
             tracing::error!("Coverage execution failed: {}", e);
-            anyhow::anyhow!("Coverage execution error: {}", e)
+            ToolError::ExecutionError(create_error_message(e))
         })?;
 
         Ok(output.into())
@@ -311,7 +311,7 @@ impl SearchWeb {
         &self,
         _context: &dyn AgentContext,
         query: &str,
-    ) -> Result<ToolOutput, anyhow::Error> {
+    ) -> Result<ToolOutput, ToolError> {
         let mut request = tavily::SearchRequest::new(self.api_key.expose_secret(), query);
         request.search_depth("advanced");
         request.include_answer(true);
@@ -323,7 +323,9 @@ impl SearchWeb {
             .tavily_client
             .search(query)
             .await
-            .map_err(anyhow::Error::from)?;
+            .map_err(|e| {
+                anyhow::anyhow!("Search failed: {}", e)
+            })?;
 
         tracing::debug!(results = ?results, "Search results from tavily");
 
