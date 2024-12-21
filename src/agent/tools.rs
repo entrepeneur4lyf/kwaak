@@ -172,6 +172,15 @@ impl CreateOrUpdatePullRequest {
         title: &str,
         pull_request_body: &str,
     ) -> Result<ToolOutput, ToolError> {
+        // Check for conventional commit format
+        let conventional_commit_regex =
+            regex::Regex::new(r"^(feat|fix|docs|style|refactor|perf|test|chore)(\(.+\))?!?: .+")
+                .unwrap();
+
+        if !conventional_commit_regex.is_match(title) {
+            return Err(anyhow::anyhow!("Title does not follow conventional commit format. Please use format: '<type>(<scope>): <description>'").into());
+        }
+
         // Create a new branch
         let cmd = Command::Shell("git rev-parse --abbrev-ref HEAD".to_string());
         let branch_name = accept_non_zero_exit(context.exec_cmd(&cmd).await)?
