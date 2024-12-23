@@ -99,7 +99,7 @@ impl ConversationSummarizer {
         * Be extra detailed on the last step taken
         * Provide clear instructions on how to proceed. If applicable, include the tools that
             should be used.
-        * Identify the goal the user wanted to achieve and clearly restate it
+        * Identify the bigger goal the user wanted to achieve and clearly restate it
 
         ## Available tools
         {available_tools}
@@ -111,6 +111,9 @@ impl ConversationSummarizer {
         # Example format
         ```
         # Summary
+
+        ## Your goal
+        <Your goal>
 
         ## Previously you did
         * <concise summary of each step>
