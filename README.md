@@ -29,7 +29,7 @@
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
 
-![CI](https://img.shields.io/github/actions/workflow/status/bosun-ai/kwaak/test.yml?style=flat-square)
+![CI](https://img.shields.io/github/actions/workflow/status/bosun-ai/kwaak/tests.yml?style=flat-square)
 [![Crate Badge]][Crate]
 [![Contributors][contributors-shield]][contributors-url]
 [![Stargazers][stars-shield]][stars-url]
