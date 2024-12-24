@@ -95,8 +95,9 @@ mod tests {
     use super::*;
     use async_trait::async_trait;
     use std::sync::{Arc, Mutex};
-    use swiftide::traits::{Command, ToolExecutor, ExecutionOutput}; // Adjust import for ExecutionOutput
-    use anyhow::Result; // Adjust import for Result
+    use swiftide::traits::{Command, ToolExecutor, ExecutionOutput};
+    use anyhow::Result;
+    use crate::config::{Config, SupportedToolExecutors};
 
     struct MockExecutor {
         pub commands: Arc<Mutex<Vec<Command>>>,
@@ -110,25 +111,48 @@ mod tests {
         }
     }
 
+    fn create_test_config(tool_executor: SupportedToolExecutors) -> Config {
+        Config {
+            project_name: String::from("test_project"),
+            language: swiftide::integrations::treesitter::SupportedLanguages::Rust,
+            llm: Box::new(crate::config::LLMConfigurations::Single(crate::config::LLMConfiguration::OpenAI {
+                api_key: "test-key".into(),
+                prompt_model: swiftide::integrations::treesitter::SupportedLanguages::Rust,
+            })),
+            commands: crate::config::CommandConfiguration::default(),
+            cache_dir: std::path::PathBuf::from("./cache"),
+            log_dir: std::path::PathBuf::from("./log"),
+            docker: crate::config::DockerConfiguration::default(),
+            github: crate::config::GithubConfiguration {
+                repository: String::from("test_repo"),
+                owner: String::from("test_owner"),
+                main_branch: String::from("main"),
+                token: Some("test-token".into()),
+            },
+            tavily_api_key: None,
+            tool_executor,
+        }
+    }
+
     #[tokio::test]
     async fn test_exec_setup_commands() {
         let mock_executor = MockExecutor { commands: Arc::new(Mutex::new(Vec::new())) };
-        let repository = Repository::from_config(SomeConfig); // Adjust repository creation
+        let config = create_test_config(SupportedToolExecutors::Local);
+        let repository = Repository::from_config(config); // Adjust repository creation
         let github_session = None; // Or mock appropriately
 
         let setup = EnvSetup::new(&repository, github_session, &mock_executor);
 
         // Initially setting a non-Docker executor to bypass commands
-        repository.config().tool_executor = SupportedToolExecutors::Local; // Adjust enum value
-
         setup.exec_setup_commands().await.unwrap();
 
         // Verify no commands have been pushed
         assert_eq!(mock_executor.commands.lock().unwrap().len(), 0);
 
         // Now set to Docker and attempt again
-        repository.config().tool_executor = SupportedToolExecutors::Docker;
-
+        let mut docker_config = create_test_config(SupportedToolExecutors::Docker);
+        setup.repository.config = docker_config;
+        
         setup.exec_setup_commands().await.unwrap();
 
         // Verify expected command count, based on mocked setups
