@@ -88,3 +88,49 @@ impl EnvSetup<'_> {
         Ok(())
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+    use std::sync::{Arc, Mutex};
+    use swiftide::traits::{Command, ToolExecutor};
+
+    struct MockExecutor {
+        pub commands: Arc<Mutex<Vec<Command>>>,
+    }
+
+    #[async_trait]
+    impl ToolExecutor for MockExecutor {
+        async fn exec_cmd(&self, cmd: &Command) -> swiftide::traits::Result {
+            self.commands.lock().unwrap().push(cmd.clone());
+            Ok(swiftide::traits::ExecutionOutput { output: String::new() })
+        }
+    }
+
+    #[tokio::test]
+    async fn test_exec_setup_commands() {
+        let mock_executor = MockExecutor { commands: Arc::new(Mutex::new(Vec::new())) };
+        let repository = Repository::default(); // Assuming a default or mocked version
+        let github_session = None; // Or mock appropriately
+
+        let setup = EnvSetup::new(&repository, github_session, &mock_executor);
+
+        // Initially setting a non-Docker executor to bypass commands
+        repository.config().tool_executor = SupportedToolExecutors::Shell;
+
+        setup.exec_setup_commands().await.unwrap();
+
+        // Verify no commands have been pushed
+        assert_eq!(mock_executor.commands.lock().unwrap().len(), 0);
+
+        // Now set to Docker and attempt again
+        repository.config().tool_executor = SupportedToolExecutors::Docker;
+
+        setup.exec_setup_commands().await.unwrap();
+
+        // Verify expected command count, based on mocked setups
+        assert_eq!(mock_executor.commands.lock().unwrap().len(), 6);
+    }
+}
