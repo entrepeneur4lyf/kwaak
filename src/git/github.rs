@@ -85,7 +85,8 @@ impl GithubSession {
             base_branch_name.as_ref()
         );
 
-        // TODO: Formatting should not be here
+        // Messages in pull request are disabled for now. They quickly get too large.
+        // "messages": messages.iter().map(format_message).collect::<Vec<_>>(),
         let context = tera::Context::from_serialize(serde_json::json!({
             "owner": owner,
             "repo": repo,
@@ -93,7 +94,7 @@ impl GithubSession {
             "base_branch_name": base_branch_name.as_ref(),
             "title": title.as_ref(),
             "description": description.as_ref(),
-            "messages": messages.iter().map(format_message).collect::<Vec<_>>(),
+            "messages": []
         }))?;
 
         let body = Templates::render("pull_request.md", &context)?;
@@ -199,7 +200,7 @@ mod tests {
             ChatMessage::new_summary("summary message"),
         ];
 
-        let context = tera::Context::from_serialize(serde_json::json!({
+        let mut context = tera::Context::from_serialize(serde_json::json!({
             "owner": "owner",
             "repo": "repo",
             "branch_name": "branch_name",
@@ -214,6 +215,13 @@ mod tests {
         let rendered = Templates::render("pull_request.md", &context).unwrap();
 
         insta::assert_snapshot!(rendered);
+
+        context.insert("messages", &serde_json::json!([]));
+
+        let rendered_no_messages = Templates::render("pull_request.md", &context).unwrap();
+        insta::assert_snapshot!(rendered_no_messages);
+
+        // and without messages
     }
 
     #[tokio::test]

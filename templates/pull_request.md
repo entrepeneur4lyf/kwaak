@@ -4,6 +4,7 @@
 
 _This pull request was created by [kwaak](https://github.com/bosun-ai/kwaak), a free, open-source, autonomous coding agent tool. Pull requests are tracked in bosun-ai/kwaak#48_
 
+{% if messages | length > 0 -%}
 <details>
 <summary>Message History</summary>
 
@@ -22,3 +23,4 @@ _This pull request was created by [kwaak](https://github.com/bosun-ai/kwaak), a 
 {% endfor -%}
 
 </details>
+{% endif -%}
