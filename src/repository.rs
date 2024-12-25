@@ -43,9 +43,8 @@ impl Into<Repository> for &Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
     use tempfile::tempdir;
-    use crate::config::Config;
+    use tokio::fs;
 
     #[tokio::test]
     async fn test_from_config() {
@@ -62,7 +61,7 @@ mod tests {
         fs::create_dir_all(&cache_dir).await.unwrap();
 
         let mut config = Config::default();
-        config.set_cache_dir(cache_dir.clone());
+        config.cache_dir = cache_dir.clone();
         let repo = Repository::from_config(config);
 
         assert!(cache_dir.exists());
