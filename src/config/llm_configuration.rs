@@ -32,22 +32,17 @@ pub enum LLMConfiguration {
         embedding_model: OpenAIEmbeddingModel,
         base_url: Option<Url>,
     },
-    // Groq {
-    //     api_key: SecretString,
-    //     prompt_model: String,
-    // },
-    // Ollama {
-    //     prompt_model: Option<String>,
-    //     embedding_model: Option<String>,
-    //     vector_size: Option<usize>,
-    // },
-    // AWSBedrock {
-    //     prompt_model: String,
-    // },
-    // FastEmbed {
-    //     embedding_model: String,
-    //     vector_size: usize,
-    // },
+}
+
+impl Default for LLMConfiguration {
+    fn default() -> Self {
+        LLMConfiguration::OpenAI {
+            api_key: ApiKey::new(""),  // Assuming there's a method to create an empty/default ApiKey
+            prompt_model: OpenAIPromptModel::default(),
+            embedding_model: OpenAIEmbeddingModel::default(),
+            base_url: None,
+        }
+    }
 }
 
 impl LLMConfiguration {
