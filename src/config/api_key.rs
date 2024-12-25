@@ -35,12 +35,18 @@
 
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Deserializer, Serialize};
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct ApiKey(SecretString);
 
 impl std::fmt::Debug for ApiKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("ApiKey(****)")
+    }
+}
+
+impl PartialEq for ApiKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.expose_secret() == other.expose_secret()
     }
 }
 
