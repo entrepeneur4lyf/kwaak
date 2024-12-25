@@ -74,6 +74,28 @@ pub struct GithubConfiguration {
     pub token: Option<ApiKey>,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            project_name: default_project_name(),
+            language: SupportedLanguages::Rust, // Or any default language
+            llm: Box::new(LLMConfigurations::Single(LLMConfiguration::default())),
+            commands: CommandConfiguration::default(),
+            cache_dir: default_cache_dir(),
+            log_dir: default_log_dir(),
+            docker: DockerConfiguration::default(),
+            github: GithubConfiguration {
+                repository: String::new(),
+                owner: String::new(),
+                main_branch: default_main_branch(),
+                token: None,
+            },
+            tavily_api_key: None,
+            tool_executor: SupportedToolExecutors::default(),
+        }
+    }
+}
+
 impl Config {
     /// Loads the configuration file from the current path
     pub(crate) async fn load(path: &Path) -> Result<Config> {
