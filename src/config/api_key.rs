@@ -35,7 +35,7 @@
 
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Deserializer, Serialize};
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct ApiKey(SecretString);
 
 impl std::fmt::Debug for ApiKey {
