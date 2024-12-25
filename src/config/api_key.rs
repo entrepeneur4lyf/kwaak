@@ -35,7 +35,7 @@
 
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Deserializer, Serialize};
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct ApiKey(SecretString);
 
 impl std::fmt::Debug for ApiKey {
@@ -45,8 +45,8 @@ impl std::fmt::Debug for ApiKey {
 }
 
 impl ApiKey {
-    pub fn new(secret: SecretString) -> Self {
-        ApiKey(secret)
+    pub fn new<T: Into<SecretString>>(secret: T) -> Self {
+        ApiKey(secret.into())
     }
 
     pub fn expose_secret(&self) -> &str {
