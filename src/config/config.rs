@@ -12,7 +12,7 @@ use super::defaults::{
 use super::{CommandConfiguration, LLMConfiguration, LLMConfigurations};
 
 // TODO: Improving parsing by enforcing invariants
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Config {
     #[serde(default = "default_project_name")]
     pub project_name: String,
