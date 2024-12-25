@@ -39,3 +39,46 @@ impl Into<Repository> for &Repository {
         self.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::test_repository;
+    use tokio::runtime::Runtime;
+
+    #[test]
+    fn test_from_config() {
+        let repo = test_repository();
+        assert_eq!(repo.path(), &PathBuf::from("."));
+    }
+
+    #[test]
+    fn test_path() {
+        let repo = test_repository();
+        assert_eq!(repo.path(), &PathBuf::from("."));
+    }
+
+    #[test]
+    fn test_config() {
+        let repo = test_repository();
+        // Assuming Config implements PartialEq;
+        assert_eq!(repo.config(), &repo.config);
+    }
+
+    #[test]
+    fn test_into_repository() {
+        let repo = test_repository();
+        let _: Repository = (&repo).into(); // Check trait implementation
+    }
+
+    #[test]
+    fn test_clear_cache() {
+        let repo = test_repository();
+        let rt = Runtime::new().unwrap();
+
+        // Run `clear_cache` asynchronously within the test runtime
+        rt.block_on(async {
+            assert!(repo.clear_cache().await.is_ok());
+        });
+    }
+}
