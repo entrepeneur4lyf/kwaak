@@ -49,7 +49,7 @@ async fn main() -> Result<()> {
         let config = onboarding::create_template_config()?;
         std::fs::write("kwaak.toml", config)?;
 
-        println!("Initialized kwaak project in current directory, please review and customize the created `kwaak.toml` file");
+        println!("Initialized kwaak project in current directory, please review and customize the created `kwaak.toml` file.\n Kwaak also needs a `Dockerfile` to execute your code in, with `ripgrep` and `fd` installed. Refer to https://github.com/bosun-ai/kwaak for an up to date list.");
         return Ok(());
     }
 
