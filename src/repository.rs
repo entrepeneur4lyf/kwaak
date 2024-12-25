@@ -39,3 +39,34 @@ impl Into<Repository> for &Repository {
         self.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+    use tempfile::tempdir;
+    use crate::config::Config;
+
+    #[tokio::test]
+    async fn test_from_config() {
+        let config = Config::default();
+        let repo = Repository::from_config(config.clone());
+        assert_eq!(repo.path(), &PathBuf::from("."));
+        assert_eq!(repo.config(), &config);
+    }
+
+    #[tokio::test]
+    async fn test_clear_cache() {
+        let temp_dir = tempdir().unwrap();
+        let cache_dir = temp_dir.path().join("cache");
+        fs::create_dir_all(&cache_dir).await.unwrap();
+
+        let mut config = Config::default();
+        config.set_cache_dir(cache_dir.clone());
+        let repo = Repository::from_config(config);
+
+        assert!(cache_dir.exists());
+        repo.clear_cache().await.unwrap();
+        assert!(!cache_dir.exists());
+    }
+}
