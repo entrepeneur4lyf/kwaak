@@ -8,13 +8,13 @@ use clap::Parser;
 use commands::{CommandResponder, CommandResponse};
 use config::Config;
 use frontend::App;
+use indexing::{index_repository, query};
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
 
 use ::tracing::instrument;
-use ::tracing::Instrument as _;
 use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -76,13 +76,33 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    crate::kwaak_tracing::init(&repository)?;
+    {
+        let _guard = crate::kwaak_tracing::init(&repository)?;
 
-    let span = ::tracing::span!(::tracing::Level::INFO, "main");
-    match args.mode {
-        cli::ModeArgs::RunAgent => start_agent(&repository, &args).instrument(span).await,
-        cli::ModeArgs::Tui => start_tui(&repository).instrument(span).await,
+        let _root_span = tracing::info_span!(
+            "main",
+            "otel.name" = format!("main.{}", args.mode.as_ref().to_lowercase())
+        )
+        .entered();
+        match args.mode {
+            cli::ModeArgs::RunAgent => start_agent(&repository, &args).await,
+            cli::ModeArgs::Tui => start_tui(&repository).await,
+            cli::ModeArgs::Index => index_repository(&repository).await,
+            cli::ModeArgs::Query => {
+                let result = query(&repository, args.query.expect("Expected a query")).await?;
+
+                println!("{result}");
+
+                Ok(())
+            }
+        }?;
     }
+
+    if cfg!(feature = "otel") {
+        opentelemetry::global::shutdown_tracer_provider();
+    }
+
+    Ok(())
 }
 
 #[instrument]
@@ -148,9 +168,6 @@ async fn start_tui(repository: &repository::Repository) -> Result<()> {
     };
 
     restore_tui()?;
-    if cfg!(feature = "otel") {
-        opentelemetry::global::shutdown_tracer_provider();
-    }
     terminal.show_cursor()?;
 
     if let Err(error) = app_result {
