@@ -3,12 +3,12 @@ use std::{path::PathBuf, str::FromStr as _};
 
 use tokio::fs;
 
-use crate::config::Config;
+use crate::{config::Config, runtime_settings::RuntimeSettings};
 
 #[derive(Debug, Clone)]
 pub struct Repository {
-    config: Config,
-    path: PathBuf,
+    pub(crate) config: Config,
+    pub(crate) path: PathBuf,
 }
 
 impl Repository {
@@ -30,6 +30,10 @@ impl Repository {
     pub async fn clear_cache(&self) -> Result<()> {
         fs::remove_dir_all(self.config.cache_dir()).await?;
         Ok(())
+    }
+
+    pub fn runtime_settings(&self) -> RuntimeSettings {
+        RuntimeSettings::from_repository(self)
     }
 }
 
