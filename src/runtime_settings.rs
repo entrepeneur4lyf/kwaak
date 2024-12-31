@@ -25,6 +25,11 @@ impl RuntimeSettings {
         Self { db }
     }
 
+    #[cfg(debug_assertions)]
+    pub fn from_db(db: Arc<Redb>) -> Self {
+        Self { db }
+    }
+
     pub fn get<VALUE: for<'a> Deserialize<'a>>(&self, key: &str) -> Option<VALUE> {
         let read = self
             .db
@@ -56,12 +61,13 @@ impl RuntimeSettings {
 }
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use crate::test_utils;
 
-    #[test]
+    #[test_log::test]
     fn test_set_and_get() {
-        let repository = test_utils::test_repository();
+        let (repository, _guard) = test_utils::test_repository();
         let runtime_settings = RuntimeSettings::from_repository(&repository);
 
         let key = "test_key";
@@ -76,9 +82,9 @@ mod tests {
         assert_eq!(retrieved_value, value);
     }
 
-    #[test]
+    #[test_log::test]
     fn test_with_non_string() {
-        let repository = test_utils::test_repository();
+        let (repository, _guard) = test_utils::test_repository();
         let runtime_settings = RuntimeSettings::from_repository(&repository);
 
         let key = "test_key";
