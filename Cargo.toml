@@ -123,8 +123,8 @@ default = ["otel"]
 [patch.crates-io]
 # swiftide = { path = "../swiftide/swiftide" }
 # swiftide-macros = { path = "../swiftide/swiftide-macros" }
-swiftide = { git = "https://github.com/bosun-ai/swiftide" }
-swiftide-macros = { git = "https://github.com/bosun-ai/swiftide" }
+swiftide = { git = "https://github.com/bosun-ai/swiftide", branch = "feat/document-templates" }
+swiftide-macros = { git = "https://github.com/bosun-ai/swiftide", branch = "feat/document-templates" }
 
 # The profile that 'dist' will build with
 [profile.dist]

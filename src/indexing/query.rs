@@ -33,6 +33,11 @@ pub fn build_query_pipeline<'b>(
     let search_strategy: SimilaritySingleEmbedding<()> = SimilaritySingleEmbedding::default()
         .with_top_k(20)
         .to_owned();
+    let simple = answers::Simple::builder()
+        .client(query_provider.clone())
+        .document_template("indexing_document.md")
+        .build()
+        .expect("infallible");
 
     Ok(query::Pipeline::from_search_strategy(search_strategy)
         .then_transform_query(query_transformers::GenerateSubquestions::from_client(
@@ -45,5 +50,32 @@ pub fn build_query_pipeline<'b>(
         // .then_transform_response(response_transformers::Summary::from_client(
         //     query_provider.clone(),
         // ))
-        .then_answer(answers::Simple::from_client(query_provider.clone())))
+        .then_answer(simple))
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_rendering_document() {
+        use insta::assert_snapshot;
+        use swiftide::{indexing::Metadata, query::Document};
+        use tera::Context;
+
+        use crate::templates::Templates;
+
+        let document = Document::new(
+            "This is a test document",
+            Some(Metadata::from([
+                ("path", serde_json::Value::from("my file")),
+                ("soups", serde_json::Value::from(["tomato", "snert"])),
+            ])),
+        );
+
+        assert_snapshot!(Templates::render(
+            "indexing_document.md",
+            &Context::from_serialize(document).unwrap(),
+        )
+        .unwrap());
+    }
 }
