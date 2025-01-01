@@ -5,7 +5,8 @@ use swiftide::{
     query::{
         self, answers, query_transformers, search_strategies::SimilaritySingleEmbedding, states,
         Retrieve,
-    }, template::Template, traits::{EmbeddingModel, SimplePrompt}
+    },
+    traits::{EmbeddingModel, SimplePrompt},
 };
 
 use crate::{repository::Repository, storage, templates::Templates, util::strip_markdown_tags};
@@ -30,7 +31,7 @@ pub fn build_query_pipeline<'b>(
     let lancedb =
         storage::get_lancedb(repository) as Arc<dyn Retrieve<SimilaritySingleEmbedding<()>>>;
     let search_strategy: SimilaritySingleEmbedding<()> = SimilaritySingleEmbedding::default()
-        .with_top_k(20)
+        .with_top_k(40)
         .to_owned();
 
     let template = Templates::from_file("indexing_document.md")?;
