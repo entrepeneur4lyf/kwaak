@@ -5,11 +5,10 @@ use swiftide::{
     query::{
         self, answers, query_transformers, search_strategies::SimilaritySingleEmbedding, states,
         Retrieve,
-    },
-    traits::{EmbeddingModel, SimplePrompt},
+    }, template::Template, traits::{EmbeddingModel, SimplePrompt}
 };
 
-use crate::{repository::Repository, storage, util::strip_markdown_tags};
+use crate::{repository::Repository, storage, templates::Templates, util::strip_markdown_tags};
 
 #[tracing::instrument(skip_all, err)]
 pub async fn query(repository: &Repository, query: impl AsRef<str>) -> Result<String> {
@@ -33,9 +32,11 @@ pub fn build_query_pipeline<'b>(
     let search_strategy: SimilaritySingleEmbedding<()> = SimilaritySingleEmbedding::default()
         .with_top_k(20)
         .to_owned();
+
+    let template = Templates::from_file("indexing_document.md")?;
     let simple = answers::Simple::builder()
         .client(query_provider.clone())
-        .document_template("indexing_document.md")
+        .document_template(template)
         .build()
         .expect("infallible");
 
@@ -69,6 +70,7 @@ mod tests {
             Some(Metadata::from([
                 ("path", serde_json::Value::from("my file")),
                 ("soups", serde_json::Value::from(["tomato", "snert"])),
+                ("empty", serde_json::Value::from("")),
             ])),
         );
 

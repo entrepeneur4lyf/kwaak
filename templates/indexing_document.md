@@ -5,12 +5,9 @@ The following snippet is part of the file `{{ metadata.path }}`
 ## Metadata associated with this snippet
 
 {% for key, value in metadata -%}
-{% if key == 'path' -%}{% continue -%}{% endif -%}
+{% if key == 'path' or not value -%}{% continue -%}{% endif -%}
 **{{ key }}**:
-
-```
 {{ value }}
-```
 {% endfor -%}
 
 ## Content
