@@ -19,9 +19,6 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
         let message = if current_input.starts_with('/') {
             handle_input_command(app)
         } else {
-            // Currently just dispatch a user message command and answer the query
-            // Later, perhaps maint a 'chat', add message to that chat, and then send
-            // the whole thing
             app.dispatch_command(&Command::Chat {
                 message: current_input.clone(),
                 uuid: app.current_chat,
@@ -63,6 +60,14 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
 
     match key.code {
         KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
+        KeyCode::End => {
+            let current_chat = app.current_chat_mut();
+            let num_lines = current_chat.num_lines;
+
+            current_chat.vertical_scroll = num_lines;
+            current_chat.vertical_scroll_state =
+                current_chat.vertical_scroll_state.position(num_lines);
+        }
         KeyCode::PageDown => {
             let current_chat = app.current_chat_mut();
             current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(1);

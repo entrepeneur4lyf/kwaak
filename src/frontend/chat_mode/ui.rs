@@ -61,29 +61,26 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .flat_map(|m| format_chat_message(current_chat, m))
         .collect();
 
-    let num_lines = chat_content.lines.len();
+    // Since we are rendering the chat, we can reset the new message count
+    current_chat.new_message_count = 0;
 
-    current_chat.vertical_scroll_state =
-        current_chat.vertical_scroll_state.content_length(num_lines);
+    // We need to consider the available area height to calculate how much can be shown
+    let view_height = area.height as usize;
 
-    // If we're rendering the current chat and it has new messages
-    // set the counter back to 0 and scroll to bottom
-    // TODO: Fix this, this solution is annoying as it overwrites scrolling by the user
-    if current_chat.new_message_count > 0 {
-        current_chat.new_message_count = 0;
+    current_chat.num_lines = chat_content.lines.len();
+    if current_chat.num_lines >= current_chat.num_lines.saturating_sub(view_height / 2) {
+        current_chat.num_lines = current_chat.num_lines.saturating_sub(view_height / 2);
     }
-    //
-    //     let max_height = area.height as usize;
-    //
-    //     // If the number of lines is greater than what fits in the chat list area and the vertical
-    //     // there are more lines than where we are scrolled to, scroll down the remaining lines
-    //     if num_lines > max_height && num_lines > app.vertical_scroll {
-    //         app.vertical_scroll = num_lines - max_height;
-    //         app.vertical_scroll_state = app.vertical_scroll_state.position(app.vertical_scroll);
-    //     } else {
-    //         app.vertical_scroll = 0;
-    //     }
-    // }
+
+    // Record the number of lines in the chat for multi line scrolling
+    current_chat.vertical_scroll_state = current_chat
+        .vertical_scroll_state
+        .content_length(current_chat.num_lines);
+
+    // Max scroll to halfway view-height of last content
+    if current_chat.vertical_scroll >= current_chat.num_lines {
+        current_chat.vertical_scroll = current_chat.num_lines;
+    }
 
     // Unify borders
     let border_set = symbols::border::Set {
@@ -113,6 +110,7 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         &mut current_chat.vertical_scroll_state,
     );
 }
+
 fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     let list: List = app
         .chats
@@ -218,6 +216,7 @@ fn render_help(f: &mut ratatui::Frame, app: &App, area: Rect) {
     Paragraph::new(
         [
             "Page Up/Down - Scroll",
+            "End - Scroll to end",
             "^s - Send message",
             "^s - Send message",
             "^x - Stop agent",
