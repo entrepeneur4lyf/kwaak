@@ -71,7 +71,7 @@ pub async fn search_file(
     context: &dyn AgentContext,
     file_name: &str,
 ) -> Result<ToolOutput, ToolError> {
-    let cmd = Command::Shell(format!("fd '{file_name}'"));
+    let cmd = Command::Shell(format!("fd --full-path '{file_name}'"));
     let output = accept_non_zero_exit(context.exec_cmd(&cmd).await)?;
 
     Ok(output.into())
