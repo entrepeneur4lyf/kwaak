@@ -186,3 +186,37 @@ fn get_value<'a>(
 ) -> Option<&'a str> {
     args?.get(key).and_then(serde_json::Value::as_str)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use swiftide::chat_completion::ToolCall;
+
+    #[test]
+    fn test_pretty_format_tool() {
+        // Mock ToolCall for `shell_command`
+        let shell_command_call = ToolCall::new("shell_command", "{\"cmd\": \"echo 'Hello'\"}");
+        assert_eq!(
+            pretty_format_tool(&shell_command_call),
+            Some("running shell command `echo 'Hello'`".to_string())
+        );
+
+        // Mock ToolCall for `read_file`
+        let read_file_call = ToolCall::new("read_file", "{\"file_name\": \"/path/to/file\"}");
+        assert_eq!(
+            pretty_format_tool(&read_file_call),
+            Some("reading file `/path/to/file`".to_string())
+        );
+    }
+
+    #[test]
+    fn test_format_tool_call() {
+        // Mock ToolCall with multiple argument keys
+        let tool_call = ToolCall::new("search_code", "{\"query\": \"test_query\", \"extra\": \"extra_value\"}");
+        assert_eq!(&format_tool_call(&tool_call), "calling tool `search_code` with `{\"query\": \"test_query\", \"extra\": \"extra_value\"}`");
+
+        // Mock unknown tool
+        let unknown_call = ToolCall::new("unknown_tool", "{}");
+        assert_eq!(&format_tool_call(&unknown_call), "calling tool `unknown_tool`");
+    }
+}
