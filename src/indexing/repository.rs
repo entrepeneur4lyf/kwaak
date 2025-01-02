@@ -7,7 +7,6 @@ use crate::storage;
 use anyhow::Result;
 use swiftide::indexing::loaders;
 use swiftide::indexing::transformers;
-use swiftide::indexing::EmbeddedField;
 use swiftide::indexing::Node;
 use swiftide::traits::EmbeddingModel;
 use swiftide::traits::NodeCache;
@@ -15,6 +14,9 @@ use swiftide::traits::Persist;
 use swiftide::traits::SimplePrompt;
 
 use super::garbage_collection::GarbageCollector;
+
+const CODE_CHUNK_RANGE: std::ops::Range<usize> = 100..2048;
+const MARKDOWN_CHUNK_RANGE: std::ops::Range<usize> = 100..1024;
 
 // NOTE: Indexing in parallel guarantees a bad time
 
@@ -34,8 +36,6 @@ pub async fn index_repository(
     extensions.push("md");
 
     let loader = loaders::FileLoader::new(repository.path()).with_extensions(&extensions);
-    // NOTE: Parameter to optimize on
-    let chunk_size = 100..2048;
 
     let indexing_provider: Box<dyn SimplePrompt> =
         repository.config().indexing_provider().try_into()?;
@@ -61,7 +61,7 @@ pub async fn index_repository(
     code = code
         .then_chunk(transformers::ChunkCode::try_for_language_and_chunk_size(
             repository.config().language,
-            chunk_size,
+            CODE_CHUNK_RANGE,
         )?)
         .then({
             let total_chunks = Arc::clone(&total_chunks);
@@ -85,7 +85,9 @@ pub async fn index_repository(
         .then(transformers::MetadataQACode::default());
 
     markdown = markdown
-        .then_chunk(transformers::ChunkMarkdown::default())
+        .then_chunk(transformers::ChunkMarkdown::from_chunk_range(
+            MARKDOWN_CHUNK_RANGE,
+        ))
         .then({
             let total_chunks = Arc::clone(&total_chunks);
             let processed_chunks = Arc::clone(&processed_chunks);
@@ -141,12 +143,16 @@ pub async fn index_repository(
         .await?;
 
     updater.send_update("Creating column indices ...");
-    let table = lancedb.open_table().await?;
-    let column_name = format!("vector_{}", EmbeddedField::Combined.field_name());
-    table
-        .create_index(&[&column_name], lancedb::index::Index::Auto)
-        .execute()
-        .await?;
+    // NOTE: Disable indexing for now, it uses ANN, which kinda sucks at small scale when
+    // performance is fine already
+    //
+    // let table = lancedb.open_table().await?;
+    // let column_name = format!("vector_{}", EmbeddedField::Combined.field_name());
+    //
+    // table
+    //     .create_index(&[&column_name], lancedb::index::Index::Auto)
+    //     .execute()
+    //     .await?;
 
     Ok(())
 }

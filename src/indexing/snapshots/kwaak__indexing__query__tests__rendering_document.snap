@@ -1,0 +1,10 @@
+---
+source: src/indexing/query.rs
+expression: "Templates::render(\"indexing_document.md\",\n&Context::from_serialize(document).unwrap(),).unwrap()"
+---
+The following snippet is part of the file `my file`
+
+
+````
+This is a test document
+````
