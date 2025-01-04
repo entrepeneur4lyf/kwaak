@@ -1,11 +1,13 @@
 use anyhow::Result;
+use derive_more::Display;
 use std::{path::PathBuf, str::FromStr as _};
 
 use tokio::fs;
 
 use crate::{config::Config, runtime_settings::RuntimeSettings};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Display)]
+#[display(fmt = "Repository [path: {}]", path)]
 pub struct Repository {
     config: Config,
     path: PathBuf,
