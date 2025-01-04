@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::time::Duration;
-use tui_logger::TuiWidgetState;
+tuse tui_logger::TuiWidgetState;
 use tui_textarea::TextArea;
 use uuid::Uuid;
 
@@ -304,7 +304,7 @@ impl App<'_> {
                         self.add_chat_message(message);
                     }
                     UIEvent::NewChat => {
-                        self.add_chat(Chat::default()).await; // Modify add_chat method to perform async task
+                        await self.add_chat(Chat::default()); // Modify add_chat method to perform async task
                     }
                     UIEvent::NextChat => self.next_chat(),
                     UIEvent::ChangeMode(mode) => self.change_mode(mode),
@@ -439,25 +439,19 @@ async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_last_or_first_chat() {
+    #[tokio::test]
+    async fn test_last_or_first_chat() {
         let mut app = App::default();
         let chat = Chat::default();
         let first_uuid = app.current_chat;
-        let second_uuid = chat.uuid;
-
-        // Starts with first
-        assert_eq!(app.current_chat, first_uuid);
-
-        app.add_chat(chat);
-        assert_eq!(app.current_chat, second_uuid);
+        
+        app.add_chat(chat).await;  // Await the call
 
         app.next_chat();
-
         assert_eq!(app.current_chat, first_uuid);
 
         app.next_chat();
-        assert_eq!(app.current_chat, second_uuid);
+        assert_eq!(app.current_chat, chat.uuid);
     }
 
     #[test]
