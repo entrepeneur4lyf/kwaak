@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
         )
         .entered();
         match args.mode {
-            cli::ModeArgs::RunAgent => start_agent(&repository, &args).await,
+            cli::ModeArgs::RunAgent => start_agent(repository, &args).await,
             cli::ModeArgs::Tui => start_tui(&repository, &args).await,
             cli::ModeArgs::Index => index_repository(&repository, None).await,
             cli::ModeArgs::Query => {
@@ -109,8 +109,10 @@ async fn main() -> Result<()> {
 }
 
 #[instrument]
-async fn start_agent(repository: &repository::Repository, args: &cli::Args) -> Result<()> {
-    indexing::index_repository(repository, None).await?;
+async fn start_agent(mut repository: repository::Repository, args: &cli::Args) -> Result<()> {
+    repository.config_mut().endless_mode = true;
+
+    indexing::index_repository(&repository, None).await?;
 
     let mut command_responder = CommandResponder::default();
     let responder_for_agent = command_responder.clone();
@@ -136,7 +138,7 @@ async fn start_agent(repository: &repository::Repository, args: &cli::Args) -> R
         .expect("Expected initial query for the agent")
         .to_string();
     let mut agent =
-        agent::build_agent(Uuid::new_v4(), repository, &query, responder_for_agent).await?;
+        agent::build_agent(Uuid::new_v4(), &repository, &query, responder_for_agent).await?;
 
     agent.query(&query).await?;
     handle.abort();
