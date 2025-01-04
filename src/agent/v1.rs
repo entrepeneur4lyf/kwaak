@@ -9,7 +9,7 @@ use swiftide::{
     prompt::Prompt,
     traits::{Command, SimplePrompt, ToolExecutor},
 };
-use tavily::Tavily;
+use tavily::Client;
 use uuid::Uuid;
 
 use super::{
@@ -53,9 +53,8 @@ pub fn available_tools(
     }
 
     if let Some(tavily_api_key) = &repository.config().tavily_api_key {
-        // Client is a bit weird that it needs the api key twice
-        // Maybe roll our own? It's just a rest api
-        let tavily = Tavily::new(tavily_api_key.expose_secret());
+        // Adjustment for constructing Tavily client with updated API
+        let tavily = Client::new(tavily_api_key.expose_secret());
         tools.push(tools::SearchWeb::new(tavily, tavily_api_key.clone()).boxed());
     };
 

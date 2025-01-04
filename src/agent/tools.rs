@@ -281,12 +281,12 @@ impl SearchWeb {
         _context: &dyn AgentContext,
         query: &str,
     ) -> Result<ToolOutput, ToolError> {
-        let mut request = tavily::SearchRequest::new(self.api_key.expose_secret(), query);
-        request.search_depth("advanced");
-        request.include_answer(true);
-        request.include_images(false);
-        request.include_raw_content(false);
-        request.max_results(10);
+        let request = tavily::SearchRequest::new(self.api_key.expose_secret(), query)
+            .search_depth("advanced")
+            .include_answer(true)
+            .include_images(false)
+            .include_raw_content(false)
+            .max_results(10);
 
         let results = self
             .tavily_client
