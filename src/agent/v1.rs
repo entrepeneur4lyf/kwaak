@@ -244,29 +244,30 @@ pub async fn build_agent(
 
 fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
     let mut constraints = vec![
-            "Research your solution before providing it",
-            "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file. Do not make changes other than the ones requested.",
-            "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother",
-            "Your first response to ANY user message, must ALWAYS be your thoughts on how to solve the problem",
-            "When writing code or tests, make sure this is ideomatic for the language",
-            "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
-            "When writing tests, make sure you cover all edge cases",
-            "When writing tests, if a specific test continues to be troublesome, think out of the box and try to solve the problem in a different way, or reset and focus on other tests first",
-            "When writing code, make sure the code runs, tests pass, and is included in the build",
-            "When writing code, make sure all public facing functions, methods, modules, etc are documented ideomatically",
-            "Your changes are automatically added to git, there is no need to commit files yourself",
-            "If you create a pull request, you must ensure the tests pass",
-            "Do NOT rely on your own knowledge, always research and verify!",
-            "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
-            "Verify assumptions you make about the code by researching the actual code first",
-            "If you are stuck, consider using git to undo your changes",
-            "Focus on completing the task fully as requested by the user",
-            "Do not repeat your answers, if they are exactly the same you should probably stop",
-            "Make sure you understand the project layout in terms of files and directories",
-            "Keep a neutral tone, refrain from using superlatives and unnecessary adjectives",
-            "Do NOT remove any existing comments",
-            "If after changing code, the code is no longer used, you can safely remove it"
-        ];
+        "Research your solution before providing it",
+        "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file. Do not make changes other than the ones requested.",
+        "Tool calls are in parallel. You can run multiple tool calls at the same time, but they must not rely on eachother",
+        "Your first response to ANY user message, must ALWAYS be your thoughts on how to solve the problem",
+        "When writing code or tests, make sure this is ideomatic for the language",
+        "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
+        "When writing tests, make sure you cover all edge cases",
+        "When writing tests, if a specific test continues to be troublesome, think out of the box and try to solve the problem in a different way, or reset and focus on other tests first",
+        "When writing code, make sure the code runs, tests pass, and is included in the build",
+        "When writing code, make sure all public facing functions, methods, modules, etc are documented ideomatically",
+        "Your changes are automatically added to git, there is no need to commit files yourself",
+        "If you create a pull request, you must ensure the tests pass",
+        "Do NOT rely on your own knowledge, always research and verify!",
+        "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
+        "Verify assumptions you make about the code by researching the actual code first",
+        "If you are stuck, consider using git to undo your changes",
+        "Focus on completing the task fully as requested by the user",
+        "Do not repeat your answers, if they are exactly the same you should probably stop",
+        "Make sure you understand the project layout in terms of files and directories",
+        "Keep a neutral tone, refrain from using superlatives and unnecessary adjectives",
+        "Do NOT remove any existing comments",
+        "ALWAYS consider existing functionality and code when writing new code. Functionality must remain the same unless explicitly instructed otherwise.",
+        "If after changing code, the code is no longer used, you can safely remove it"
+    ];
 
     if repository.config().endless_mode {
         constraints.push("You cannot ask for feedback and have to try to complete the given task");
