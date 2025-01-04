@@ -126,7 +126,7 @@ impl Default for App<'_> {
         };
 
         // Assume repository can be created in default, or modify appropriately
-        let repository = Repository::from_config(crate::config::Config::default()); // Placeholder
+        let _repository = Repository::from_config(crate::config::Config::default()); // Placeholder
 
         Self {
             skip_indexing: false,
@@ -211,13 +211,13 @@ impl App<'_> {
             .expect("Failed to dispatch command");
     }
 
-    async fn generate_chat_title(&self, repository: &Repository) -> String {
+    async fn generate_chat_title(&self, _repository: &Repository) -> String {
         // Retrieve the SimplePrompt via LLM configuration
-        let prompt_config: Result<Box<dyn SimplePrompt>, _> = repository.config().try_into();
+        let prompt_config: Result<Box<dyn SimplePrompt>, _> = _repository.config().try_into();
 
         if let Ok(llm_provider) = prompt_config {
             // Prepare the prompt with context if necessary
-            let prompt = "Generate a descriptive title for a chat based on initial context.";
+            let prompt = "Generate a descriptive title for a chat based on initial context.".into();
 
             // Call the LLM provider and await response for title generation
             if let Ok(title) = llm_provider.prompt(prompt).await {
@@ -329,8 +329,8 @@ impl App<'_> {
 
     async fn add_chat(&mut self, mut new_chat: Chat) {
         // Generate a title for the new chat
-        let repository = Repository::from_config(crate::config::Config::default()); // Placeholder
-        new_chat.name = self.generate_chat_title(&repository).await;
+        let _repository = Repository::from_config(crate::config::Config::default()); // Placeholder
+        new_chat.name = self.generate_chat_title(&_repository).await;
 
         self.current_chat = new_chat.uuid;
         self.chats.push(new_chat);

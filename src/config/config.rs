@@ -63,7 +63,7 @@ impl Default for Config {
             project_name: default_project_name(),
             language: SupportedLanguages::Rust, // Example for default
             llm: Box::new(LLMConfigurations::Single(LLMConfiguration::OpenAI {
-                api_key: ApiKey::new(SecretString::new("")), // Fix this line
+                api_key: ApiKey::new(SecretString::new("".into())), // Fix this line
                 prompt_model: Default::default(),
                 embedding_model: Default::default(),
                 base_url: None,
