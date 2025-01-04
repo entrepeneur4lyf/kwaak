@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{Context as _, Result};
+use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::treesitter::SupportedLanguages;
-use secrecy::{SecretString};
 
 use super::api_key::ApiKey;
 use super::defaults::{

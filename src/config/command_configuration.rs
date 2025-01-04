@@ -18,7 +18,9 @@ impl Default for CommandConfiguration {
         CommandConfiguration {
             test: "cargo test".to_string(),
             coverage: "cargo tarpaulin".to_string(),
-            lint_and_fix: Some("cargo clippy --fix --allow-dirty --allow-staged && cargo fmt".to_string()),
+            lint_and_fix: Some(
+                "cargo clippy --fix --allow-dirty --allow-staged && cargo fmt".to_string(),
+            ),
         }
     }
 }

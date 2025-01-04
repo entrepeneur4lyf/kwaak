@@ -1,10 +1,10 @@
+use crate::config::Config;
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use swiftide::traits::SimplePrompt;
-use crate::config::Config;
 use swiftide::prompt::Prompt;
+use swiftide::traits::SimplePrompt;
 
 // Define a concrete type that implements SimplePrompt
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,10 +12,12 @@ pub struct ConcretePromptProvider;
 
 #[async_trait]
 impl SimplePrompt for ConcretePromptProvider {
-    async fn prompt(&self, prompt: Prompt) -> Result<String> {
-        // Placeholder: process the prompt and provide a response,
-        // possibly calling an API or utilizing local logic.
-        Ok(format!("Response to: {}", prompt.0))
+    async fn prompt(&self, mut prompt: Prompt) -> Result<String> {
+        // Use with_context_value() if needed for adding specific context
+        // Render the prompt to process and provide a response
+        prompt = prompt.with_context_value("key", "value"); // Example context
+        let rendered_result = prompt.render().await?;
+        Ok(format!("Response to: {rendered_result}"))
     }
 }
 
