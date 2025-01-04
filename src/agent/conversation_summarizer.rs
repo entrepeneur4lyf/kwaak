@@ -80,7 +80,7 @@ impl ConversationSummarizer {
         let available_tools = self
             .available_tools
             .iter()
-            .map(|tool| format!("- **{}**: {}", tool.name(), tool.tool_spec().description))
+            .map(|tool| format!"- **{}**: {}", tool.name(), tool.tool_spec().description)
             .collect::<Vec<String>>()
             .join("\n");
 
@@ -155,4 +155,60 @@ fn filter_messages_since_summary(messages: Vec<ChatMessage>) -> Vec<ChatMessage>
     messages.reverse();
 
     messages
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
+
+    use swiftide::chat_completion::{ChatCompletion, ChatMessage, Tool};
+    use mockall::predicate::*;
+    use mockall::*;
+
+    // Mock struct for ChatCompletion
+    mock! {
+        pub ChatCompletionMock {}
+
+        impl ChatCompletion for ChatCompletionMock {
+            fn complete(&self, messages: &Vec<ChatMessage>) -> Result<Option<ChatMessage>, String>;
+        }
+    }
+
+    #[test]
+    fn test_initialization() {
+        let llm = MockChatCompletionMock::new();
+        let tools: Vec<Box<dyn Tool>> = vec![];
+
+        let summarizer = ConversationSummarizer::new(Box::new(llm), &tools);
+
+        assert!(summarizer.num_completions_since_summary.load(Ordering::SeqCst) == 0);
+    }
+
+    #[test]
+    fn test_completion_tracking() {
+        let mut llm = MockChatCompletionMock::new();
+        let tools: Vec<Box<dyn Tool>> = vec![];
+
+        llm.expect_complete().returning(|_| Ok(None));
+        let summarizer = ConversationSummarizer::new(Box::new(llm), &tools);
+
+        let num_tracking = summarizer.num_completions_since_summary.clone();
+        for _ in 0..NUM_COMPLETIONS_FOR_SUMMARY {
+            summarizer.summarize_hook()(Arc::new(async { None })).now_or_never();
+        }
+
+        assert_eq!(num_tracking.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn test_message_filtering() {
+        let messages = vec![ChatMessage::new_user("1"), ChatMessage::Summary("2"), ChatMessage::new_user("3")];
+        let filtered_messages = filter_messages_since_summary(messages.clone());
+
+        assert_eq!(filtered_messages.len(), 2);
+        assert_eq!(filtered_messages[0], ChatMessage::Summary("2"));
+        assert_eq!(filtered_messages[1], ChatMessage::new_user("3"));
+    }
 }
