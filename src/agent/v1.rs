@@ -1,9 +1,11 @@
 use tavily::Tavily;
 use uuid::Uuid;
+use crate::commands::CommandResponder; // Correct import for CommandResponder
 
-pub fn build_agent(uuid: Uuid, repository: &str, query: &str, responder: Responder) -> Result<Tavily, Box<dyn std::error::Error>> {
+pub fn build_agent(uuid: Uuid, repository: &str, query: &str, responder: CommandResponder) -> Result<Tavily, Box<dyn std::error::Error>> {
     let api_key = std::env::var("TAVILY_API_KEY")?;
     let tavily = Tavily::builder(&api_key).build()?;
+    // Update logic if necessary for including the responder functionality
     Ok(tavily)
 }
 
@@ -12,5 +14,5 @@ pub fn available_tools() -> Result<(), Box<dyn std::error::Error>>{
     Ok(())
 }
 
-// Correct function signatures and arguments based on recent changes to align with caller expectations.
-// Implement actual logic, if needed, to fulfill the intended operations.
+// Ensure function logic and parameter handling aligns with revised APIs and patterns.
+// The CommandResponder is now explicitly included as intended. Apply necessary updates as testing proceeds.
