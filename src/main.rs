@@ -12,7 +12,7 @@ use commands::{CommandResponder, CommandResponse};
 use config::Config;
 use frontend::App;
 use git::github::GithubSession;
-use indexing::{index_repository, query};
+use indexing::repository::index_repository;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -97,7 +97,9 @@ async fn main() -> Result<()> {
             cli::ModeArgs::Index => index_repository(&repository, None).await,
             cli::ModeArgs::TestTool => test_tool(&repository, &args).await,
             cli::ModeArgs::Query => {
-                let result = query(&repository, args.query.expect("Expected a query")).await?;
+                let result = swiftide::query::Pipeline::default()
+                    .then_transform_query(generate_subquestions(&repository, args.query.expect("Expected a query"))).await?;
+                // Temporarily bypass using direct reference from `query`
 
                 println!("{result}");
 
@@ -117,7 +119,7 @@ async fn test_tool(repository: &repository::Repository, args: &cli::Args) -> Res
     let tool_name = args.tool_name.as_ref().expect("Expected a tool name");
     let tool_args = args.tool_args.as_deref();
     let github_session = Arc::new(GithubSession::from_repository(&repository)?);
-    let tool = available_tools(repository, Some(&github_session))?
+    let tool = available_tools()?
         .into_iter()
         .find(|tool| tool.name() == tool_name)
         .context("Tool not found")?;
@@ -136,7 +138,7 @@ async fn test_tool(repository: &repository::Repository, args: &cli::Args) -> Res
 async fn start_agent(mut repository: repository::Repository, args: &cli::Args) -> Result<()> {
     repository.config_mut().endless_mode = true;
 
-    indexing::index_repository(&repository, None).await?;
+    index_repository(&repository, None).await?;
 
     let mut command_responder = CommandResponder::default();
     let responder_for_agent = command_responder.clone();
@@ -150,7 +152,7 @@ async fn start_agent(mut repository: repository::Repository, args: &cli::Args) -
                     }
                 }
                 CommandResponse::ActivityUpdate(.., message) => {
-                    println!(">> {message}");
+                    println!(" >> {message}");
                 }
             }
         }
@@ -162,7 +164,7 @@ async fn start_agent(mut repository: repository::Repository, args: &cli::Args) -
         .expect("Expected initial query for the agent")
         .to_string();
     let mut agent =
-        agent::build_agent(Uuid::new_v4(), &repository, &query, responder_for_agent).await?;
+        agent::build_agent(Uuid::new_v4(), &repository.to_string(), &query, responder_for_agent)?;
 
     agent.query(&query).await?;
     handle.abort();
