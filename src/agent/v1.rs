@@ -1,8 +1,9 @@
-use tavily::Client; // Adjusted import for Tavily Client based on reference expectation
+use tavily::Tavily;
 
-pub fn build_agent() {
-    // Implementation for build_agent
-    println!("Building Agent");
+pub fn build_agent() -> Result<Tavily, Box<dyn std::error::Error>> {
+    let api_key = std::env::var("TAVILY_API_KEY")?;
+    let tavily = Tavily::builder(&api_key).build()?;
+    Ok(tavily)
 }
 
 pub fn available_tools() {
@@ -10,6 +11,4 @@ pub fn available_tools() {
     println!("Tools Available");
 }
 
-// V1 handler implementations and existing, relevant code...
-
-// Adjusted import structure / corrected usage within the tavily library paradigm.
+// Other V1 handler implementations and existing, relevant code...

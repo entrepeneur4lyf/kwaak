@@ -1,4 +1,30 @@
-// Use the adjusted underscore prefix if `request` is truly unused in the final implementation
-let _request = tavily::SearchRequest::new(self.api_key.expose_secret(), query);
+use tavily::Tavily;
+use std::sync::Arc;
 
-// Further existing code after this line...
+pub struct SearchWeb {
+    tavily_client: Arc<Tavily>,
+    api_key: ApiKey,
+}
+
+impl SearchWeb {
+    pub fn new(tavily_client: Tavily, api_key: ApiKey) -> Self {
+        Self {
+            tavily_client: Arc::new(tavily_client),
+            api_key,
+        }
+    }
+
+    async fn search_web(
+        &self,
+        _context: &dyn AgentContext,
+        query: &str,
+    ) -> Result<ToolOutput, ToolError> {
+        let response = self
+            .tavily_client
+            .search(query)
+            .await
+            .map_err(anyhow::Error::from)?;
+
+        Ok(response.into())
+    }
+}
