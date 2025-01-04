@@ -21,6 +21,9 @@ use crate::{
     frontend,
     repository::Repository, // Import repository to access LLM configuration
 };
+
+use strum::IntoEnumIterator;
+
 use swiftide::traits::SimplePrompt;
 
 use super::{chat_mode, logs_mode, UIEvent, UserInputCommand};
@@ -210,7 +213,7 @@ impl App<'_> {
 
     async fn generate_chat_title(&self, repository: &Repository) -> String {
         // Retrieve the SimplePrompt via LLM configuration
-        let prompt_config: Result<swiftide::SimplePrompt, _> = repository.config().try_into();
+        let prompt_config: Result<Box<dyn SimplePrompt>, _> = repository.config().try_into();
 
         if let Ok(llm_provider) = prompt_config {
             // Prepare the prompt with context if necessary
