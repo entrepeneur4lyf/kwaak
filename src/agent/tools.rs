@@ -19,7 +19,7 @@ static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/
 
 /// WARN: Experimental
 #[tool(
-    description = "Run any shell command in the current repository, use this if other tools are not enough.",
+    description = "Run any shell command in the current project, use this if other tools are not enough.",
     param(
         name = "cmd",
         description = "The shell command, including any arguments if needed, to run"
@@ -47,9 +47,9 @@ pub async fn read_file(
 }
 
 #[tool(
-    description = "Write a file, make sure you always write the full file, as the file is overwritten",
+    description = "Write to a file. You MUST ALWAYS include the full file content, including what you did not change, as it overwrites the full file. Only make changes that pertain to your task.",
     param(name = "file_name", description = "Full path of the file"),
-    param(name = "content", description = "Content to write to the file")
+    param(name = "content", description = "FULL Content to write to the file")
 )]
 pub async fn write_file(
     context: &dyn AgentContext,
@@ -66,7 +66,7 @@ pub async fn write_file(
 }
 
 #[tool(
-    description = "Searches for a file, leave the argument empty to list all files",
+    description = "Searches for a file inside the current project, leave the argument empty to list all files. Uses `find`.",
     param(name = "file_name", description = "Partial or full name of the file")
 )]
 pub async fn search_file(
@@ -91,7 +91,7 @@ pub async fn git(context: &dyn AgentContext, command: &str) -> Result<ToolOutput
 }
 
 #[tool(
-    description = "Search code in the project",
+    description = "Search code in the project with ripgrep. Only searches within the current project. For searching code outside the project, use other tools instead.",
     param(
         name = "query",
         description = "Code you would like to find in the repository. Best used for exact search in the code. Uses `ripgrep`."
@@ -105,7 +105,7 @@ pub async fn search_code(context: &dyn AgentContext, query: &str) -> Result<Tool
 
 #[derive(Tool, Clone)]
 #[tool(
-    description = "Search code and documentation in human language in the project",
+    description = "Search code and documentation in human language in the project. Only searches within the current project. If you need help on code outside the current project, use other tools.",
     param(
         name = "query",
         description = "A description, question, or literal code you want to know more about. Uses a semantic similarly search."
@@ -218,7 +218,9 @@ impl CreateOrUpdatePullRequest {
 }
 
 #[derive(Tool, Clone, Debug)]
-#[tool(description = "Runs tests")]
+#[tool(
+    description = "Runs tests in the current project. Run this in favour of coverage, as it is typically faster."
+)]
 pub struct RunTests {
     pub test_command: String,
 }
@@ -239,7 +241,9 @@ impl RunTests {
 }
 
 #[derive(Tool, Clone, Debug)]
-#[tool(description = "Get coverage of tests, this also runs the tests")]
+#[tool(
+    description = "Get coverage of tests, this also runs the tests. Only run this in favour of just the tests if you need coverage, as it is typically slower than running tests."
+)]
 pub struct RunCoverage {
     pub coverage_command: String,
 }
@@ -314,7 +318,7 @@ impl SearchWeb {
 
 #[derive(Tool, Clone)]
 #[tool(
-    description = "Search code in github with the github search api",
+    description = "Search code on github with the github search api. Useful for finding code and documentation that is not otherwise available.",
     param(
         name = "query",
         description = "Github search query (compatible with github search api"
@@ -356,7 +360,7 @@ impl GithubSearchCode {
 }
 
 #[tool(
-    description = "Fetch a url and present it as markdown",
+    description = "Fetch a url and present it as markdown. Useful for fetching content from the web like documentation, code, snippetes, etc. Will also include links and can be used to deeply explore a subject that otherwise cannot be explored.",
     param(name = "url", description = "The url to fetch")
 )]
 pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOutput, ToolError> {
