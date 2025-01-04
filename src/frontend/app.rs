@@ -276,7 +276,7 @@ impl App<'_> {
                     UIEvent::Input(key) => {
                         self.on_key(key);
                     }
-                    UIEvent::Tick => {},
+                    UIEvent::Tick => {}
                     UIEvent::CommandDone(uuid) => {
                         if uuid == self.boot_uuid {
                             has_indexed_on_boot = true;
@@ -321,7 +321,7 @@ impl App<'_> {
 
     async fn add_chat(&mut self, new_chat: &Chat) {
         let _repository = Repository::from_config(crate::config::Config::default()); // Placeholder
-        let md_chat = new_chat.clone();
+        let mut md_chat = new_chat.clone();
         md_chat.name = self.generate_chat_title(&_repository).await;
 
         self.current_chat = md_chat.uuid;
@@ -433,7 +433,7 @@ mod tests {
         let mut app = App::default();
         let chat = Chat::default();
         let first_uuid = app.current_chat;
-        
+
         app.add_chat(&chat).await;
 
         app.next_chat();
