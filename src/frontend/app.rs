@@ -33,8 +33,6 @@ const HEADER: &str = include_str!("ascii_logo");
 
 /// Handles user and TUI interaction
 pub struct App<'a> {
-    // /// The chat input
-    // pub input: String,
     pub text_input: TextArea<'a>,
 
     /// All known chats
@@ -254,11 +252,9 @@ impl App<'_> {
         }
 
         loop {
-            // Draw the UI
             terminal.draw(|f| {
                 if has_indexed_on_boot && splash.is_rendered() {
                     let base_area = self.draw_base_ui(f);
-
                     self.mode.ui(f, base_area, self);
                 } else {
                     splash.render(f);
@@ -272,7 +268,6 @@ impl App<'_> {
                 break;
             }
 
-            // Handle events
             if let Some(event) = self.recv_messages().await {
                 if !matches!(event, UIEvent::Tick | UIEvent::Input(_)) {
                     tracing::debug!("Received ui event: {:?}", event);
@@ -281,9 +276,7 @@ impl App<'_> {
                     UIEvent::Input(key) => {
                         self.on_key(key);
                     }
-                    UIEvent::Tick => {
-                        // Handle periodic tasks if necessary
-                    }
+                    UIEvent::Tick => {},
                     UIEvent::CommandDone(uuid) => {
                         if uuid == self.boot_uuid {
                             has_indexed_on_boot = true;
@@ -304,13 +297,12 @@ impl App<'_> {
                         self.add_chat_message(message);
                     }
                     UIEvent::NewChat => {
-                        await self.add_chat(Chat::default()); // Modify add_chat method to perform async task
+                        await self.add_chat(Chat::default());
                     }
                     UIEvent::NextChat => self.next_chat(),
                     UIEvent::ChangeMode(mode) => self.change_mode(mode),
                     UIEvent::Quit => {
                         tracing::warn!("UI received quit event, quitting");
-
                         self.dispatch_command(&Command::Quit {
                             uuid: self.current_chat,
                         });
@@ -328,7 +320,6 @@ impl App<'_> {
     }
 
     async fn add_chat(&mut self, mut new_chat: Chat) {
-        // Generate a title for the new chat
         let _repository = Repository::from_config(crate::config::Config::default()); // Placeholder
         new_chat.name = self.generate_chat_title(&_repository).await;
 
@@ -388,7 +379,6 @@ impl App<'_> {
         let [top_area, main_area] =
             Layout::vertical([Constraint::Length(6), Constraint::Min(0)]).areas(f.area());
 
-        // Hardcoded tabs length for now to right align
         let [header_area, tabs_area] =
             Layout::horizontal([Constraint::Fill(1), Constraint::Length(24)]).areas(top_area);
 
@@ -424,13 +414,11 @@ impl App<'_> {
 #[allow(clippy::unused_async)]
 async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
     loop {
-        // Poll for input events
         if event::poll(Duration::from_millis(TICK_RATE))? {
             if let crossterm::event::Event::Key(key) = event::read()? {
                 let _ = ui_tx.send(UIEvent::Input(key));
             }
         }
-        // Send a tick event, ignore if the receiver is gone
         let _ = ui_tx.send(UIEvent::Tick);
     }
 }
@@ -445,7 +433,7 @@ mod tests {
         let chat = Chat::default();
         let first_uuid = app.current_chat;
         
-        app.add_chat(chat).await;  // Await the call
+        app.add_chat(chat).await;
 
         app.next_chat();
         assert_eq!(app.current_chat, first_uuid);
