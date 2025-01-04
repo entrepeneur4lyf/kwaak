@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::time::Duration;
-tuse tui_logger::TuiWidgetState;
+use tui_logger::TuiWidgetState;
 use tui_textarea::TextArea;
 use uuid::Uuid;
 
