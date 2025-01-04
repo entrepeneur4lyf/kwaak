@@ -20,6 +20,7 @@ use crate::{
     chat_message::ChatMessage,
     commands::Command,
     frontend,
+    repository::Repository, // Import repository to access LLM configuration
 };
 
 use super::{chat_mode, logs_mode, UIEvent, UserInputCommand};
@@ -204,6 +205,20 @@ impl App<'_> {
             .expect("Failed to dispatch command");
     }
 
+    async fn generate_chat_title(&self, repository: &Repository) -> String {
+        // Retrieve the SimplePrompt via LLM configuration
+        if let Ok(llm_provider) = repository.config().try_into::<Box<dyn SimplePrompt>>() {
+            // Prepare the prompt with context if necessary
+            let prompt = "Generate a descriptive title for a chat based on initial context.";
+
+            // Call the LLM provider and await response for title generation
+            if let Ok(title) = llm_provider.prompt(prompt).await {
+                return title;
+            }
+        }
+        "Untitled Chat".into() // Fallback in case of failure
+    }
+
     fn add_chat_message(&mut self, message: ChatMessage) {
         if message.uuid() == Some(self.boot_uuid) {
             return;
@@ -281,7 +296,7 @@ impl App<'_> {
                         self.add_chat_message(message);
                     }
                     UIEvent::NewChat => {
-                        self.add_chat(Chat::default());
+                        self.add_chat(Chat::default()).await; // Modify add_chat method to perform async task
                     }
                     UIEvent::NextChat => self.next_chat(),
                     UIEvent::ChangeMode(mode) => self.change_mode(mode),
@@ -304,6 +319,16 @@ impl App<'_> {
         Ok(())
     }
 
+    async fn add_chat(&mut self, mut new_chat: Chat) {
+        // Generate a title for the new chat
+        let repository = ...; // Get or pass the repository context
+        new_chat.name = self.generate_chat_title(&repository).await;
+
+        self.current_chat = new_chat.uuid;
+        self.chats.push(new_chat);
+        self.chats_state.select_last();
+    }
+
     fn find_chat_mut(&mut self, uuid: Uuid) -> &mut Chat {
         self.chats
             .iter_mut()
@@ -324,14 +349,6 @@ impl App<'_> {
 
     pub(crate) fn current_chat_mut(&mut self) -> &mut Chat {
         self.find_chat_mut(self.current_chat)
-    }
-
-    fn add_chat(&mut self, mut new_chat: Chat) {
-        new_chat.name = format!("Chat #{}", self.chats.len() + 1);
-
-        self.current_chat = new_chat.uuid;
-        self.chats.push(new_chat);
-        self.chats_state.select_last();
     }
 
     fn next_chat(&mut self) {
