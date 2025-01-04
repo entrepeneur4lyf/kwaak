@@ -25,7 +25,6 @@ impl RuntimeSettings {
         Self { db }
     }
 
-    #[cfg(debug_assertions)]
     pub fn from_db(db: Arc<Redb>) -> Self {
         Self { db }
     }
