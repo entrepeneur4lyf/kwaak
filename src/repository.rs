@@ -7,7 +7,7 @@ use tokio::fs;
 use crate::{config::Config, runtime_settings::RuntimeSettings};
 
 #[derive(Debug, Clone, Display)]
-#[display(fmt = "Repository [path: {}]", path)]
+#[display("Repository [path: {}]", path)]
 pub struct Repository {
     config: Config,
     path: PathBuf,
