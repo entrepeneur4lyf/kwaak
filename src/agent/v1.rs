@@ -280,7 +280,9 @@ async fn rename_chat(
                 .into(),
         )
         .await
-        .context("Could not get chat name")?;
+        .context("Could not get chat name")?
+        .trim_matches('"')
+        .to_string();
 
     command_responder.send_rename(chat_name);
 
