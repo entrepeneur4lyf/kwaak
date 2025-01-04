@@ -44,6 +44,9 @@ mod storage;
 mod templates;
 mod util;
 
+// Include the SimplePrompt implementation
+mod simple_prompt_impl;
+
 #[cfg(test)]
 mod test_utils;
 
