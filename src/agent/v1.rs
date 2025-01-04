@@ -264,6 +264,8 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
             "Do not repeat your answers, if they are exactly the same you should probably stop",
             "Make sure you understand the project layout in terms of files and directories",
             "Keep a neutral tone, refrain from using superlatives and unnecessary adjectives",
+            "Do NOT remove any existing comments",
+            "If after changing code, the code is no longer used, you can safely remove it"
         ];
 
     if repository.config().endless_mode {
