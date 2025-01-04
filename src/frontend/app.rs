@@ -22,6 +22,7 @@ use crate::{
     frontend,
     repository::Repository, // Import repository to access LLM configuration
 };
+use swiftide::traits::SimplePrompt;
 
 use super::{chat_mode, logs_mode, UIEvent, UserInputCommand};
 
@@ -122,6 +123,9 @@ impl Default for App<'_> {
             ..Chat::default()
         };
 
+        // Assume repository can be created in default, or modify appropriately
+        let repository = Repository::from_config(crate::config::Config::default()); // Placeholder
+
         Self {
             skip_indexing: false,
             text_input: new_text_area(),
@@ -207,7 +211,7 @@ impl App<'_> {
 
     async fn generate_chat_title(&self, repository: &Repository) -> String {
         // Retrieve the SimplePrompt via LLM configuration
-        if let Ok(llm_provider) = repository.config().try_into::<Box<dyn SimplePrompt>>() {
+        if let Ok(llm_provider) = repository.config().try_into() {
             // Prepare the prompt with context if necessary
             let prompt = "Generate a descriptive title for a chat based on initial context.";
 
@@ -321,7 +325,7 @@ impl App<'_> {
 
     async fn add_chat(&mut self, mut new_chat: Chat) {
         // Generate a title for the new chat
-        let repository = ...; // Get or pass the repository context
+        let repository = Repository::from_config(crate::config::Config::default()); // Placeholder
         new_chat.name = self.generate_chat_title(&repository).await;
 
         self.current_chat = new_chat.uuid;
