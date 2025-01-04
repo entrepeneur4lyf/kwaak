@@ -4,16 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use swiftide::traits::SimplePrompt;
 use crate::config::Config;
-
-// Define a simple Prompt struct
-#[derive(Debug, Clone, PartialEq)]
-pub struct Prompt(String);
-
-impl Prompt {
-    pub fn new(text: &str) -> Self {
-        Prompt(text.into())
-    }
-}
+use swiftide::prompt::Prompt;
 
 // Define a concrete type that implements SimplePrompt
 #[derive(Debug, Clone, Serialize, Deserialize)]
