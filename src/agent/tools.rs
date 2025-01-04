@@ -1,5 +1,8 @@
 use tavily::Tavily;
 use std::sync::Arc;
+use crate::config::ApiKey;
+use crate::AgentContext;
+use swiftide::chat_completion::{ToolOutput, errors::ToolError};
 
 pub struct SearchWeb {
     tavily_client: Arc<Tavily>,
