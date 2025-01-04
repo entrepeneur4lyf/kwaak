@@ -1,6 +1,5 @@
 use anyhow::Result;
 use std::time::Duration;
-use strum::IntoEnumIterator as _;
 use tui_logger::TuiWidgetState;
 use tui_textarea::TextArea;
 use uuid::Uuid;
@@ -50,7 +49,7 @@ pub struct App<'a> {
     /// Sends commands to the backend
     pub command_tx: Option<mpsc::UnboundedSender<Command>>,
 
-    /// Mode the app is in, manages the which layout is rendered and if it should quit
+    /// Mode the app is in, manages which layout is rendered and if it should quit
     pub mode: AppMode,
 
     /// Tracks the current selected state in the UI
@@ -211,7 +210,9 @@ impl App<'_> {
 
     async fn generate_chat_title(&self, repository: &Repository) -> String {
         // Retrieve the SimplePrompt via LLM configuration
-        if let Ok(llm_provider) = repository.config().try_into() {
+        let prompt_config: Result<swiftide::SimplePrompt, _> = repository.config().try_into();
+
+        if let Ok(llm_provider) = prompt_config {
             // Prepare the prompt with context if necessary
             let prompt = "Generate a descriptive title for a chat based on initial context.";
 
