@@ -56,6 +56,30 @@ pub struct Config {
     pub endless_mode: bool,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            project_name: default_project_name(),
+            language: SupportedLanguages::Rust, // Example for default
+            llm: Box::new(LLMConfigurations::Single(LLMConfiguration::OpenAI {
+                api_key: ApiKey::text(""),
+                prompt_model: Default::default(),
+                embedding_model: Default::default(),
+                base_url: None,
+            })),
+            commands: CommandConfiguration::default(),
+            cache_dir: default_cache_dir(),
+            log_dir: default_log_dir(),
+            indexing_concurrency: default_indexing_concurrency(),
+            docker: DockerConfiguration::default(),
+            github: GithubConfiguration::default(),
+            tavily_api_key: None,
+            tool_executor: SupportedToolExecutors::default(),
+            endless_mode: false,
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum SupportedToolExecutors {
@@ -91,6 +115,17 @@ pub struct GithubConfiguration {
     pub main_branch: String,
 
     pub token: Option<ApiKey>,
+}
+
+impl Default for GithubConfiguration {
+    fn default() -> Self {
+        Self {
+            repository: String::new(),
+            owner: String::new(),
+            main_branch: default_main_branch(),
+            token: None,
+        }
+    }
 }
 
 impl FromStr for Config {
