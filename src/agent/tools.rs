@@ -1,7 +1,7 @@
 use tavily::{Tavily, SearchResponse};
 use std::sync::Arc;
 use crate::config::ApiKey;
-use crate::AgentContext;
+use swiftide::traits::AgentContext;
 use swiftide::chat_completion::{ToolOutput, errors::ToolError};
 
 impl From<SearchResponse> for ToolOutput {

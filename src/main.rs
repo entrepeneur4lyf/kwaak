@@ -2,8 +2,9 @@
 use std::io::{self, stdout};
 use std::panic::{set_hook, take_hook};
 use std::sync::Arc;
+use std::time::Duration;
 
-use agent::built_agent;
+use agent::build_agent;
 use anyhow::{Context as _, Result};
 use clap::Parser;
 use commands::{CommandResponder, CommandResponse};
@@ -21,6 +22,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use swiftide::traits::AgentContext;
 use uuid::Uuid;
 
 mod agent;
@@ -43,42 +45,233 @@ mod util;
 #[cfg(test)]
 mod test_utils;
 
-#[instrument]
-async fn start_tui(repository: &repository::Repository, args: &cli::Args) -> Result<()> {
-    ::tracing::info!("Loaded configuration: {:?}", repository.config());
+#[tokio::main]
+async fn main() -> Result<()> {
+    let args = cli::Args::parse();
 
-    // Setup terminal
-    let mut terminal = init_tui()?;
+    if args.init {
+        if std::fs::metadata("kwaak.toml").is_ok() {
+            println!("kwaak.toml already exists in current directory, skipping initialization");
+            return Ok(());
+        }
+        let config = onboarding::create_template_config()?;
+        std::fs::write("kwaak.toml", config)?;
 
-    // Start the application
-    let mut app = App::default();
-
-    // Adapt implementation for Function Calls, Error handling, and other modes
-
-    tokio::time::sleep(Duration::from_millis(50)).await;
-
-    if let Err(error) = app_result {
-        ::tracing::error!(?error, "Application error such as missing methods or function resolving");
-        std::process::exit(1);
+        println!("Initialized kwaak project in current directory, please review and customize the created `kwaak.toml` file.\n Kwaak also needs a `Dockerfile` to execute your code in, with `ripgrep` and `fd` installed. Refer to https://github.com/bosun-ai/kwaak for an up to date list.");
+        return Ok(());
     }
 
-    ::tracing::info!("Application completed without exit errors");
+    init_panic_hook();
+
+    // Load configuration
+    let config = Config::load(&args.config_path).await?;
+    let repository = repository::Repository::from_config(config);
+
+    if args.print_config {
+        println!("{}", toml::to_string_pretty(repository.config())?);
+        return Ok(());
+    }
+
+    fs::create_dir_all(repository.config().cache_dir()).await?;
+    fs::create_dir_all(repository.config().log_dir()).await?;
+
+    if args.clear_cache {
+        repository.clear_cache().await?;
+        println!("Cache cleared");
+
+        return Ok(());
+    }
+
+    {
+        let _guard = crate::kwaak_tracing::init(&repository)?;
+
+        let _root_span = tracing::info_span!(
+            "main",
+            "otel.name" = format!("main.{}", args.mode.as_ref().to_lowercase())
+        )
+        .entered();
+        match args.mode {
+            cli::ModeArgs::RunAgent => start_agent(repository, &args).await,
+            cli::ModeArgs::Tui => start_tui(&repository, &args).await,
+            cli::ModeArgs::Index => index_repository(&repository, None).await,
+            cli::ModeArgs::TestTool => test_tool(&repository, &args).await,
+            cli::ModeArgs::Query => {
+                let result = query_pipeline(&repository, args.query.expect("Expected a query")).await?;
+
+                println!("{result}");
+
+                Ok(())
+            }
+        }?;
+    }
+
+    if cfg!(feature = "otel") {
+        opentelemetry::global::shutdown_tracer_provider();
+    }
 
     Ok(())
+}
+
+async fn query_pipeline(repository: &repository::Repository, query: &str) -> Result<String> {
+    let context = DefaultContext::default();
+    let result = swiftide::query::Pipeline::default()
+        .then_transform_query(query)
+        .await?;
+
+    Ok(result)
 }
 
 async fn test_tool(repository: &repository::Repository, args: &cli::Args) -> Result<()> {
     let tool_name = args.tool_name.as_ref().expect("Expected a tool name");
     let tool_args = args.tool_args.as_deref();
     let github_session = Arc::new(GithubSession::from_repository(&repository)?);
-    let tool = built_agent.tool().context("Tool not found")?;
+    let tool = available_tools()?
+        .into_iter()
+        .find(|tool| tool.name() == tool_name)
+        .context("Tool not found")?;
 
-    // Integrate error checks & method resolution
+    let agent_context = DefaultContext::default();
 
     let output = tool
-        .invoke(&DefaultContext::default() as &dyn AgentContext, tool_args)
+        .invoke(&agent_context as &dyn AgentContext, tool_args)
         .await?;
     println!("{output}");
 
     Ok(())
 }
+
+#[instrument]
+async fn start_agent(mut repository: repository::Repository, args: &cli::Args) -> Result<()> {
+    repository.config_mut().endless_mode = true;
+
+    index_repository(&repository, None).await?;
+
+    let mut command_responder = CommandResponder::default();
+    let responder_for_agent = command_responder.clone();
+
+    let handle = tokio::spawn(async move {
+        while let Some(response) = command_responder.recv().await {
+            match response {
+                CommandResponse::Chat(message) => {
+                    if let Some(original) = message.original() {
+                        println!("{original}");
+                    }
+                }
+                CommandResponse::ActivityUpdate(.., message) => {
+                    println!(" >> {message}");
+                }
+            }
+        }
+    });
+
+    let query = args
+        .initial_message
+        .as_deref()
+        .expect("Expected initial query for the agent")
+        .to_string();
+    let mut agent =
+        agent::build_agent(Uuid::new_v4(), &repository.to_string(), &query, responder_for_agent)?;
+
+    agent.query(&query).await?;
+    handle.abort();
+    Ok(())
+}
+
+#[instrument]
+async fn start_tui(repository: &repository::Repository, args: &cli::Args) -> Result<()> {
+    ::tracing::info!("Loaded configuration: {:?}", repository.config());
+
+    let mut terminal = init_tui()?;
+
+    let mut app = App::default();
+
+    if args.skip_indexing {
+        app.skip_indexing = true;
+    }
+
+    if cfg!(feature = "test-layout") {
+        app.ui_tx
+            .send(chat_message::ChatMessage::new_user("Hello, show me some markdown!").into())?;
+        app.ui_tx
+            .send(chat_message::ChatMessage::new_system("showing markdown").into())?;
+        app.ui_tx
+            .send(chat_message::ChatMessage::new_assistant(MARKDOWN_TEST).into())?;
+    }
+
+    let app_result = {
+        let mut handler = commands::CommandHandler::from_repository(repository);
+        handler.register_ui(&mut app);
+
+        let _guard = handler.start();
+
+        app.run(&mut terminal).await
+    };
+
+    restore_tui()?;
+    terminal.show_cursor()?;
+
+    if let Err(error) = app_result {
+        ::tracing::error!(?error, "Application error");
+        std::process::exit(1);
+    }
+
+    std::process::exit(0);
+}
+
+pub fn init_tui() -> io::Result<Terminal<impl Backend>> {
+    enable_raw_mode()?;
+    execute!(stdout(), EnterAlternateScreen)?;
+    Terminal::new(CrosstermBackend::new(stdout()))
+}
+
+pub fn restore_tui() -> io::Result<()> {
+    disable_raw_mode()?;
+    execute!(stdout(), LeaveAlternateScreen)?;
+    Ok(())
+}
+
+static MARKDOWN_TEST: &str = r#"
+# Main header
+## Examples
+
+Indexing a local code project, chunking into smaller pieces, enriching the nodes with metadata, and persisting into [Qdrant](https://qdrant.tech):
+
+```rust
+indexing::Pipeline::from_loader(FileLoader::new(".").with_extensions(&["rs"]))
+        .with_default_llm_client(openai_client.clone())
+        .filter_cached(Redis::try_from_url(
+            redis_url,
+            "swiftide-examples",
+        )?)
+        .then_chunk(ChunkCode::try_for_language_and_chunk_size(
+            "rust",
+            10..2048,
+        )?)
+        .then(MetadataQACode::default())
+        .then(move |node| my_own_thing(node))
+        .then_in_batch(Embed::new(openai_client.clone()))
+        .then_store_with(
+            Qdrant::builder()
+                .batch_size(50)
+                .vector_size(1536)
+                .build()?,
+        )
+        .run()
+        .await?;
+```
+
+Querying for an example on how to use the query pipeline:
+
+```rust
+query::Pipeline::default()
+    .then_transform_query(GenerateSubquestions::from_client(
+        openai_client.clone(),
+    ))
+    .then_transform_query(Embed::from_client(
+        openai_client.clone(),
+    ))
+    .then_retrieve(qdrant.clone())
+    .then_answer(Simple::from_client(openai_client.clone()))
+    .query("How can I use the query pipeline in Swiftide?")
+    .await?;
+"#;
