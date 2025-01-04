@@ -297,7 +297,7 @@ impl App<'_> {
                         self.add_chat_message(message);
                     }
                     UIEvent::NewChat => {
-                        await self.add_chat(Chat::default());
+                        self.add_chat(&Chat::default()).await;
                     }
                     UIEvent::NextChat => self.next_chat(),
                     UIEvent::ChangeMode(mode) => self.change_mode(mode),
@@ -319,12 +319,13 @@ impl App<'_> {
         Ok(())
     }
 
-    async fn add_chat(&mut self, mut new_chat: Chat) {
+    async fn add_chat(&mut self, new_chat: &Chat) {
         let _repository = Repository::from_config(crate::config::Config::default()); // Placeholder
-        new_chat.name = self.generate_chat_title(&_repository).await;
+        let md_chat = new_chat.clone();
+        md_chat.name = self.generate_chat_title(&_repository).await;
 
-        self.current_chat = new_chat.uuid;
-        self.chats.push(new_chat);
+        self.current_chat = md_chat.uuid;
+        self.chats.push(md_chat);
         self.chats_state.select_last();
     }
 
@@ -433,7 +434,7 @@ mod tests {
         let chat = Chat::default();
         let first_uuid = app.current_chat;
         
-        app.add_chat(chat).await;
+        app.add_chat(&chat).await;
 
         app.next_chat();
         assert_eq!(app.current_chat, first_uuid);
