@@ -41,6 +41,7 @@ pub enum Command {
 pub enum CommandResponse {
     Chat(ChatMessage),
     ActivityUpdate(Uuid, String),
+    RenameChat(Uuid, String),
 }
 
 #[derive(Debug)]
@@ -66,6 +67,13 @@ impl CommandResponder {
         let _ = self
             .tx
             .send(CommandResponse::ActivityUpdate(self.uuid, state.into()));
+    }
+
+    // TODO: this feels overly specific, but its a real thing
+    pub fn send_rename(&self, name: impl Into<String>) {
+        let _ = self
+            .tx
+            .send(CommandResponse::RenameChat(self.uuid, name.into()));
     }
 
     pub async fn recv(&mut self) -> Option<CommandResponse> {
@@ -346,6 +354,9 @@ impl CommandHandler {
                     }
                     CommandResponse::ActivityUpdate(uuid, state) => {
                         let _ = ui_tx_clone.send(UIEvent::ActivityUpdate(uuid, state));
+                    }
+                    CommandResponse::RenameChat(uuid, name) => {
+                        let _ = ui_tx_clone.send(UIEvent::RenameChat(uuid, name));
                     }
                 }
             }

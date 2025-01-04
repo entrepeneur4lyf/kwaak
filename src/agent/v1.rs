@@ -110,7 +110,8 @@ pub async fn build_agent(
     let tools = available_tools(&repository, github_session.as_ref())?;
 
     let system_prompt = build_system_prompt(&repository)?;
-    let (executor, initial_context) = tokio::try_join!(
+    let ((), executor, initial_context) = tokio::try_join!(
+        rename_chat(&query, &fast_query_provider, &command_responder),
         start_tool_executor(uuid, &repository),
         generate_initial_context(&repository, query)
     )?;
@@ -266,4 +267,22 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
         .constraints(constraints).build()?.into();
 
     Ok(prompt)
+}
+
+async fn rename_chat(
+    query: &str,
+    fast_query_provider: &dyn SimplePrompt,
+    command_responder: &CommandResponder,
+) -> Result<()> {
+    let chat_name = fast_query_provider
+        .prompt(
+            format!("Give a good, short, max 40 chars title for the following query:\n{query}")
+                .into(),
+        )
+        .await
+        .context("Could not get chat name")?;
+
+    command_responder.send_rename(chat_name);
+
+    Ok(())
 }
