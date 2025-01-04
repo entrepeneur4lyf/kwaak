@@ -4,7 +4,6 @@ mod command_configuration;
 mod config;
 pub mod defaults;
 mod llm_configuration;
-mod simple_prompt_impl;
 
 pub use api_key::ApiKey;
 pub use command_configuration::*;
