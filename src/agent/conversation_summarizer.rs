@@ -15,6 +15,7 @@ use swiftide::{
     chat_completion::{ChatCompletion, ChatMessage, Tool},
 };
 use tracing::Instrument as _;
+use futures_util::future::FutureExt;
 
 const NUM_COMPLETIONS_FOR_SUMMARY: usize = 10;
 
@@ -80,7 +81,7 @@ impl ConversationSummarizer {
         let available_tools = self
             .available_tools
             .iter()
-            .map(|tool| format!"- **{}**: {}", tool.name(), tool.tool_spec().description)
+            .map(|tool| format!("- **{}**: {}", tool.name(), tool.tool_spec().description))
             .collect::<Vec<String>>()
             .join("\n");
 
@@ -204,11 +205,11 @@ mod tests {
 
     #[test]
     fn test_message_filtering() {
-        let messages = vec![ChatMessage::new_user("1"), ChatMessage::Summary("2"), ChatMessage::new_user("3")];
+        let messages = vec![ChatMessage::new_user("1".to_string()), ChatMessage::Summary("2".to_string()), ChatMessage::new_user("3".to_string())];
         let filtered_messages = filter_messages_since_summary(messages.clone());
 
         assert_eq!(filtered_messages.len(), 2);
-        assert_eq!(filtered_messages[0], ChatMessage::Summary("2"));
-        assert_eq!(filtered_messages[1], ChatMessage::new_user("3"));
+        assert_eq!(filtered_messages[0], ChatMessage::Summary("2".to_string()));
+        assert_eq!(filtered_messages[1], ChatMessage::new_user("3".to_string()));
     }
 }
