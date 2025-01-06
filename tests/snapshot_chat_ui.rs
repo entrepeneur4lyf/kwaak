@@ -1,4 +1,5 @@
 use crate::chat::Chat;
+use crate::chat_message::ChatMessage;
 use crate::frontend::app::App;
 use crate::frontend::chat_mode::ui;
 use insta::assert_snapshot;
