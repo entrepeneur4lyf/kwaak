@@ -189,12 +189,15 @@ After each chat completion, kwaak will lint, commit, and push the code to the re
 ## Troubleshooting & FAQ
 
 **Q:** Kwaak feels very slow
+
 **A:** Try increasing the resources available for docker. For docker desktop this is in Settings -> Resources -> Advanced. On MacOS, adding your terminal and/or kwaak to developer tools can also help.
 
 **Q:**: There was an error during a chat, have I lost all progress?
+
 **A:** Kwaak commits and pushes to the remote repository after each completion, so you should be able to recover the changes.
 
 **Q:** I get a redb/lancedb error when starting, what is up?
+
 **A**: Possibly your index got corrupted. Try clearing the index with `kwaak clear-index` and restart kwaak. Note that this will require a reindexing of your codebase.
 
 ## Community
