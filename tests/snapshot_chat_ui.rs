@@ -1,8 +1,7 @@
 use insta::assert_snapshot;
 use kwaak::chat::Chat;
-use kwaak::chat_message::{ChatMessage, ChatMessageBuilder};
+use kwaak::chat_message::ChatMessageBuilder;
 use kwaak::frontend::app::App;
-use kwaak::frontend::chat_mode::ui;
 use ratatui::backend::TestBackend;
 use ratatui::{Terminal, TerminalOptions};
 
@@ -18,7 +17,8 @@ fn snapshot_test_chat_ui() {
     terminal
         .draw(|f| {
             let size = f.area();
-            ui::ui(f, size, &mut app);
+            // Assuming correct UI function is defined
+            kwaak::frontend::chat_mode::ui::ui(f, size, &mut app);
         })
         .unwrap();
 
@@ -29,8 +29,8 @@ fn snapshot_test_chat_ui() {
     assert_snapshot!(rendered_ui);
 }
 
-impl App {
-    fn add_chat(&mut self, name: &str, messages: Vec<&str>) {
+impl App<'_> {
+    pub fn add_chat(&mut self, name: &str, messages: Vec<&str>) {
         let chat = Chat {
             name: name.to_string(),
             messages: messages
@@ -39,7 +39,7 @@ impl App {
                     ChatMessageBuilder::default()
                         .content(msg.to_string())
                         .build()
-                        .unwrap()
+                        .expect("Failed to build chat message")
                 })
                 .collect(),
             ..Default::default()
