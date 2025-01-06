@@ -1,8 +1,8 @@
 use crate::config::{
-    defaults::{default_main_branch, default_owner_and_repo, default_project_name},
-    Config,
+    defaults::{default_main_branch, default_project_name},
+    Config, GithubConfiguration,
 };
-use crate::{repository::Repository, templates::Templates};
+use crate::repository::Repository;
 
 // Define TestGuard as a struct with a tempdir field
 pub struct TestGuard {
@@ -17,9 +17,13 @@ pub fn test_repository() -> (Repository, TestGuard) {
 
     // Create a default config or adjust as needed
     let config = Config {
-        main_branch: default_main_branch(),
-        owner_and_repo: default_owner_and_repo(),
         project_name: default_project_name(),
+        github: GithubConfiguration {
+            repository: "test-repo".into(),
+            owner: "test-owner".into(),
+            main_branch: default_main_branch(),
+            token: None,
+        },
         ..Default::default() // Ensure Config has a Default implementation or provide required fields
     };
 
