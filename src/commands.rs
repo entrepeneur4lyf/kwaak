@@ -173,6 +173,7 @@ impl RunningAgent {
     }
 
     pub async fn stop(&self) {
+        self.handle.abort();
         self.agent.lock().await.stop();
     }
 }
@@ -319,12 +320,11 @@ impl CommandHandler {
             return Ok(());
         };
 
-        self.send_ui_event(
-            ChatMessage::new_system("Agent will finish its current completions and stop")
-                .uuid(uuid),
-        );
-
+        // TODO: If this fails inbetween tool calls and responses, the agent will be stuck
+        // Perhaps something to re-align it?
         agent.stop().await;
+
+        self.send_ui_event(ChatMessage::new_system("Agent stopped").uuid(uuid));
         Ok(())
     }
 
