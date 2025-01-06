@@ -157,7 +157,7 @@ impl GithubSession {
             .unwrap()
             .replace(pull_request.clone());
 
-        Ok(pull_request);
+        Ok(pull_request)
     }
 }
 
