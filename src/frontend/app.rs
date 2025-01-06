@@ -22,7 +22,7 @@ use crate::{
     frontend,
 };
 
-use super::{chat_mode, logs_mode, UIEvent, UserInputCommand};
+use super::{chat_mode::ui, logs_mode, UIEvent, UserInputCommand};
 
 const TICK_RATE: u64 = 250;
 const HEADER: &str = include_str!("ascii_logo");
