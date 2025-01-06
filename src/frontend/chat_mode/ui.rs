@@ -87,8 +87,8 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .content_length(current_chat.num_lines);
 
     // Max scroll to halfway view-height of last content
-    if current_chat.vertical_scroll >= current_chat.num_lines {
-        current_chat.vertical_scroll = current_chat.num_lines.saturating_sub(view_height / 2);
+    if current_chat.vertical_scroll >= current_chat.num_lines.saturating_sub(1) {
+        current_chat.vertical_scroll = current_chat.num_lines.saturating_sub(1);
     }
 
     // Unify borders
@@ -105,7 +105,7 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     #[allow(clippy::cast_possible_truncation)]
     let chat_messages = Paragraph::new(chat_content)
         .block(message_block)
-        .wrap(Wrap { trim: false })
+        // .wrap(Wrap { trim: false })
         .scroll((current_chat.vertical_scroll as u16, 0));
 
     f.render_widget(chat_messages, area);

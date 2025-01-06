@@ -64,17 +64,18 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
             let Some(current_chat) = app.current_chat_mut() else {
                 return;
             };
-            let num_lines = current_chat.num_lines;
+            // Keep the last 10 lines in view
+            let scroll_position = current_chat.num_lines.saturating_sub(10);
 
-            current_chat.vertical_scroll = num_lines;
+            current_chat.vertical_scroll = scroll_position;
             current_chat.vertical_scroll_state =
-                current_chat.vertical_scroll_state.position(num_lines);
+                current_chat.vertical_scroll_state.position(scroll_position);
         }
         KeyCode::PageDown => {
             let Some(current_chat) = app.current_chat_mut() else {
                 return;
             };
-            current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(1);
+            current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
             current_chat.vertical_scroll_state = current_chat
                 .vertical_scroll_state
                 .position(current_chat.vertical_scroll);
@@ -83,7 +84,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
             let Some(current_chat) = app.current_chat_mut() else {
                 return;
             };
-            current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(1);
+            current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
             current_chat.vertical_scroll_state = current_chat
                 .vertical_scroll_state
                 .position(current_chat.vertical_scroll);
