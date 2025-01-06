@@ -68,7 +68,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67555e1f1ece39d737e28c8a017721287753af3f93225e4a445b29ccb0f5912c"
 dependencies = [
  "nom",
- "ratatui 0.29.0",
+ "ratatui",
  "simdutf8",
  "smallvec",
  "thiserror 1.0.69",
@@ -1350,19 +1350,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "unicode-width 0.2.0",
-]
-
-[[package]]
-name = "compact_str"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f86b9c4c00838774a6d902ef931eff7470720c51d90c2e32cfe15dc304737b3f"
-dependencies = [
- "castaway",
- "cfg-if",
- "itoa",
- "ryu",
- "static_assertions",
 ]
 
 [[package]]
@@ -3441,7 +3428,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "predicates",
- "ratatui 0.29.0",
+ "ratatui",
  "ratatui-splash-screen",
  "redb",
  "regex",
@@ -3468,7 +3455,6 @@ dependencies = [
  "tracing-subscriber",
  "tui-logger",
  "tui-markdown",
- "tui-scrollview",
  "tui-textarea",
  "url",
  "uuid",
@@ -5310,33 +5296,13 @@ checksum = "f60fcc7d6849342eff22c4350c8b9a989ee8ceabc4b481253e8946b9fe83d684"
 
 [[package]]
 name = "ratatui"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d16546c5b5962abf8ce6e2881e722b4e0ae3b6f1a08a26ae3573c55853ca68d3"
-dependencies = [
- "bitflags 2.6.0",
- "cassowary",
- "compact_str 0.7.1",
- "itertools 0.13.0",
- "lru",
- "paste",
- "stability",
- "strum",
- "strum_macros",
- "unicode-segmentation",
- "unicode-truncate",
- "unicode-width 0.1.14",
-]
-
-[[package]]
-name = "ratatui"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eabd94c2f37801c20583fc49dd5cd6b0ba68c716787c2dd6ed18571e1e63117b"
 dependencies = [
  "bitflags 2.6.0",
  "cassowary",
- "compact_str 0.8.1",
+ "compact_str",
  "crossterm",
  "indoc",
  "instability",
@@ -5356,7 +5322,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80deb90f97b9032cfa23d27e62110f194275f083895729abe447d60b4dca8588"
 dependencies = [
  "image",
- "ratatui 0.29.0",
+ "ratatui",
  "sha256",
 ]
 
@@ -5580,44 +5546,14 @@ dependencies = [
 
 [[package]]
 name = "rstest"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9afd55a67069d6e434a95161415f5beeada95a01c7b815508a82dcb0e1593682"
-dependencies = [
- "futures",
- "futures-timer",
- "rstest_macros 0.21.0",
- "rustc_version",
-]
-
-[[package]]
-name = "rstest"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a2c585be59b6b5dd66a9d2084aa1d8bd52fbdb806eafdeffb52791147862035"
 dependencies = [
  "futures",
  "futures-timer",
- "rstest_macros 0.23.0",
+ "rstest_macros",
  "rustc_version",
-]
-
-[[package]]
-name = "rstest_macros"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4165dfae59a39dd41d8dec720d3cbfbc71f69744efb480a3920f5d4e0cc6798d"
-dependencies = [
- "cfg-if",
- "glob",
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "regex",
- "relative-path",
- "rustc_version",
- "syn 2.0.95",
- "unicode-ident",
 ]
 
 [[package]]
@@ -6324,16 +6260,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stability"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d904e7009df136af5297832a3ace3370cd14ff1546a232f4f185036c2736fcac"
-dependencies = [
- "quote",
- "syn 2.0.95",
-]
-
-[[package]]
 name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7002,7 +6928,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d36b5738d666a2b4c91b7c24998a8588db724b3107258343ebf8824bf55b06d"
 dependencies = [
  "rand",
- "ratatui 0.29.0",
+ "ratatui",
 ]
 
 [[package]]
@@ -7493,7 +7419,7 @@ dependencies = [
  "lazy_static",
  "log",
  "parking_lot",
- "ratatui 0.29.0",
+ "ratatui",
  "tracing",
  "tracing-subscriber",
 ]
@@ -7508,21 +7434,10 @@ dependencies = [
  "itertools 0.13.0",
  "pretty_assertions",
  "pulldown-cmark 0.12.2",
- "ratatui 0.29.0",
- "rstest 0.23.0",
+ "ratatui",
+ "rstest",
  "syntect",
  "tracing",
-]
-
-[[package]]
-name = "tui-scrollview"
-version = "0.3.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27c5097e5278f3222bfcdd236bf3e81a98fd76be956093e2cc760be5cde1177b"
-dependencies = [
- "indoc",
- "ratatui 0.27.0",
- "rstest 0.21.0",
 ]
 
 [[package]]
@@ -7532,7 +7447,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a5318dd619ed73c52a9417ad19046724effc1287fb75cdcc4eca1d6ac1acbae"
 dependencies = [
  "crossterm",
- "ratatui 0.29.0",
+ "ratatui",
  "unicode-width 0.2.0",
 ]
 
