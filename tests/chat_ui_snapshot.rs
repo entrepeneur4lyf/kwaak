@@ -1,8 +1,8 @@
-use crate::frontend::chat_mode::ui;
-use crate::frontend::App;
+use crate::src::frontend::chat_mode::ui;
+use crate::src::frontend::App;
 use insta::assert_snapshot;
-use ratatui::layout::Rect;
-use ratatui::{backend::TestBackend, Buffer, Frame, Terminal};
+use ratatui::prelude::Buffer;
+use ratatui::{backend::TestBackend, Terminal};
 
 #[test]
 fn test_chat_ui_snapshot() {
@@ -16,7 +16,7 @@ fn test_chat_ui_snapshot() {
     // Set up a frame
     terminal
         .draw(|f| {
-            let size = f.size();
+            let size = f.area();
             ui(f, size, &mut app);
         })
         .expect("Failed to draw into terminal");
@@ -25,7 +25,7 @@ fn test_chat_ui_snapshot() {
     let buffer = terminal.backend().buffer().clone();
 
     // Convert buffer to a comparable format (e.g., String)
-    let buffer_as_string = buffer.to_string();
+    let buffer_as_string = format!("{:?}", buffer);
 
     // Use insta to snapshot the buffer state
     assert_snapshot!("chat_ui_snapshot", buffer_as_string);
