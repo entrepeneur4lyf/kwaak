@@ -140,7 +140,7 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 }
 
 fn format_chat_in_list(chat: &Chat) -> ListItem {
-    let suffix = if chat.is_loading() { " ..." } else { "" };
+    let prefix = if chat.is_loading() { "..." } else { "" };
 
     let new_message_count = if chat.new_message_count > 0 {
         format!(" ({})", chat.new_message_count)
@@ -149,7 +149,8 @@ fn format_chat_in_list(chat: &Chat) -> ListItem {
     };
 
     ListItem::from(format!(
-        "{name}{suffix}{new_message_count}",
+        "{prefix}{name}{new_message_count}",
+        prefix = prefix,
         name = chat.name
     ))
 }
