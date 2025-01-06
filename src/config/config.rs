@@ -60,6 +60,26 @@ pub struct Config {
     pub otel_enabled: bool,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            project_name: default_project_name(),
+            language: SupportedLanguages::Rust, // Assuming Rust as default
+            llm: Box::new(LLMConfigurations::Single(LLMConfiguration::default())),
+            commands: CommandConfiguration::default(),
+            cache_dir: default_cache_dir(),
+            log_dir: default_log_dir(),
+            indexing_concurrency: default_indexing_concurrency(),
+            docker: DockerConfiguration::default(),
+            github: GithubConfiguration::default(),
+            tavily_api_key: None,
+            tool_executor: SupportedToolExecutors::Docker, // Set default to Docker
+            endless_mode: false,
+            otel_enabled: default_otel_enabled(),
+        }
+    }
+}
+
 fn default_otel_enabled() -> bool {
     false
 }
@@ -89,7 +109,7 @@ impl Default for DockerConfiguration {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GithubConfiguration {
     // TODO: Repo and owner can probably be derived from the origin url
     // Personally would prefer an onboarding that prefils instead of inferring at runtime
