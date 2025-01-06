@@ -264,7 +264,7 @@ mod tests {
     }
 
     async fn setup() -> TestContext {
-        let config = Config::default(); // Create a default or appropriate config
+        let config = crate::config::Config::default(); // Create a default or appropriate config
         let (repository, guard) = test_utils::test_repository(&config);
 
         let tempfile = guard.tempdir.path().join("test_file");

@@ -66,7 +66,7 @@ mod tests {
 
     #[test_log::test]
     fn test_set_and_get() {
-        let config = config::config::Config::default(); // Correctly import Config
+        let config = crate::config::Config::default(); // Correctly import Config
         let (repository, _guard) = test_utils::test_repository(&config);
         let runtime_settings = RuntimeSettings::from_repository(&repository);
 
@@ -84,7 +84,7 @@ mod tests {
 
     #[test_log::test]
     fn test_with_non_string() {
-        let config = config::config::Config::default(); // Correctly import Config
+        let config = crate::config::Config::default(); // Correctly import Config
         let (repository, _guard) = test_utils::test_repository(&config);
         let runtime_settings = RuntimeSettings::from_repository(&repository);
 
