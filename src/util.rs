@@ -1,59 +1,20 @@
-use swiftide::traits::{CommandError, CommandOutput};
+use anyhow::Result;
+use reqwest;
+use semver::Version;
 
-pub fn strip_markdown_tags(text: &str) -> String {
-    if text.starts_with("```markdown") && text.ends_with("```") {
-        text[12..text.len() - 3].trim().to_string()
-    } else {
-        text.to_string()
-    }
+/// Fetches the latest version of `kwaak` by checking a remote server or API.
+/// This implementation is just a stub. Replace the URL and adjust the logic according
+/// to the actual service API you will be using.
+async fn fetch_latest_version() -> Result<Version> {
+    let url = "https://api.github.com/repos/your-repo/kwaak/releases/latest";
+    let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
+    let version_str = response["tag_name"].as_str().unwrap();
+    Ok(Version::parse(version_str.trim_start_matches('v'))?)
 }
 
-// TODO: Would be nice if this was a method on a custom result in swiftide
-pub fn accept_non_zero_exit(
-    result: Result<CommandOutput, CommandError>,
-) -> Result<CommandOutput, CommandError> {
-    match result {
-        Ok(output) | Err(CommandError::NonZeroExit(output)) => Ok(output),
-        Err(err) => Err(err),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_strip_markdown_tags() {
-        // Case: String with surrounding ```markdown tags
-        let input = "```markdown\nThis is a test.\n```";
-        let expected = "This is a test.";
-        assert_eq!(strip_markdown_tags(input), expected);
-
-        // Case: String without surrounding ```markdown tags
-        let input = "This is a test.";
-        let expected = "This is a test.";
-        assert_eq!(strip_markdown_tags(input), expected);
-
-        // Case: Empty string
-        let input = "";
-        let expected = "";
-        assert_eq!(strip_markdown_tags(input), expected);
-
-        // Case: String with only opening ```markdown tag
-        let input = "```markdown\nThis is a test.";
-        let expected = "```markdown\nThis is a test.";
-        assert_eq!(strip_markdown_tags(input), expected);
-
-        // Case: String with only closing ``` tag
-        let input = "This is a test.\n```";
-        let expected = "This is a test.\n```";
-        assert_eq!(strip_markdown_tags(input), expected);
-
-        // Case: Raw string
-        let input = r"```markdown
-        This is a test.
-        ```";
-        let expected = "This is a test.";
-        assert_eq!(strip_markdown_tags(input), expected);
-    }
+/// Checks if the current application version is outdated.
+async fn is_version_outdated(current_version: &str) -> Result<bool> {
+    let latest_version = fetch_latest_version().await?;
+    let current_version = Version::parse(current_version)?;
+    Ok(current_version < latest_version)
 }
