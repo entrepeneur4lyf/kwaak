@@ -1,5 +1,5 @@
-use crate::frontend::chat_mode::ui;
-use crate::frontend::App;
+use frontend::chat_mode::ui;
+use frontend::App;
 use insta::assert_snapshot;
 use ratatui::{backend::TestBackend, Terminal};
 
