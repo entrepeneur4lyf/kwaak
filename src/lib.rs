@@ -3,8 +3,8 @@ mod chat;
 mod chat_message;
 mod cli;
 mod commands;
-mod config; // Ensure config is included
-            // Export frontend module
+pub mod config; // Make config public
+
 pub mod frontend;
 mod git;
 mod indexing;
