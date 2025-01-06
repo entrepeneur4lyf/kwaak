@@ -1,8 +1,6 @@
-use crate::{
-    config::defaults::{default_main_branch, default_owner_and_repo, default_project_name},
-    templates::Templates,
-};
+use crate::templates::Templates;
 use anyhow::{Context as _, Result};
+use config::defaults::{default_main_branch, default_owner_and_repo, default_project_name};
 use serde_json::json;
 use swiftide::integrations::treesitter::SupportedLanguages;
 
@@ -89,6 +87,6 @@ mod test {
         std::env::set_var("KWAAK_GITHUB_TOKEN", "test");
         let config = create_template_config().unwrap();
 
-        toml::from_str::<crate::config::Config>(&config).unwrap();
+        toml::from_str::<config::Config>(&config).unwrap();
     }
 }
