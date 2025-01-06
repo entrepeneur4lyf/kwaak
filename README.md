@@ -67,9 +67,11 @@
 
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
-Always wanted to run a team of AI agents locally from your own machine? Improve test coverage, write documentation, or improve code quality, while you focus on building the cool stuff? Kwaak enables you to run a team of autonomous AI agents right from your terminal.
+Always wanted to run a team of AI agents locally from your own machine? Write code, improve test coverage, update documentation, or improve code quality, while you focus on building the cool stuff? Kwaak enables you to run a team of autonomous AI agents right from your terminal, **in parallel**.
 
+<p align="center">
 ![demo](./images/demo.gif)
+</p>
 
 Powered by [Swiftide](https://github.com/bosun-ai/swiftide), Kwaak is aware of your codebase and can answer questions about your code, find examples, write and execute code, create pull requests, and more. Unlike other tools, Kwaak is focussed on autonomous agents, and can run multiple agents at the same time.
 
@@ -165,7 +167,7 @@ Kwaak provides a chat interface similar to other LLM chat applications. You can 
 
 When starting a chat, the code of the current branch is copied into a on-the-fly created docker container. This container is then used to run the code and execute the commands.
 
-After each chat completion, kwaak will lint, commit, and push the code to the remote repository if any code changes have been made. Kwaak can also create a pull request and will include the full conversation history in the pull request.
+After each chat completion, kwaak will lint, commit, and push the code to the remote repository if any code changes have been made. Kwaak can also create a pull request. Pull requests include an issue link to #48. This helps us identify the success rate of the agents, and also enforces transparency for code reviewers.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -175,11 +177,23 @@ After each chat completion, kwaak will lint, commit, and push the code to the re
 
 - Support for more LLMs
 - Tools for code documentation
-- Different and specialized agents
+- More sources for additional context
+- ... and more! (we don't really have a roadmap, but we have a lot of ideas)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
+
+## Troubleshooting & FAQ
+
+**Q:** Kwaak feels very slow
+**A:** Try increasing the resources available for docker. For docker desktop this is in Settings -> Resources -> Advanced. On MacOS, adding your terminal and/or kwaak to developer tools can also help.
+
+**Q:**: There was an error during a chat, have I lost all progress?
+**A:** Kwaak commits and pushes to the remote repository after each completion, so you should be able to recover the changes.
+
+**Q:** I get a redb/lancedb error when starting, what is up?
+**A**: Possibly your index got corrupted. Try clearing the index with `kwaak clear-index` and restart kwaak. Note that this will require a reindexing of your codebase.
 
 ## Community
 
