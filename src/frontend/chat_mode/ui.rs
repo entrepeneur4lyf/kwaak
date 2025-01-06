@@ -10,6 +10,7 @@ use ratatui::{
 use crate::chat::{Chat, ChatState};
 use crate::frontend::App;
 
+// Fixing incorrect import reference
 use crate::frontend::chat_mode::message_formatting::format_chat_message;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
