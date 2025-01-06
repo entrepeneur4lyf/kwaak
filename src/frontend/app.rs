@@ -347,7 +347,7 @@ impl App<'_> {
         self.find_chat_mut(self.current_chat)
     }
 
-    fn add_chat(&mut self, mut new_chat: Chat) {
+    pub fn add_chat(&mut self, mut new_chat: Chat) {
         new_chat.name = format!("Chat #{}", self.chats.len() + 1);
 
         self.current_chat = new_chat.uuid;
