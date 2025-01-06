@@ -113,8 +113,8 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     // Render scrollbar
     f.render_stateful_widget(
         Scrollbar::new(ScrollbarOrientation::VerticalRight)
-            .begin_symbol(Some("\u2191"))
-            .end_symbol(Some("\u2193")),
+            .begin_symbol(Some("\u{2191}"))
+            .end_symbol(Some("\u{2193}")),
         area,
         &mut current_chat.vertical_scroll_state,
     );
