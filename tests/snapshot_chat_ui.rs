@@ -1,6 +1,6 @@
 use insta::assert_snapshot;
 use kwaak::chat::Chat;
-use kwaak::chat_message::ChatMessage;
+use kwaak::chat_message::{ChatMessage, ChatMessageBuilder};
 use kwaak::frontend::app::App;
 use kwaak::frontend::chat_mode::ui;
 use ratatui::backend::TestBackend;
@@ -35,7 +35,12 @@ impl App {
             name: name.to_string(),
             messages: messages
                 .into_iter()
-                .map(|msg| ChatMessage::new_user(msg.to_string()))
+                .map(|msg| {
+                    ChatMessageBuilder::default()
+                        .content(msg.to_string())
+                        .build()
+                        .unwrap()
+                })
                 .collect(),
             ..Default::default()
         };
