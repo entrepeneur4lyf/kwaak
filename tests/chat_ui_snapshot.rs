@@ -1,6 +1,6 @@
-use crate::chat::{Chat, ChatState};
-use crate::chat_message::ChatMessage;
 use insta::assert_snapshot;
+use kwaak::chat::{Chat, ChatState};
+use kwaak::chat_message::ChatMessage;
 use uuid::Uuid;
 
 #[test]
