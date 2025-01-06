@@ -1,6 +1,7 @@
 language = "rust"
 tavily_api_key = "env:TAVILY_API_KEY"
 tool_executor = "docker"
+otel_enabled = true
 
 [commands]
 test = "RUST_LOG=kwaak=debug,swiftide=debug RUST_BACKTRACE=1 cargo test --no-fail-fast --color=never"
