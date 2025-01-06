@@ -10,7 +10,7 @@ use redb::TableDefinition;
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::redb::Redb;
 
-use crate::{repository::Repository, storage};
+use crate::{repository::Repository, storage, config::config::Config};
 
 const TABLE: TableDefinition<&str, &str> = TableDefinition::new("runtime_settings");
 
@@ -66,7 +66,8 @@ mod tests {
 
     #[test_log::test]
     fn test_set_and_get() {
-        let (repository, _guard) = test_utils::test_repository();
+        let config = Config::default(); // Create a default or appropriate config
+        let (repository, _guard) = test_utils::test_repository(&config);
         let runtime_settings = RuntimeSettings::from_repository(&repository);
 
         let key = "test_key";
@@ -83,7 +84,8 @@ mod tests {
 
     #[test_log::test]
     fn test_with_non_string() {
-        let (repository, _guard) = test_utils::test_repository();
+        let config = Config::default(); // Create a default or appropriate config
+        let (repository, _guard) = test_utils::test_repository(&config);
         let runtime_settings = RuntimeSettings::from_repository(&repository);
 
         let key = "test_key";
