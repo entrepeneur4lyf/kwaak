@@ -1,7 +1,7 @@
-use crate::chat::Chat;
-use crate::chat_message::ChatMessage;
-use crate::frontend::app::App;
-use crate::frontend::chat_mode::ui;
+use chat::Chat;
+use chat_message::ChatMessage;
+use frontend::app::App;
+use frontend::chat_mode::ui;
 use insta::assert_snapshot;
 use ratatui::backend::TestBackend;
 use ratatui::{Terminal, TerminalOptions};
