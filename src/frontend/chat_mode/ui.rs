@@ -79,11 +79,7 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 
     // We need to consider the available area height to calculate how much can be shown
     let view_height = area.height as usize;
-
     current_chat.num_lines = chat_content.lines.len();
-    if current_chat.num_lines >= current_chat.num_lines.saturating_sub(view_height / 2) {
-        current_chat.num_lines = current_chat.num_lines.saturating_sub(view_height / 2);
-    }
 
     // Record the number of lines in the chat for multi line scrolling
     current_chat.vertical_scroll_state = current_chat
@@ -92,7 +88,7 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 
     // Max scroll to halfway view-height of last content
     if current_chat.vertical_scroll >= current_chat.num_lines {
-        current_chat.vertical_scroll = current_chat.num_lines;
+        current_chat.vertical_scroll = current_chat.num_lines.saturating_sub(view_height / 2);
     }
 
     // Unify borders
