@@ -12,3 +12,15 @@ pub struct CommandConfiguration {
     #[serde(default)]
     pub lint_and_fix: Option<String>,
 }
+
+impl Default for CommandConfiguration {
+    fn default() -> Self {
+        CommandConfiguration {
+            test: String::from("cargo test"),          // Default test command
+            coverage: String::from("cargo tarpaulin"), // Default coverage command
+            lint_and_fix: Some(String::from(
+                "cargo clippy --fix --allow-dirty --allow-staged && cargo fmt",
+            )), // Default lint & fix
+        }
+    }
+}

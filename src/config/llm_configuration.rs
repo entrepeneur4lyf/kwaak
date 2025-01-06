@@ -50,6 +50,17 @@ pub enum LLMConfiguration {
     // },
 }
 
+impl Default for LLMConfiguration {
+    fn default() -> Self {
+        LLMConfiguration::OpenAI {
+            api_key: ApiKey("default_api_key".into()), // Adjust this as needed
+            prompt_model: OpenAIPromptModel::default(),
+            embedding_model: OpenAIEmbeddingModel::default(),
+            base_url: None,
+        }
+    }
+}
+
 impl LLMConfiguration {
     pub(crate) fn vector_size(&self) -> i32 {
         match self {
