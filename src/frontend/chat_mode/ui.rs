@@ -1,10 +1,10 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{HighlightSpacing, List, ListItem, Padding, StatefulWidget, Wrap};
+use ratatui::widgets::{HighlightSpacing, List, ListItem, Padding, StatefulWidget, Wrap}; // Ensure StatefulWidget is employed where required
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
 };
-use tui_scrollview::{ScrollView, ScrollViewState}; // Removed EventResult
+use tui_scrollview::{ScrollView, ScrollViewState};
 
 use crate::chat::{Chat, ChatState};
 use crate::frontend::App;
@@ -123,7 +123,7 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     let mut scrollview_state = ScrollViewState::default();
     let size = (100, 10).into(); // Example size, adapt as needed
     let mut scroll_view = ScrollView::new(size);
-    scroll_view.render(area, f.buffer_mut(), &mut scrollview_state);
+    ScrollView::render(scroll_view, area, f.buffer_mut(), &mut scrollview_state); // Correct render method via StatefulWidget
 
     // We continue to use list's stateful widget rendering
     f.render_stateful_widget(list, area, &mut app.chats_state);
