@@ -9,8 +9,8 @@ pub struct TestGuard {
 
 impl From<&Config> for Repository {
     fn from(config: &Config) -> Self {
-        // Adjust the dereferencing of config
-        Repository::from_config(*config.clone())
+        // Correct use of Config without dereferencing
+        Repository::from_config(config.clone())
     }
 }
 
