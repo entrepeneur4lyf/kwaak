@@ -1,10 +1,10 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{HighlightSpacing, List, ListItem, Padding, Wrap};
+use ratatui::widgets::{HighlightSpacing, List, ListItem, Padding, StatefulWidget, Wrap};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
 };
-use tui_scrollview::{EventResult, ScrollView, ScrollViewState}; // Added EventResult for handling events
+use tui_scrollview::{ScrollView, ScrollViewState}; // Removed EventResult
 
 use crate::chat::{Chat, ChatState};
 use crate::frontend::App;
