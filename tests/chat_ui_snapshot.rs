@@ -1,6 +1,6 @@
 use insta::assert_snapshot;
 use kwaak::chat::{Chat, ChatState};
-use kwaak::chat_message::{ChatMessage, ChatRole};
+use kwaak::chat_message::{ChatMessage, ChatRole as OtherChatRole}; // Aliased to avoid conflicts
 use uuid::Uuid;
 
 #[test]
@@ -33,18 +33,20 @@ fn test_chat_ui_snapshot() {
     assert_snapshot!(format!("{:?}", chat));
 }
 
-impl ChatMessage {
-    pub fn new_user(content: &str) -> Self {
-        ChatMessage {
-            content: content.to_string(),
-            role: ChatRole::User,
-            ..Default::default()
-        }
-    }
-}
+// impl ChatMessage {
+//     pub fn new_user(content: &str) -> Self {
+//         ChatMessage {
+//             content: content.to_string(),
+//             role: OtherChatRole::User,
+//             ..Default::default()
+//         }
+//     }
+// }
+
+// Removed to resolve issues with inherent implementation
 
 #[derive(Debug, Clone, Default)]
-pub enum ChatRole {
+pub enum CustomChatRole {
     #[default]
     User,
 }
