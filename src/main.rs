@@ -1,7 +1,7 @@
 #![recursion_limit = "256"] // Temporary fix so tracing plays nice with lancedb
 use std::{
     io::{self, stdout},
-    panic::{set_hook, take_hook},
+    panic::{self, set_hook, take_hook},
     sync::Arc,
 };
 
@@ -65,6 +65,15 @@ async fn main() -> Result<()> {
     // Load configuration
     let config = Config::load(&args.config_path).await?;
     let repository = repository::Repository::from_config(config);
+
+    if panic::catch_unwind(|| {
+        storage::get_redb(&repository);
+    })
+    .is_err()
+    {
+        eprintln!("Failed to load database; are you running more than one kwaak on a project?");
+        std::process::exit(1);
+    }
 
     fs::create_dir_all(repository.config().cache_dir()).await?;
     fs::create_dir_all(repository.config().log_dir()).await?;
