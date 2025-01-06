@@ -1,8 +1,8 @@
-use chat::Chat;
-use chat_message::ChatMessage;
-use frontend::app::App;
-use frontend::chat_mode::ui;
 use insta::assert_snapshot;
+use kwaak::chat::Chat;
+use kwaak::chat_message::ChatMessage;
+use kwaak::frontend::app::App;
+use kwaak::frontend::chat_mode::ui;
 use ratatui::backend::TestBackend;
 use ratatui::{Terminal, TerminalOptions};
 
