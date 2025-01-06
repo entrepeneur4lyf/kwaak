@@ -19,6 +19,7 @@ impl Repository {
         }
     }
 
+    #[must_use]
     pub fn path(&self) -> &PathBuf {
         &self.path
     }
@@ -27,6 +28,7 @@ impl Repository {
         &mut self.path
     }
 
+    #[must_use]
     pub fn config(&self) -> &Config {
         &self.config
     }
@@ -40,6 +42,7 @@ impl Repository {
         Ok(())
     }
 
+    #[must_use]
     pub fn runtime_settings(&self) -> RuntimeSettings {
         RuntimeSettings::from_repository(self)
     }
