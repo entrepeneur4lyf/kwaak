@@ -84,7 +84,7 @@ impl<'a> ToolSummarizer<'a> {
             String::new()
         };
 
-        indoc::formatdoc!(
+        let prompt = indoc::formatdoc!(
             "
             # Goal
             Reformat the following tool output such that it is effective for a chatgpt agent to work with. Only include the reformatted output in your response.
@@ -117,6 +117,10 @@ impl<'a> ToolSummarizer<'a> {
                 available in the conversation. For instance, running a command to fix linting can also be fixed by writing to that file without errors.
             * If the tool output has repeating patterns, only include the pattern once and state
              that it happens multiple times.
-            ", tool_name = tool.name(), tool_description = tool.tool_spec().description, tool_args = tool_call.args().unwrap_or_default(), tool_output = tool_output.content().unwrap_or_default()).into()
+            ", tool_name = tool.name(), tool_description = tool.tool_spec().description, tool_args = tool_call.args().unwrap_or_default(), tool_output = tool_output.content().unwrap_or_default());
+
+        // Escape any accidental jinja style formatting
+        // Shouldn't be an issue in latest swiftide though, but just in case
+        prompt.replace('{', "\\{").into()
     }
 }
