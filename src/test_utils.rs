@@ -15,8 +15,16 @@ pub fn test_repository() -> (Repository, TestGuard) {
     // and create a TestGuard with a tempfile::TempDir
     let tempdir = tempfile::TempDir::new().expect("Failed to create tempdir");
 
-    // Stub repository creation logic
-    let repository = Repository::new(tempdir.path()).expect("Failed to create repository");
+    // Create a default config or adjust as needed
+    let config = Config {
+        main_branch: default_main_branch(),
+        owner_and_repo: default_owner_and_repo(),
+        project_name: default_project_name(),
+        ..Default::default() // Ensure Config has a Default implementation or provide required fields
+    };
+
+    // Use from_config instead of new
+    let repository = Repository::from_config(config);
 
     (repository, TestGuard { tempdir })
 }
