@@ -81,8 +81,8 @@ pub enum AppMode {
 impl AppMode {
     fn on_key(self, app: &mut App, key: KeyEvent) {
         match self {
-            // Updated on_key function reference
-            AppMode::Chat => chat_mode::on_key(app, key),
+            // Correct import for on_key
+            AppMode::Chat => on_key(app, key),
             AppMode::Logs => logs_mode::on_key(app, key),
             AppMode::Quit => (),
         }
@@ -90,8 +90,8 @@ impl AppMode {
 
     fn ui(self, f: &mut ratatui::Frame, area: Rect, app: &mut App) {
         match self {
-            // Updated ui function reference
-            AppMode::Chat => chat_mode::ui(f, area, app),
+            // Correct import for ui
+            AppMode::Chat => ui(f, area, app),
             AppMode::Logs => logs_mode::ui(f, area, app),
             AppMode::Quit => (),
         }

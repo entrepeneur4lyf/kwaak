@@ -10,8 +10,8 @@ use ratatui::{
 use crate::chat::{Chat, ChatState};
 use crate::frontend::App;
 
-// Fixing incorrect import reference
-use crate::frontend::chat_mode::message_formatting::format_chat_message;
+// Corrected import for message formatting
+use crate::frontend::chat_mode::message_formatting;
 
 pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     // Create the main layout (vertical)
@@ -72,7 +72,7 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
     let messages = current_chat.messages.clone();
     let chat_content: Text = messages
         .iter()
-        .flat_map(|m| format_chat_message(current_chat, m))
+        .flat_map(|m| message_formatting::format_chat_message(current_chat, m))
         .collect();
 
     // Since we are rendering the chat, we can reset the new message count
