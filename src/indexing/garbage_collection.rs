@@ -10,9 +10,7 @@ use swiftide::{
     traits::Persist,
 };
 
-use crate::{
-    config::config::Config, repository::Repository, runtime_settings::RuntimeSettings, storage,
-};
+use crate::{repository::Repository, runtime_settings::RuntimeSettings, storage};
 
 const LAST_CLEANED_UP_AT: &str = "last_cleaned_up_at";
 
@@ -253,7 +251,6 @@ mod tests {
         traits::{NodeCache, Persist},
     };
 
-    use crate::config::config::Config;
     use crate::test_utils::{self, TestGuard};
 
     use super::*;
