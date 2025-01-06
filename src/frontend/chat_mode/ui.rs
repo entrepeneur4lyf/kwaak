@@ -1,6 +1,6 @@
 use ratatui::prelude::*;
 use ratatui::widgets::{
-    HighlightSpacing, List, ListItem, Padding, Scrollbar, ScrollbarOrientation, Wrap,
+    HighlightSpacing, List, ListItem, Padding, Scrollbar, ScrollbarOrientation,
 };
 use ratatui::{
     layout::{Constraint, Direction, Layout},
