@@ -1,34 +1,17 @@
-use crate::config::{
-    defaults::{default_main_branch, default_project_name},
-    Config, GithubConfiguration,
-};
-use crate::repository::Repository;
+extern crate tempfile;
 
-// Define TestGuard as a struct with a tempdir field
+use std::path::PathBuf;
+use tempfile::TempDir;
+
 pub struct TestGuard {
-    pub tempdir: tempfile::TempDir, // Assuming tempfile crate is used for temporary directories
+    pub tempdir: TempDir,
 }
 
-// Function to create a test repository and return it along with a TestGuard
-pub fn test_repository() -> (Repository, TestGuard) {
-    // Implement the setup logic for a test repository
-    // and create a TestGuard with a tempfile::TempDir
-    let tempdir = tempfile::TempDir::new().expect("Failed to create tempdir");
-
-    // Create a default config or adjust as needed
-    let config = Config {
-        project_name: default_project_name(),
-        github: GithubConfiguration {
-            repository: "test-repo".into(),
-            owner: "test-owner".into(),
-            main_branch: default_main_branch(),
-            token: None,
-        },
-        ..Default::default() // Ensure Config has a Default implementation or provide required fields
-    };
-
-    // Use from_config instead of new
-    let repository = Repository::from_config(config);
-
+pub fn test_repository(config: &crate::config::Config) -> (crate::git::Repository, TestGuard) {
+    let tempdir = TempDir::new().expect("Failed to create tempdir");
+    let repo_path = tempdir.path().join("repo");
+    std::fs::create_dir(&repo_path).expect("Failed to create repo directory");
+    let repository = crate::git::Repository::from_config(config, &repo_path)
+        .expect("Failed to create test repository");
     (repository, TestGuard { tempdir })
 }
