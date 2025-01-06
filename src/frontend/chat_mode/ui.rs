@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
 };
-use tui_scrollview::{ScrollView, ScrollViewState};
+use tui_scrollview::{EventResult, ScrollView, ScrollViewState}; // Added EventResult for handling events
 
 use crate::chat::{Chat, ChatState};
 use crate::frontend::App;
