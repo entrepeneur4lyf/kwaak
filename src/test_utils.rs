@@ -1,13 +1,22 @@
-use crate::repository::Repository;
+use crate::config::{
+    defaults::{default_main_branch, default_owner_and_repo, default_project_name},
+    Config,
+};
+use crate::{repository::Repository, templates::Templates};
 
-// Placeholder for the TestGuard struct definition
-type TestGuard = (); // Adjust the type or structure according to its usage requirements
-
-pub fn test_repository() -> (Repository, TestGuard) {
-    // Implement the logic needed to create and return a test repository
-    // and a corresponding test guard.
-    // This placeholder should ideally set up a temporary repository for testing.
-    unimplemented!("Implement the setup logic for a test repository and guard.")
+// Define TestGuard as a struct with a tempdir field
+pub struct TestGuard {
+    pub tempdir: tempfile::TempDir, // Assuming tempfile crate is used for temporary directories
 }
 
-// Additional test utility functions can be added here as necessary.
+// Function to create a test repository and return it along with a TestGuard
+pub fn test_repository() -> (Repository, TestGuard) {
+    // Implement the setup logic for a test repository
+    // and create a TestGuard with a tempfile::TempDir
+    let tempdir = tempfile::TempDir::new().expect("Failed to create tempdir");
+
+    // Stub repository creation logic
+    let repository = Repository::new(tempdir.path()).expect("Failed to create repository");
+
+    (repository, TestGuard { tempdir })
+}
