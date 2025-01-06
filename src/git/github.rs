@@ -12,7 +12,7 @@ use serde_json::json;
 use swiftide::chat_completion::ChatMessage;
 use url::Url;
 
-use crate::{config::ApiKey, repository::Repository, templates::Templates};
+use crate::{config::config::Config, config::ApiKey, repository::Repository, templates::Templates};
 
 #[derive(Debug)]
 pub struct GithubSession {
