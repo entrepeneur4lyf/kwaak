@@ -200,6 +200,16 @@ async fn start_tui(repository: &repository::Repository, args: &cli::Args) -> Res
         app.run(&mut terminal).await
     };
 
+    // Check for version updates
+    if util::is_version_outdated("0.1.9").await.unwrap_or(false) {
+        let chat_message = chat_message::ChatMessage::new_system(
+            "A new version of kwaak is available. Please update to the latest version.",
+        )
+        .build();
+        let mut chat = chat::Chat::default();
+        chat.add_message(chat_message);
+    }
+
     restore_tui()?;
     terminal.show_cursor()?;
 
