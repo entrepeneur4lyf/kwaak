@@ -1,10 +1,11 @@
+use crate::frontend::app::App;
 use crate::frontend::chat_mode::ui;
-use crate::App;
+use async_openai::Chat;
 use insta::assert_snapshot;
 use ratatui::backend::TestBackend;
 use ratatui::prelude::*;
-use ratatui::terminal::{Terminal, TerminalOptions};
 use ratatui::Frame;
+use ratatui::Terminal;
 
 #[test]
 fn snapshot_test_chat_ui() {
@@ -14,7 +15,7 @@ fn snapshot_test_chat_ui() {
 
     // Render the UI
     let backend = TestBackend::new(80, 24);
-    let mut terminal = Terminal::new_with_options(backend, TerminalOptions::default()).unwrap();
+    let mut terminal = Terminal::with_options(backend, TerminalOptions::default()).unwrap();
     terminal
         .draw(|f| {
             let size = f.size();
@@ -23,9 +24,7 @@ fn snapshot_test_chat_ui() {
         .unwrap();
 
     // Capture the rendered UI
-    let mut frame = Frame::default();
-    ui::ui(&mut frame, terminal.size().unwrap(), &mut app);
-    let rendered_ui = format!("{:?}", frame);
+    let rendered_ui = format!("{:?}", terminal.backend_mut().as_ref());
 
     // Assert snapshot
     assert_snapshot!(rendered_ui);
