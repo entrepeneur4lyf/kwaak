@@ -6,6 +6,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
 };
+use tui_scrollview::ScrollView;
 
 use crate::chat::{Chat, ChatState};
 use crate::frontend::App;
@@ -121,11 +122,9 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 }
 
 fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
-    let list: List = app
-        .chats
-        .iter()
-        .map(format_chat_in_list)
-        .collect::<List>()
+    let list_items: Vec<ListItem> = app.chats.iter().map(format_chat_in_list).collect();
+
+    let list = List::new(list_items)
         .highlight_spacing(HighlightSpacing::Always)
         .highlight_style(Style::default().fg(Color::Yellow).bg(Color::DarkGray))
         .block(
@@ -136,7 +135,11 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
                 .padding(Padding::right(1)),
         );
 
-    f.render_stateful_widget(list, area, &mut app.chats_state);
+    let scroll_view = ScrollView::from(list)
+        .scrollbar_orientation(ScrollbarOrientation::Horizontal)
+        .scroll_pos(0);
+
+    f.render_stateful_widget(scroll_view, area, &mut app.chats_state);
 }
 
 fn format_chat_in_list(chat: &Chat) -> ListItem {
