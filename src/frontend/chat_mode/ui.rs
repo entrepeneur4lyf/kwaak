@@ -119,13 +119,14 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
                 .padding(Padding::right(1)),
         );
 
-    // Create a state for the ScrollView
+    // Adjust view to use ScrollView with expected size handling
     let mut scrollview_state = ScrollViewState::default();
+    let size = (100, 10).into(); // Example size, adapt as needed
+    let mut scroll_view = ScrollView::new(size);
+    scroll_view.render(area, f.buffer_mut(), &mut scrollview_state);
 
-    let mut scroll_view = ScrollView::new((100, 10)); // Size is hypothetical here
-    scroll_view.render_stateful_widget(list, area, &mut scrollview_state);
-
-    f.render_stateful_widget(scroll_view, area, &mut app.chats_state);
+    // We continue to use list's stateful widget rendering
+    f.render_stateful_widget(list, area, &mut app.chats_state);
 }
 
 fn format_chat_in_list(chat: &Chat) -> ListItem {
