@@ -9,10 +9,9 @@ pub struct TestGuard {
 
 impl From<&Config> for Repository {
     fn from(config: &Config) -> Self {
-        // implement the logic to create a Repository from a Config
-        Repository {
-            // initialization logic goes here
-        }
+        // Implement the logic to create a Repository from a Config
+        // The repository struct needs to be updated with the correct initialization logic
+        Repository::from_config(config) // Ensure this function is correctly implemented in `Repository`
     }
 }
 
