@@ -1,12 +1,10 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{
-    HighlightSpacing, List, ListItem, Padding, Scrollbar, ScrollbarOrientation, Wrap,
-};
+use ratatui::widgets::{HighlightSpacing, List, ListItem, Padding, Wrap};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
 };
-use tui_scrollview::ScrollView;
+use tui_scrollview::{ScrollView, ScrollViewState};
 
 use crate::chat::{Chat, ChatState};
 use crate::frontend::App;
@@ -18,8 +16,7 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     let [main_area, bottom_area] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0), // Main area
-            // Constraint::Length(5), // User input bar (2 lines)
+            Constraint::Min(0),    // Main area
             Constraint::Length(2), // Commands display area
         ])
         .areas(area);
@@ -54,7 +51,6 @@ pub fn ui(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
     render_help(f, app, help_area);
 
     // Bottom paragraph with the git branch, right aligned italic
-
     Paragraph::new(Line::from(vec![Span::raw(format!(
         "kwaak/{}",
         app.current_chat
@@ -75,24 +71,21 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .flat_map(|m| format_chat_message(current_chat, m))
         .collect();
 
-    // Since we are rendering the chat, we can reset the new message count
+    // Reset new message count after rendering
     current_chat.new_message_count = 0;
 
-    // We need to consider the available area height to calculate how much can be shown
     let view_height = area.height as usize;
     current_chat.num_lines = chat_content.lines.len();
 
-    // Record the number of lines in the chat for multi line scrolling
+    // Update vertical scroll state
     current_chat.vertical_scroll_state = current_chat
         .vertical_scroll_state
         .content_length(current_chat.num_lines);
 
-    // Max scroll to halfway view-height of last content
     if current_chat.vertical_scroll >= current_chat.num_lines {
         current_chat.vertical_scroll = current_chat.num_lines.saturating_sub(view_height / 2);
     }
 
-    // Unify borders
     let border_set = symbols::border::Set {
         top_right: symbols::line::NORMAL.horizontal_down,
         ..symbols::border::PLAIN
@@ -110,15 +103,6 @@ fn render_chat_messages(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .scroll((current_chat.vertical_scroll as u16, 0));
 
     f.render_widget(chat_messages, area);
-
-    // Render scrollbar
-    f.render_stateful_widget(
-        Scrollbar::new(ScrollbarOrientation::VerticalRight)
-            .begin_symbol(Some("↑"))
-            .end_symbol(Some("↓")),
-        area,
-        &mut current_chat.vertical_scroll_state,
-    );
 }
 
 fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
@@ -135,9 +119,11 @@ fn render_chat_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
                 .padding(Padding::right(1)),
         );
 
-    let scroll_view = ScrollView::from(list)
-        .scrollbar_orientation(ScrollbarOrientation::Horizontal)
-        .scroll_pos(0);
+    // Create a state for the ScrollView
+    let mut scrollview_state = ScrollViewState::default();
+
+    let mut scroll_view = ScrollView::new((100, 10)); // Size is hypothetical here
+    scroll_view.render_stateful_widget(list, area, &mut scrollview_state);
 
     f.render_stateful_widget(scroll_view, area, &mut app.chats_state);
 }
@@ -183,15 +169,8 @@ fn render_input_bar(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         return block.render(area, f.buffer_mut());
     }
 
-    // let input = Paragraph::new(app.input.as_str()).block(block);
     app.text_input.set_block(block);
     f.render_widget(&app.text_input, area);
-    // Set cursor position
-    // f.set_cursor_position(
-    //     // Put cursor past the end of the input text
-    //     #[allow(clippy::cast_possible_truncation)]
-    //     (area.x + app.input.len() as u16 + 1, area.y + 1),
-    // );
 }
 
 fn render_help(f: &mut ratatui::Frame, app: &App, area: Rect) {
@@ -222,10 +201,6 @@ fn render_help(f: &mut ratatui::Frame, app: &App, area: Rect) {
     )
     .render(top, f.buffer_mut());
 
-    let border_set = symbols::border::Set {
-        top_right: symbols::line::NORMAL.vertical_left,
-        ..symbols::border::PLAIN
-    };
     Paragraph::new(
         [
             "Page Up/Down - Scroll",
@@ -244,7 +219,6 @@ fn render_help(f: &mut ratatui::Frame, app: &App, area: Rect) {
         Block::default()
             .title("Keybindings".bold())
             .title_alignment(Alignment::Center)
-            .border_set(border_set)
             .borders(Borders::TOP | Borders::RIGHT | Borders::BOTTOM)
             .padding(Padding::uniform(1)),
     )
