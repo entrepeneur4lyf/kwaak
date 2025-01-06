@@ -4,7 +4,7 @@ mod ui_command;
 mod ui_event;
 
 /// Different frontend ui modes
-mod chat_mode;
+pub mod chat_mode;
 mod logs_mode;
 
 /// Let's be very strict about what to export
