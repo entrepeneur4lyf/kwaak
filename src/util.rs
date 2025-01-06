@@ -13,7 +13,7 @@ async fn fetch_latest_version() -> Result<Version> {
 }
 
 /// Checks if the current application version is outdated.
-async fn is_version_outdated(current_version: &str) -> Result<bool> {
+pub async fn is_version_outdated(current_version: &str) -> Result<bool> {
     let latest_version = fetch_latest_version().await?;
     let current_version = Version::parse(current_version)?;
     Ok(current_version < latest_version)
