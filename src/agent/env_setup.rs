@@ -8,9 +8,9 @@ use swiftide::traits::Command;
 use swiftide::traits::ToolExecutor;
 use uuid::Uuid;
 
+use crate::config::SupportedToolExecutors;
 use crate::git::github::GithubSession;
 use crate::repository::Repository;
-use config::SupportedToolExecutors;
 
 pub struct EnvSetup<'a> {
     uuid: Uuid,
@@ -83,8 +83,7 @@ impl EnvSetup<'_> {
         Ok(())
     }
 
-    // NOTE: Git branch is currently hardcoded to `kwaak/{uuid}` in the frontend, using the same
-    // uuid as the chat
+    // NOTE: Git branch is currently hardcoded to `kwaak/{uuid}` in the frontend, using the same uuid as the chat
     async fn switch_to_work_branch(&self) -> Result<()> {
         let branch_name = format!("kwaak/{}", self.uuid);
         let cmd = Command::shell(format!("git checkout -b {branch_name}"));
