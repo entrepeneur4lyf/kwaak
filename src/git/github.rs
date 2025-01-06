@@ -12,7 +12,7 @@ use serde_json::json;
 use swiftide::chat_completion::ChatMessage;
 use url::Url;
 
-use crate::{config::ApiKey, repository::Repository, templates::Templates, config::config::Config};
+use crate::{config::config::Config, config::ApiKey, repository::Repository, templates::Templates};
 
 #[derive(Debug)]
 pub struct GithubSession {
@@ -157,7 +157,7 @@ impl GithubSession {
             .unwrap()
             .replace(pull_request.clone());
 
-        Ok(pull_request)
+        Ok(pull_request);
     }
 }
 
@@ -172,7 +172,39 @@ const MAX_TOOL_RESPONSE_LENGTH: usize = 2048;
 #[allow(dead_code)]
 fn format_message(message: &ChatMessage) -> serde_json::Value {
     let role = match message {
-        ChatMessage::User(_) => "
+        ChatMessage::User(_) => "User",
+        ChatMessage::System(_) => "System",
+        ChatMessage::Summary(_) => "Summary",
+        ChatMessage::Assistant(..) => "Assistant",
+        ChatMessage::ToolOutput(..) => "Tool Output",
+    };
+    let content = match message {
+        ChatMessage::User(msg) | ChatMessage::System(msg) | ChatMessage::Summary(msg) => {
+            msg.to_string()
+        }
+        ChatMessage::Assistant(msg, tool_calls) => {
+            let mut msg = msg.as_deref().unwrap_or_default().to_string();
+
+            if let Some(tool_calls) = tool_calls {
+                msg.push_str("\nTool calls: \n");
+                for tool_call in tool_calls {
+                    let mut tool_call = format!("{tool_call}\n");
+                    tool_call.truncate(MAX_TOOL_CALL_LENGTH);
+                    msg.push_str(&tool_call);
+                }
+            }
+
+            msg
+        }
+        ChatMessage::ToolOutput(tool_call, tool_output) => {
+            let mut msg = format!("{tool_call} => {tool_output}");
+            msg.truncate(MAX_TOOL_RESPONSE_LENGTH);
+            msg
+        }
+    };
+
+    serde_json::json!({
+        "role": role,
         "content": content,
     })
 }

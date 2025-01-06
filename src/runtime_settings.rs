@@ -10,7 +10,7 @@ use redb::TableDefinition;
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::redb::Redb;
 
-use crate::{repository::Repository, storage, config::config::Config};
+use crate::{config::config::Config, repository::Repository, storage};
 
 const TABLE: TableDefinition<&str, &str> = TableDefinition::new("runtime_settings");
 
