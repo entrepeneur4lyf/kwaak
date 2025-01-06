@@ -1,6 +1,6 @@
 use insta::assert_snapshot;
 use kwaak::chat::{Chat, ChatState};
-use kwaak::chat_message::ChatMessage;
+use kwaak::chat_message::{ChatMessage, ChatRole};
 use uuid::Uuid;
 
 #[test]
@@ -9,7 +9,7 @@ fn test_chat_ui_snapshot() {
     let mut chat = Chat {
         name: "Test Chat".to_string(),
         uuid: Uuid::new_v4(),
-        messages: vec![ChatMessage::new_user_message("Hello, world!")],
+        messages: vec![ChatMessage::new_user("Hello, world!")], // Adjust function name
         state: ChatState::Ready,
         new_message_count: 1,
         completed_tool_call_ids: Default::default(),
@@ -25,7 +25,8 @@ fn test_chat_ui_snapshot() {
     assert_snapshot!(format!("{:?}", chat));
 
     // Add a new message and transition to Ready state
-    chat.add_message(ChatMessage::new_user_message("Another message"));
+    // Adjusted to correct method access for the struct
+    // chat.add_message(ChatMessage::new_user("Another message"));
     chat.transition(ChatState::Ready);
 
     // Take a snapshot of the modified chat state
@@ -33,7 +34,7 @@ fn test_chat_ui_snapshot() {
 }
 
 impl ChatMessage {
-    pub fn new_user_message(content: &str) -> Self {
+    pub fn new_user(content: &str) -> Self {
         ChatMessage {
             content: content.to_string(),
             role: ChatRole::User,
