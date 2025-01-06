@@ -10,7 +10,9 @@ use swiftide::{
     traits::Persist,
 };
 
-use crate::{repository::Repository, runtime_settings::RuntimeSettings, storage};
+use crate::{
+    config::config::Config, repository::Repository, runtime_settings::RuntimeSettings, storage,
+};
 
 const LAST_CLEANED_UP_AT: &str = "last_cleaned_up_at";
 
@@ -251,6 +253,7 @@ mod tests {
         traits::{NodeCache, Persist},
     };
 
+    use crate::config::config::Config;
     use crate::test_utils::{self, TestGuard};
 
     use super::*;
@@ -264,7 +267,8 @@ mod tests {
     }
 
     async fn setup() -> TestContext {
-        let (repository, guard) = test_utils::test_repository();
+        let config = Config::default(); // Create a default or appropriate config
+        let (repository, guard) = test_utils::test_repository(&config);
 
         let tempfile = guard.tempdir.path().join("test_file");
         std::fs::write(&tempfile, "Test node").unwrap();
