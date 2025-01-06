@@ -3,7 +3,8 @@ mod chat;
 mod chat_message;
 mod cli;
 mod commands;
-// Export frontend module
+mod config; // Ensure config is included
+            // Export frontend module
 pub mod frontend;
 mod git;
 mod indexing;
@@ -17,4 +18,5 @@ mod test_utils;
 mod util;
 
 // Re-export frontend components
-pub use frontend::*;
+pub use config::*;
+pub use frontend::*; // Explicitly expose config modules
