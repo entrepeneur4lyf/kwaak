@@ -1,6 +1,6 @@
 use kwaak::chat::Chat;
 use kwaak::commands::{Command, CommandHandler};
-use kwaak::frontend::{App, UIEvent};
+use kwaak::frontend::App;
 use tempfile::TempDir;
 use uuid::Uuid;
 

@@ -43,7 +43,7 @@ pub enum LLMConfiguration {
 impl Default for LLMConfiguration {
     fn default() -> Self {
         LLMConfiguration::OpenAI {
-            api_key: ApiKey::new("default_api_key"), // Assume a constructor for ApiKey
+            api_key: ApiKey::new("default_api_key".into()), // Assume a constructor for ApiKey
             prompt_model: Default::default(),
             embedding_model: Default::default(),
             base_url: None,
