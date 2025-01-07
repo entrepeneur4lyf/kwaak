@@ -13,8 +13,10 @@ use tavily::Tavily;
 use uuid::Uuid;
 
 use super::{
-    conversation_summarizer::ConversationSummarizer, env_setup::EnvSetup,
-    tool_summarizer::ToolSummarizer, tools,
+    conversation_summarizer::ConversationSummarizer,
+    env_setup::{self, EnvSetup},
+    tool_summarizer::ToolSummarizer,
+    tools,
 };
 use crate::{
     commands::CommandResponder, config::SupportedToolExecutors, git::github::GithubSession,
@@ -31,6 +33,7 @@ async fn generate_initial_context(repository: &Repository, query: &str) -> Resul
 pub fn available_tools(
     repository: &Repository,
     github_session: Option<&Arc<GithubSession>>,
+    agent_env: Option<&env_setup::Env>,
 ) -> Result<Vec<Box<dyn Tool>>> {
     let query_pipeline = indexing::build_query_pipeline(repository)?;
 
@@ -56,6 +59,10 @@ pub fn available_tools(
         let tavily = Tavily::builder(tavily_api_key.expose_secret()).build()?;
         tools.push(tools::SearchWeb::new(tavily, tavily_api_key.clone()).boxed());
     };
+
+    if let Some(env) = agent_env {
+        tools.push(tools::ResetFile::new(&env.start_ref).boxed());
+    }
 
     Ok(tools)
 }
@@ -107,8 +114,6 @@ pub async fn build_agent(
         None => None,
     };
 
-    let tools = available_tools(&repository, github_session.as_ref())?;
-
     let system_prompt = build_system_prompt(&repository)?;
     let ((), executor, initial_context) = tokio::try_join!(
         rename_chat(&query, &fast_query_provider, &command_responder),
@@ -117,7 +122,11 @@ pub async fn build_agent(
     )?;
 
     let env_setup = EnvSetup::new(uuid, &repository, github_session.as_deref(), &*executor);
-    env_setup.exec_setup_commands().await?;
+    // TODO: Feels a bit off to have EnvSetup return an Env, just to pass it to tool creation to
+    // get the ref/branch name
+    let agent_env = env_setup.exec_setup_commands().await?;
+
+    let tools = available_tools(&repository, github_session.as_ref(), Some(&agent_env))?;
 
     let mut context = DefaultContext::from_executor(executor);
 
