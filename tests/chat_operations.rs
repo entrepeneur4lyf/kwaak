@@ -1,10 +1,7 @@
-use assert_cmd::prelude::*;
-use kwaak::commands::{Command, CommandHandler, CommandResponse};
+use kwaak::chat::Chat;
+use kwaak::commands::{Command, CommandHandler};
 use kwaak::frontend::{App, UIEvent};
-use predicates::prelude::*;
-use std::process::Command;
 use tempfile::TempDir;
-use tokio::sync::mpsc;
 use uuid::Uuid;
 
 struct ChatEnvironment {
@@ -42,6 +39,7 @@ async fn test_delete_single_chat() {
     // Simulate adding a chat and storing its UUID
     let chat_uuid = Uuid::new_v4();
     env.uuids.push(chat_uuid);
+    env.app.add_chat(Chat::default());
 
     // Dispatch command to delete the chat
     env.command_handler
@@ -65,8 +63,7 @@ async fn test_delete_all_chats_and_verify_default() {
     for _ in 0..3 {
         let chat_uuid = Uuid::new_v4();
         env.uuids.push(chat_uuid);
-        // Here we should simulate the chat addition
-        env.app.add_chat(kwaak::chat::Chat::default());
+        env.app.add_chat(Chat::default());
     }
 
     // Simulate deleting all chats
