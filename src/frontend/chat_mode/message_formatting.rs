@@ -69,7 +69,7 @@ pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) ->
                 continue;
             }
             let is_done = current_chat.is_tool_call_completed(tool_call.id());
-            let tool_call_text = format_tool_call(tool_call);
+            let tool_call_text = format_tool_call(&tool_call);
             let tool_prefix = "⚙ ";
 
             if is_done {
