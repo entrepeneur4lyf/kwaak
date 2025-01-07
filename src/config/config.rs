@@ -60,6 +60,31 @@ pub struct Config {
     pub otel_enabled: bool,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            project_name: default_project_name(),
+            language: SupportedLanguages::from_str("rust").unwrap(),
+            llm: Box::new(LLMConfigurations::default()),
+            commands: CommandConfiguration::default(),
+            cache_dir: default_cache_dir(),
+            log_dir: default_log_dir(),
+            indexing_concurrency: default_indexing_concurrency(),
+            docker: DockerConfiguration::default(),
+            github: GithubConfiguration {
+                repository: "default_repo".into(),
+                owner: "default_owner".into(),
+                main_branch: default_main_branch(),
+                token: None,
+            },
+            tavily_api_key: None,
+            tool_executor: SupportedToolExecutors::Docker,
+            endless_mode: false,
+            otel_enabled: default_otel_enabled(),
+        }
+    }
+}
+
 fn default_otel_enabled() -> bool {
     false
 }
