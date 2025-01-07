@@ -2,6 +2,7 @@ use std::{path::PathBuf, process::Command};
 
 use regex::Regex;
 
+#[must_use]
 pub fn default_project_name() -> String {
     // Infer from the current directory
     std::env::current_dir()
@@ -30,15 +31,18 @@ pub(super) fn default_indexing_concurrency() -> usize {
     // Assume majority is IO bound, so beef it up
     num_cpus::get() * 4
 }
+#[must_use]
 pub fn default_dockerfile() -> PathBuf {
     "./Dockerfile".into()
 }
 
+#[must_use]
 pub fn default_docker_context() -> PathBuf {
     ".".into()
 }
 
 static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/.*: //p'";
+#[must_use]
 pub fn default_main_branch() -> String {
     // "main".to_string()
     std::string::String::from_utf8(
@@ -57,6 +61,7 @@ pub fn default_main_branch() -> String {
 }
 
 /// Extracts the owner and repo from the git remote url
+#[must_use]
 pub fn default_owner_and_repo() -> (String, String) {
     let url = std::string::String::from_utf8(
         Command::new("git")

@@ -82,6 +82,7 @@ impl CommandResponder {
         rx.recv().await
     }
 
+    #[must_use]
     pub fn with_uuid(self, uuid: Uuid) -> Self {
         CommandResponder {
             tx: self.tx,
@@ -120,6 +121,7 @@ impl From<ChatMessage> for CommandResponse {
 }
 
 impl Command {
+    #[must_use]
     pub fn uuid(&self) -> Uuid {
         match self {
             Command::Quit { uuid }
@@ -131,6 +133,7 @@ impl Command {
         }
     }
 
+    #[must_use]
     pub fn with_uuid(self, uuid: Uuid) -> Self {
         match self {
             Command::StopAgent { .. } => Command::StopAgent { uuid },
@@ -196,6 +199,7 @@ impl CommandHandler {
         app.command_tx = Some(self.tx.clone());
     }
 
+    #[must_use]
     pub fn start(mut self) -> tokio::task::JoinHandle<()> {
         let repository = Arc::clone(&self.repository);
         let ui_tx = self.ui_tx.clone().expect("Expected a registered ui");

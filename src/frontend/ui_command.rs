@@ -26,6 +26,7 @@ pub enum UserInputCommand {
 }
 
 impl UserInputCommand {
+    #[must_use]
     pub fn to_command(&self, uuid: Uuid) -> Option<Command> {
         match self {
             UserInputCommand::Quit => Some(Command::Quit { uuid }),

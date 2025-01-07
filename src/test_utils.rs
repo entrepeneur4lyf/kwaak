@@ -4,6 +4,7 @@ extern crate tempfile;
 pub struct TestGuard {
     pub tempdir: tempfile::TempDir,
 }
+#[must_use]
 pub fn test_repository() -> (Repository, TestGuard) {
     let toml = r#"
             language = "rust"
