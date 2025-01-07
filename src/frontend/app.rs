@@ -175,7 +175,6 @@ impl App<'_> {
     }
 
     fn on_key(&mut self, key: KeyEvent) {
-        // Change quit to be on ctrl q instead of ctrl c
         if key.modifiers == crossterm::event::KeyModifiers::CONTROL
             && key.code == KeyCode::Char('q')
         {
