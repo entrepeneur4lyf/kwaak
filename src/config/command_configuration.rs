@@ -12,3 +12,13 @@ pub struct CommandConfiguration {
     #[serde(default)]
     pub lint_and_fix: Option<String>,
 }
+
+impl Default for CommandConfiguration {
+    fn default() -> Self {
+        CommandConfiguration {
+            test: "default_test_command".to_string(),
+            coverage: "default_coverage_command".to_string(),
+            lint_and_fix: None,
+        }
+    }
+}
