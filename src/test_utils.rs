@@ -1,4 +1,5 @@
 use crate::{config::Config, repository::Repository};
+extern crate tempfile;
 
 pub struct TestGuard {
     pub tempdir: tempfile::TempDir,
