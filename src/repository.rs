@@ -54,3 +54,11 @@ impl Into<Repository> for &Repository {
         self.clone()
     }
 }
+
+impl From<&str> for Repository {
+    fn from(s: &str) -> Self {
+        let path = PathBuf::from(s);
+        let config = Config::default(); // This assumes a default implementation exists
+        Repository { config, path }
+    }
+}
