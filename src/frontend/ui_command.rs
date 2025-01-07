@@ -1,7 +1,7 @@
 // TODO: Rename to slash commands for clarity?
 //
 use crate::commands::Command;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use uuid::Uuid;
 
@@ -36,12 +36,9 @@ impl UserInputCommand {
             // Handle Copy command
             UserInputCommand::Copy => {
                 let last_message = "This should be the last message"; // Placeholder logic for retrieving the last message
-                let mut clipboard_context: ClipboardContext = ClipboardProvider::new()
-                    .context("Failed to create clipboard context")
-                    .unwrap();
+                let mut clipboard_context: ClipboardContext = ClipboardProvider::new().unwrap();
                 clipboard_context
                     .set_contents(last_message.to_owned())
-                    .context("Failed to copy to clipboard")
                     .unwrap();
                 None // Return None or handle as needed
             }
