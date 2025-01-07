@@ -1,9 +1,9 @@
 // TODO: Rename to slash commands for clarity?
 //
-use uuid::Uuid;
-
 use crate::commands::Command;
-use anyhow::Result;
+use anyhow::{Context, Result};
+use copypasta::{ClipboardContext, ClipboardProvider};
+use uuid::Uuid;
 
 #[derive(
     Debug,
@@ -23,6 +23,7 @@ pub enum UserInputCommand {
     NextChat,
     NewChat,
     DeleteChat,
+    Copy, // New `Copy` variant added here
 }
 
 impl UserInputCommand {
@@ -32,6 +33,18 @@ impl UserInputCommand {
             UserInputCommand::ShowConfig => Some(Command::ShowConfig { uuid }),
             UserInputCommand::IndexRepository => Some(Command::IndexRepository { uuid }),
             UserInputCommand::DeleteChat => Some(Command::DeleteChat { uuid }),
+            // Handle Copy command
+            UserInputCommand::Copy => {
+                let last_message = "This should be the last message"; // Placeholder logic for retrieving the last message
+                let mut clipboard_context: ClipboardContext = ClipboardProvider::new()
+                    .context("Failed to create clipboard context")
+                    .unwrap();
+                clipboard_context
+                    .set_contents(last_message.to_owned())
+                    .context("Failed to copy to clipboard")
+                    .unwrap();
+                None // Return None or handle as needed
+            }
             _ => None,
         }
     }
@@ -62,6 +75,7 @@ mod tests {
             ("/next_chat", UserInputCommand::NextChat),
             ("/new_chat", UserInputCommand::NewChat),
             ("/delete_chat", UserInputCommand::DeleteChat),
+            ("/copy", UserInputCommand::Copy), // New test case for Copy command
         ];
 
         for (input, expected_command) in test_cases {
