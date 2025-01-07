@@ -2,7 +2,7 @@
 //
 use crate::commands::Command;
 use anyhow::Result;
-use copypasta::{ClipboardContext, ClipboardProvider};
+use copypasta::ClipboardProvider;
 use uuid::Uuid;
 
 #[derive(
@@ -37,7 +37,8 @@ impl UserInputCommand {
             UserInputCommand::Copy => {
                 // Placeholder logic for retrieving the last message
                 let last_message = "This should be the last message";
-                let mut clipboard_context = ClipboardProvider::new().unwrap();
+                let mut clipboard_context: Box<dyn ClipboardProvider> =
+                    ClipboardProvider::new().unwrap();
                 clipboard_context
                     .set_contents(last_message.to_owned())
                     .unwrap();
