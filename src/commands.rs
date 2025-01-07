@@ -153,7 +153,7 @@ pub struct CommandHandler {
     /// Sends `UIEvents` to the connected frontend
     ui_tx: Option<mpsc::UnboundedSender<UIEvent>>,
     /// Repository to interact with
-    repository: Arc<Repository>,
+    pub repository: Arc<Repository>,
 
     /// TODO: Fix this, too tired to think straight
     agents: Arc<RwLock<HashMap<Uuid, RunningAgent>>>,
@@ -248,7 +248,7 @@ impl CommandHandler {
     /// TODO: Most commands should probably be handled in a tokio task
     /// Maybe generalize tasks to make ui updates easier?
     #[tracing::instrument(skip_all, fields(otel.name = %cmd.to_string(), uuid = %cmd.uuid()), err)]
-    async fn handle_command(&self, repository: &Repository, cmd: &Command) -> Result<()> {
+    pub async fn handle_command(&self, repository: &Repository, cmd: &Command) -> Result<()> {
         let now = std::time::Instant::now();
         tracing::warn!("Handling command {cmd}");
 
