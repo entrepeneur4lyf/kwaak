@@ -35,7 +35,8 @@ impl UserInputCommand {
             UserInputCommand::DeleteChat => Some(Command::DeleteChat { uuid }),
             // Handle Copy command
             UserInputCommand::Copy => {
-                let last_message = "This should be the last message"; // Placeholder logic for retrieving the last message
+                // Placeholder logic for retrieving the last message
+                let last_message = "This should be the last message";
                 let mut clipboard_context: ClipboardContext = ClipboardProvider::new().unwrap();
                 clipboard_context
                     .set_contents(last_message.to_owned())
