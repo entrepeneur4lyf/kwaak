@@ -6345,9 +6345,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "swiftide"
-version = "0.16.0"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "369374104ed455334bd862ebd01f7861de14057ddc96cdbcaece754d2493293d"
+checksum = "1920b84f38e44bc31cd38d2b4c381738c0b2451eef41d0dd44cf6e1f307c2a51"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6494,9 +6494,9 @@ dependencies = [
 
 [[package]]
 name = "swiftide-macros"
-version = "0.16.0"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "840c51b76e2d2c27d0e715b4bdd83f952c3b5d39a36dc630422c6b0787ee02c6"
+checksum = "e3f90b4918b2e0adc0948c0b040f71157dd333a26a472f7d07594e06529bf3f7"
 dependencies = [
  "anyhow",
  "async-trait",
