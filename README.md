@@ -249,5 +249,3 @@ Distributed under the MIT License. See `LICENSE` for more information.
 [Crate]: https://crates.io/crates/kwaak
 [Docs Badge]: https://img.shields.io/docsrs/kwaak?logo=rust&style=flat-square&logoColor=E05D44
 [API Docs]: https://docs.rs/kwaak
-
-<!-- Temporary line added for testing -->
