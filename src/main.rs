@@ -210,7 +210,7 @@ async fn start_tui(repository: &repository::Repository, args: &cli::Args) -> Res
     };
 
     restore_tui()?;
-    terminal.show_cursor()?;
+    terminal.expect("Failed to show cursor").show_cursor()?;
 
     if let Err(error) = app_result {
         ::tracing::error!(?error, "Application error");
@@ -307,19 +307,19 @@ query::Pipeline::default()
 mod tests {
     use super::*;
     use crate::test_utils::test_repository;
-    use tokio::runtime::Runtime;
 
     #[test]
     fn test_step_over() {
         let (repository, _guard) = test_repository();
 
         let mut terminal = init_tui();
-        terminal.show_cursor();
+        terminal.show_cursor().expect("Failed to show cursor");
     }
 
     #[test]
     fn test_main_entry() {
-        Runtime::new().unwrap().block_on(async {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(async {
             if let Err(err) = main().await {
                 println!("Failed to execute main: {:#?}", err);
             }
@@ -329,7 +329,8 @@ mod tests {
     #[test]
     fn test_tool_execution() {
         let (repository, _guard) = test_repository();
-        Runtime::new().unwrap().block_on(async {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(async {
             match test_tool(&repository, "some_tool", None).await {
                 Ok(_) => println!("Tool executed successfully"),
                 Err(err) => println!("Tool execution failed: {:#?}", err),
