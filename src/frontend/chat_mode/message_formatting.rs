@@ -200,8 +200,8 @@ mod tests {
 
     #[test]
     fn test_format_user_message() {
-        let chat = Chat::new();
-        let message = ChatMessage::new(ChatRole::User, "Hello");
+        let chat = Chat::default();
+        let message = ChatMessage::new_user("Hello").build().unwrap();
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::User);
 
@@ -211,8 +211,10 @@ mod tests {
 
     #[test]
     fn test_format_assistant_message() {
-        let chat = Chat::new();
-        let message = ChatMessage::new(ChatRole::Assistant, "How can I assist?");
+        let chat = Chat::default();
+        let message = ChatMessage::new_assistant("How can I assist?")
+            .build()
+            .unwrap();
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::Assistant);
 
@@ -222,8 +224,8 @@ mod tests {
 
     #[test]
     fn test_format_system_message() {
-        let chat = Chat::new();
-        let message = ChatMessage::new(ChatRole::System, "System update.");
+        let chat = Chat::default();
+        let message = ChatMessage::new_system("System update.").build().unwrap();
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::System);
 
