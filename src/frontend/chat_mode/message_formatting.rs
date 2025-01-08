@@ -200,8 +200,10 @@ mod tests {
 
     #[test]
     fn test_format_user_message() {
-        let chat = Chat::default();
-        let message = ChatMessage::new_user("Hello").build().unwrap();
+        let chat = Chat::default(); // Assuming this works with default chat
+        let message = ChatMessage::new_user("Hello")
+            .build()
+            .expect("Failed to build new_user message");
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::User);
 
@@ -214,7 +216,7 @@ mod tests {
         let chat = Chat::default();
         let message = ChatMessage::new_assistant("How can I assist?")
             .build()
-            .unwrap();
+            .expect("Failed to build new_assistant message");
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::Assistant);
 
@@ -225,7 +227,9 @@ mod tests {
     #[test]
     fn test_format_system_message() {
         let chat = Chat::default();
-        let message = ChatMessage::new_system("System update.").build().unwrap();
+        let message = ChatMessage::new_system("System update.")
+            .build()
+            .expect("Failed to build new_system message");
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::System);
 
