@@ -205,7 +205,7 @@ mod tests {
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::User);
 
-        assert_eq!(text.lines[0].spans[0].content.as_str(), prefix);
+        assert_eq!(text.lines[0].spans[0].content.to_string(), prefix);
         assert_eq!(text.lines[0].spans[0].style, style);
     }
 
@@ -218,7 +218,7 @@ mod tests {
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::Assistant);
 
-        assert_eq!(text.lines[0].spans[0].content.as_str(), prefix);
+        assert_eq!(text.lines[0].spans[0].content.to_string(), prefix);
         assert_eq!(text.lines[0].spans[0].style, style);
     }
 
@@ -229,7 +229,7 @@ mod tests {
         let text = format_chat_message(&chat, &message);
         let (prefix, style) = get_style_and_prefix(&ChatRole::System);
 
-        assert_eq!(text.lines[0].spans[0].content.as_str(), prefix);
+        assert_eq!(text.lines[0].spans[0].content.to_string(), prefix);
         assert_eq!(text.lines[0].spans[0].style, style);
     }
 }
