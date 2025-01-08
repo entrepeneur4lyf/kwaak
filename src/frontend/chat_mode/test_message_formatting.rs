@@ -3,6 +3,7 @@ mod tests {
     use crate::chat::Chat;
     use crate::chat_message::ChatMessage;
     use crate::frontend::chat_mode::message_formatting::format_chat_message;
+    use ratatui::style::Color;
 
     #[test]
     fn test_user_message_formatting() {
@@ -25,11 +26,11 @@ mod tests {
         let actual_style = formatted_text.lines[0].spans[0].style;
 
         // Checking individual components of the style
-        assert_eq!(actual_style.fg, Some(tui::style::Color::Rgb(200, 160, 255)));
-        assert!(actual_style.is_bold());
+        assert_eq!(actual_style.fg, Some(Color::Rgb(200, 160, 255)));
+        assert!(actual_style.bold());
         // Adjust the background check based on implementation
-        assert_eq!(actual_style.bg, Some(tui::style::Color::Reset));
-        assert!(!actual_style.is_underlined());
+        assert_eq!(actual_style.bg, Some(Color::Reset));
+        assert!(!actual_style.underlined());
     }
 
     #[test]
