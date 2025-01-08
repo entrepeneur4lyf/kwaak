@@ -210,7 +210,7 @@ async fn start_tui(repository: &repository::Repository, args: &cli::Args) -> Res
     };
 
     restore_tui()?;
-    terminal.expect("Failed to show cursor").show_cursor()?;
+    terminal.show_cursor()?;
 
     if let Err(error) = app_result {
         ::tracing::error!(?error, "Application error");
@@ -312,7 +312,7 @@ mod tests {
     fn test_step_over() {
         let (repository, _guard) = test_repository();
 
-        let mut terminal = init_tui();
+        let mut terminal = init_tui().unwrap();
         terminal.show_cursor().expect("Failed to show cursor");
     }
 
