@@ -1,17 +1,16 @@
 use ratatui::prelude::*;
 use serde_json::json;
 
-// Correcting imports. Access frontend & chat modules from main.rs
-use crate::frontend::chat_mode::message_formatting::{
-    format_chat_message, format_tool_call, get_style_and_prefix, pretty_format_tool,
-};
-use crate::{
+// Import from accessible submodules instead of direct crate root imports
+use kwaak::{
     chat::Chat,
     chat_message::{ChatMessage, ChatRole},
+    frontend::chat_mode::message_formatting::{
+        format_chat_message, format_tool_call, get_style_and_prefix, pretty_format_tool,
+    },
 };
-use swiftide::chat_completion::ToolCall;
 
-// Creating a dummy ToolCall struct since we don't have an instantiation method
+// Dummy ToolCall for test instantiations
 struct DummyToolCall {
     name: String,
     args: Option<String>,
@@ -45,17 +44,16 @@ fn test_get_style_and_prefix() {
 
 #[test]
 fn test_format_chat_message() {
-    let chat = Chat::default(); // Assuming a default or placeholder function
+    let chat = Chat::default(); // Assuming default or placeholder to instantiate Demo Chat
     let message = ChatMessage::new_user("Test message content");
     let formatted_message = format_chat_message(&chat, &message);
-    // Check if the formatted message contains the symbol for a user
+    // Check if the formatted message contains the correct symbol and user message
     assert!(formatted_message
         .lines
         .first()
         .unwrap()
         .to_string()
         .contains("▶ "));
-    // Check if the formatted message contains the original message content
     assert!(formatted_message
         .to_string()
         .contains("Test message content"));
