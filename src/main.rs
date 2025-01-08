@@ -302,3 +302,49 @@ query::Pipeline::default()
     .query("How can I use the query pipeline in Swiftide?")
     .await?;
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::test_repository;
+    use tokio::runtime::Runtime;
+
+    #[test]
+    fn test_main_entry() {
+        let _ = Runtime::new().unwrap().block_on(async {
+            main().await.unwrap();
+        });
+    }
+
+    #[test]
+    fn test_tool_execution() {
+        let (repository, _guard) = test_repository();
+        let _ = Runtime::new().unwrap().block_on(async {
+            match test_tool(&repository, "some_tool", None).await {
+                Ok(_) => println!("Tool executed successfully"),
+                Err(err) => println!("Tool execution failed: {err}"),
+            }
+        });
+    }
+
+    #[test]
+    fn test_start_agent() {
+        let (repository, _guard) = test_repository();
+        let _ = Runtime::new().unwrap().block_on(async {
+            let result = start_agent(repository, "test message").await;
+            assert!(result.is_ok(), "Agent should start correctly");
+        });
+    }
+
+    #[test]
+    fn test_terminal_handling() {
+        assert!(
+            init_tui().is_ok(),
+            "Should initialize terminal successfully"
+        );
+        assert!(
+            restore_tui().is_ok(),
+            "Should restore terminal successfully"
+        );
+    }
+}
