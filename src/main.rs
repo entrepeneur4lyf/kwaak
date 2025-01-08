@@ -312,18 +312,20 @@ mod tests {
     #[test]
     fn test_main_entry() {
         Runtime::new().unwrap().block_on(async {
-            main().await.unwrap();
+            main().unwrap();
         });
     }
 
     #[test]
-    async fn test_tool_execution() {
+    fn test_tool_execution() {
         let (repository, _guard) = test_repository();
-        test_tool(&repository, "some_tool", None).await.unwrap();
+        Runtime::new().unwrap().block_on(async {
+            test_tool(&repository, "some_tool", None).await.unwrap();
+        });
     }
 
     #[test]
-    async fn test_terminal_handling() {
+    fn test_terminal_handling() {
         assert!(
             init_tui().is_ok(),
             "Should initialize terminal successfully"
