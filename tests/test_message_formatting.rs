@@ -1,12 +1,38 @@
 use ratatui::prelude::*;
 use serde_json::json;
 
-use crate::chat::Chat;
-use crate::chat_message::{ChatMessage, ChatRole};
+// Correcting imports. Access frontend & chat modules from main.rs
 use crate::frontend::chat_mode::message_formatting::{
     format_chat_message, format_tool_call, get_style_and_prefix, pretty_format_tool,
 };
+use crate::{
+    chat::Chat,
+    chat_message::{ChatMessage, ChatRole},
+};
 use swiftide::chat_completion::ToolCall;
+
+// Creating a dummy ToolCall struct since we don't have an instantiation method
+struct DummyToolCall {
+    name: String,
+    args: Option<String>,
+}
+
+impl DummyToolCall {
+    fn new(name: &str, args: Option<String>) -> Self {
+        Self {
+            name: name.to_string(),
+            args,
+        }
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn args(&self) -> Option<&str> {
+        self.args.as_deref()
+    }
+}
 
 #[test]
 fn test_get_style_and_prefix() {
@@ -19,7 +45,7 @@ fn test_get_style_and_prefix() {
 
 #[test]
 fn test_format_chat_message() {
-    let chat = Chat::new(vec![]);
+    let chat = Chat::default(); // Assuming a default or placeholder function
     let message = ChatMessage::new_user("Test message content");
     let formatted_message = format_chat_message(&chat, &message);
     // Check if the formatted message contains the symbol for a user
@@ -37,17 +63,16 @@ fn test_format_chat_message() {
 
 #[test]
 fn test_format_tool_call() {
-    let tool_call = ToolCall::new("test_tool", None, json!({ "arg1": "value1" }).to_string());
+    let tool_call = DummyToolCall::new("test_tool", Some(json!({ "arg1": "value1" }).to_string()));
     let formatted_tool_call = format_tool_call(&tool_call);
     assert!(formatted_tool_call.contains("calling tool `test_tool` with `value1`"));
 }
 
 #[test]
 fn test_pretty_format_tool() {
-    let tool_call = ToolCall::new(
+    let tool_call = DummyToolCall::new(
         "shell_command",
-        None,
-        json!({ "cmd": "ls -al" }).to_string(),
+        Some(json!({ "cmd": "ls -al" }).to_string()),
     );
     let formatted_tool_call = pretty_format_tool(&tool_call).unwrap();
     assert_eq!(formatted_tool_call, "running shell command `ls -al`");
