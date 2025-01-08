@@ -307,35 +307,33 @@ query::Pipeline::default()
 mod tests {
     use super::*;
     use crate::test_utils::test_repository;
+    use tokio::runtime::Builder;
 
     #[test]
     fn test_step_over() {
         let (_repository, _guard) = test_repository();
 
-        let mut terminal = init_tui().unwrap();
-        terminal.show_cursor().expect("Failed to show cursor");
+        if let Ok(mut terminal) = init_tui() {
+            terminal.show_cursor().expect("Failed to show cursor");
+        } else {
+            panic!("Should initialize terminal successfully.");
+        }
     }
 
-    #[test]
-    fn test_main_entry() {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(async {
-            if let Err(err) = main() {
-                println!("Failed to execute main: {err:#?}");
-            }
-        });
+    #[tokio::test]
+    async fn test_main_entry() {
+        if let Err(err) = main().await {
+            println!("Failed to execute main: {:#?}", err);
+        }
     }
 
-    #[test]
-    fn test_tool_execution() {
+    #[tokio::test]
+    async fn test_tool_execution() {
         let (repository, _guard) = test_repository();
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(async {
-            match test_tool(&repository, "some_tool", None).await {
-                Ok(()) => println!("Tool executed successfully"),
-                Err(err) => println!("Tool execution failed: {err:#?}"),
-            }
-        });
+        match test_tool(&repository, "some_tool", None).await {
+            Ok(_) => println!("Tool executed successfully"),
+            Err(err) => println!("Tool execution failed: {:#?}", err),
+        }
     }
 
     #[test]
