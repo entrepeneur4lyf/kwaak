@@ -119,6 +119,5 @@ pub fn handle_input_command(app: &mut App) -> ChatMessageBuilder {
     ChatMessage::new_command(cmd.as_ref())
         .uuid(app.current_chat_uuid)
         .to_owned()
-
     // Display the command as a message
 }

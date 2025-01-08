@@ -29,6 +29,8 @@ pub enum UIEvent {
     ActivityUpdate(Uuid, String),
     /// Quit from the frontend
     Quit,
+    /// Copy last message from current chat to clipboard
+    CopyLastMessage,
     /// Deletes the current chat
     DeleteChat,
 }
@@ -64,6 +66,7 @@ impl TryFrom<UserInputCommand> for UIEvent {
         match value {
             UserInputCommand::NextChat => Ok(Self::NextChat),
             UserInputCommand::NewChat => Ok(Self::NewChat),
+            UserInputCommand::Copy => Ok(Self::CopyLastMessage),
             UserInputCommand::DeleteChat => Ok(Self::DeleteChat),
             _ => anyhow::bail!("Cannot convert {value} to UIEvent"),
         }

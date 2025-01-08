@@ -23,6 +23,9 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      # Required for copypasta builds on linux
+      - name: Install libxcb
+        run: sudo apt install libxcb1-dev libxcb-shape0-dev libxcb-xfixes0-dev
       - uses: Swatinem/rust-cache@v2
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable

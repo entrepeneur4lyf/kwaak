@@ -1,7 +1,6 @@
-use uuid::Uuid;
-
 use crate::commands::Command;
 use anyhow::Result;
+use uuid::Uuid;
 
 #[derive(
     Debug,
@@ -21,6 +20,7 @@ pub enum UserInputCommand {
     NextChat,
     NewChat,
     DeleteChat,
+    Copy, // New `Copy` variant added here
 }
 
 impl UserInputCommand {
@@ -59,6 +59,7 @@ mod tests {
             ("/next_chat", UserInputCommand::NextChat),
             ("/new_chat", UserInputCommand::NewChat),
             ("/delete_chat", UserInputCommand::DeleteChat),
+            ("/copy", UserInputCommand::Copy), // New test case for Copy command
         ];
 
         for (input, expected_command) in test_cases {
