@@ -2,13 +2,20 @@
 mod tests {
     use crate::chat::Chat;
     use crate::chat_message::{ChatMessage, ChatRole};
-    use crate::frontend::chat_mode::{format_chat_message, message_styles};
+    use crate::frontend::chat_mode::message_formatting::{
+        format_chat_message, get_style_and_prefix,
+    };
     use ratatui::prelude::*;
+    use ratatui::text::{Span, Spans, Text};
 
     #[test]
     fn test_user_message_formatting() {
         let chat = Chat::default();
-        let message = ChatMessage::default(ChatRole::User, "Hello, this is a user message.", None);
+        let message = ChatMessage {
+            role: ChatRole::User,
+            content: String::from("Hello, this is a user message."),
+            ..Default::default()
+        };
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "▶ ";
         let expected_style = message_styles::USER;
@@ -20,11 +27,11 @@ mod tests {
     #[test]
     fn test_assistant_message_formatting() {
         let chat = Chat::default();
-        let message = ChatMessage::default(
-            ChatRole::Assistant,
-            "Hello, this is an assistant message.",
-            None,
-        );
+        let message = ChatMessage {
+            role: ChatRole::Assistant,
+            content: String::from("Hello, this is an assistant message."),
+            ..Default::default()
+        };
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "✦ ";
         let expected_style = message_styles::ASSISTANT;
@@ -36,7 +43,11 @@ mod tests {
     #[test]
     fn test_system_message_formatting() {
         let chat = Chat::default();
-        let message = ChatMessage::default(ChatRole::System, "This is a system message.", None);
+        let message = ChatMessage {
+            role: ChatRole::System,
+            content: String::from("This is a system message."),
+            ..Default::default()
+        };
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "ℹ ";
         let expected_style = message_styles::SYSTEM;
