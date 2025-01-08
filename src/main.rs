@@ -311,22 +311,19 @@ mod tests {
 
     #[test]
     fn test_main_entry() {
-        Runtime::new().unwrap().block_on(main()).unwrap();
-    }
-
-    #[test]
-    fn test_tool_execution() {
-        let (repository, _guard) = test_repository();
-        let _ = Runtime::new().unwrap().block_on(async {
-            match test_tool(&repository, "some_tool", None).await {
-                Ok(_) => println!("Tool executed successfully"),
-                Err(err) => println!("Tool execution failed: {err}"),
-            }
+        Runtime::new().unwrap().block_on(async {
+            main().await.unwrap();
         });
     }
 
     #[test]
-    fn test_terminal_handling() {
+    async fn test_tool_execution() {
+        let (repository, _guard) = test_repository();
+        test_tool(&repository, "some_tool", None).await.unwrap();
+    }
+
+    #[test]
+    async fn test_terminal_handling() {
         assert!(
             init_tui().is_ok(),
             "Should initialize terminal successfully"
