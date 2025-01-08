@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chat::Chat;
     use crate::chat_message::{ChatMessage, ChatRole};
     use ratatui::prelude::*;
 
