@@ -19,7 +19,11 @@ mod tests {
     #[test]
     fn test_assistant_message_formatting() {
         let chat = Chat::default();
-        let message = ChatMessage::new(ChatRole::Assistant, "Hello, this is an assistant message.", None);
+        let message = ChatMessage::new(
+            ChatRole::Assistant,
+            "Hello, this is an assistant message.",
+            None,
+        );
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "✦ ";
         let expected_style = message_styles::ASSISTANT;
