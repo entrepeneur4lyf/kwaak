@@ -307,7 +307,6 @@ query::Pipeline::default()
 mod tests {
     use super::*;
     use crate::test_utils::test_repository;
-    use tokio::runtime::Builder;
 
     #[test]
     fn test_step_over() {
@@ -320,10 +319,10 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn test_main_entry() {
-        if let Err(err) = main().await {
-            println!("Failed to execute main: {:#?}", err);
+    #[test]
+    fn test_main_entry() {
+        if let Err(err) = main() {
+            println!("Failed to execute main: {err:#?}");
         }
     }
 
@@ -331,8 +330,8 @@ mod tests {
     async fn test_tool_execution() {
         let (repository, _guard) = test_repository();
         match test_tool(&repository, "some_tool", None).await {
-            Ok(_) => println!("Tool executed successfully"),
-            Err(err) => println!("Tool execution failed: {:#?}", err),
+            Ok(()) => println!("Tool executed successfully"),
+            Err(err) => println!("Tool execution failed: {err:#?}"),
         }
     }
 
