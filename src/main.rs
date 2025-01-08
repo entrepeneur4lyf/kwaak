@@ -311,17 +311,17 @@ mod tests {
 
     #[test]
     fn test_main_entry() {
-        let _ = Runtime::new().unwrap().block_on(async {
-            main().await.unwrap();
+        let () = Runtime::new().unwrap().block_on(async {
+            main().unwrap();
         });
     }
 
     #[test]
     fn test_tool_execution() {
         let (repository, _guard) = test_repository();
-        let _ = Runtime::new().unwrap().block_on(async {
+        let () = Runtime::new().unwrap().block_on(async {
             match test_tool(&repository, "some_tool", None).await {
-                Ok(_) => println!("Tool executed successfully"),
+                Ok(()) => println!("Tool executed successfully"),
                 Err(err) => println!("Tool execution failed: {err}"),
             }
         });
@@ -330,7 +330,7 @@ mod tests {
     #[test]
     fn test_start_agent() {
         let (repository, _guard) = test_repository();
-        let _ = Runtime::new().unwrap().block_on(async {
+        let () = Runtime::new().unwrap().block_on(async {
             let result = start_agent(repository, "test message").await;
             assert!(result.is_ok(), "Agent should start correctly");
         });
