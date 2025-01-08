@@ -310,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_step_over() {
-        let (repository, _guard) = test_repository();
+        let (_repository, _guard) = test_repository();
 
         let mut terminal = init_tui().unwrap();
         terminal.show_cursor().expect("Failed to show cursor");
@@ -320,8 +320,8 @@ mod tests {
     fn test_main_entry() {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         runtime.block_on(async {
-            if let Err(err) = main().await {
-                println!("Failed to execute main: {:#?}", err);
+            if let Err(err) = main() {
+                println!("Failed to execute main: {err:#?}");
             }
         });
     }
@@ -332,8 +332,8 @@ mod tests {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         runtime.block_on(async {
             match test_tool(&repository, "some_tool", None).await {
-                Ok(_) => println!("Tool executed successfully"),
-                Err(err) => println!("Tool execution failed: {:#?}", err),
+                Ok(()) => println!("Tool executed successfully"),
+                Err(err) => println!("Tool execution failed: {err:#?}"),
             }
         });
     }
