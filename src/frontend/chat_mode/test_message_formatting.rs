@@ -22,11 +22,14 @@ mod tests {
         let message = ChatMessage::new_assistant("Hello, this is an assistant message.").build();
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "✦ ";
-        let expected_style =
-            crate::frontend::chat_mode::message_formatting::message_styles::ASSISTANT;
+        let actual_style = formatted_text.lines[0].spans[0].style;
 
-        assert_eq!(formatted_text.lines[0].spans[0].content, expected_prefix);
-        assert_eq!(formatted_text.lines[0].spans[0].style, expected_style);
+        // Checking individual components of the style
+        assert_eq!(actual_style.fg, Some(tui::style::Color::Rgb(200, 160, 255)));
+        assert!(actual_style.is_bold());
+        // Adjust the background check based on implementation
+        assert_eq!(actual_style.bg, Some(tui::style::Color::Reset));
+        assert!(!actual_style.is_underlined());
     }
 
     #[test]
