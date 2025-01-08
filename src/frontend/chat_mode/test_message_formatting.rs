@@ -3,6 +3,7 @@ mod tests {
     use crate::chat::Chat;
     use crate::chat_message::ChatMessage;
     use crate::frontend::chat_mode::message_formatting::format_chat_message;
+    use ratatui::prelude::Stylize;
     use ratatui::style::Color;
 
     #[test]
