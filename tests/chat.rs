@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod chat_tests {
     use super::*;
-    use crate::chat_message::{ChatMessage, MessageRole};
+    use crate::chat_message::{ChatMessage, ChatRole};
 
     #[test]
     fn test_default_chat_initialization() {
@@ -16,7 +16,7 @@ mod chat_tests {
     #[test]
     fn test_chat_add_user_message() {
         let mut chat = Chat::default();
-        let message = ChatMessage::new(MessageRole::User, "Hello World");
+        let message = ChatMessage::new_user("Hello World").build();
 
         chat.add_message(message.clone());
 
@@ -28,7 +28,7 @@ mod chat_tests {
     #[test]
     fn test_chat_add_tool_message() {
         let mut chat = Chat::default();
-        let message = ChatMessage::new_tool("tool-id", "completed");
+        let message = ChatMessage::new_tool("completed").build();
 
         chat.add_message(message);
 
