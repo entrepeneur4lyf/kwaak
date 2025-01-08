@@ -192,3 +192,42 @@ fn get_value<'a>(
 ) -> Option<&'a str> {
     args?.get(key).and_then(serde_json::Value::as_str)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::chat_message::ChatRole;
+
+    #[test]
+    fn test_format_user_message() {
+        let chat = Chat::new();
+        let message = ChatMessage::new(ChatRole::User, "Hello");
+        let text = format_chat_message(&chat, &message);
+        let (prefix, style) = get_style_and_prefix(&ChatRole::User);
+
+        assert_eq!(text.lines[0].spans[0].content.as_str(), prefix);
+        assert_eq!(text.lines[0].spans[0].style, style);
+    }
+
+    #[test]
+    fn test_format_assistant_message() {
+        let chat = Chat::new();
+        let message = ChatMessage::new(ChatRole::Assistant, "How can I assist?");
+        let text = format_chat_message(&chat, &message);
+        let (prefix, style) = get_style_and_prefix(&ChatRole::Assistant);
+
+        assert_eq!(text.lines[0].spans[0].content.as_str(), prefix);
+        assert_eq!(text.lines[0].spans[0].style, style);
+    }
+
+    #[test]
+    fn test_format_system_message() {
+        let chat = Chat::new();
+        let message = ChatMessage::new(ChatRole::System, "System update.");
+        let text = format_chat_message(&chat, &message);
+        let (prefix, style) = get_style_and_prefix(&ChatRole::System);
+
+        assert_eq!(text.lines[0].spans[0].content.as_str(), prefix);
+        assert_eq!(text.lines[0].spans[0].style, style);
+    }
+}
