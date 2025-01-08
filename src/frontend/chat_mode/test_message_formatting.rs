@@ -2,11 +2,7 @@
 mod tests {
     use crate::chat::Chat;
     use crate::chat_message::{ChatMessage, ChatRole};
-    use crate::frontend::chat_mode::message_formatting::{
-        format_chat_message, get_style_and_prefix,
-    };
-    use ratatui::prelude::*;
-    use ratatui::text::{Span, Spans, Text};
+    use crate::frontend::chat_mode::message_formatting::format_chat_message;
 
     #[test]
     fn test_user_message_formatting() {
@@ -18,7 +14,7 @@ mod tests {
         };
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "▶ ";
-        let expected_style = message_styles::USER;
+        let expected_style = crate::frontend::chat_mode::message_formatting::message_styles::USER;
 
         assert_eq!(formatted_text.lines[0].spans[0].content, expected_prefix);
         assert_eq!(formatted_text.lines[0].spans[0].style, expected_style);
@@ -34,7 +30,8 @@ mod tests {
         };
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "✦ ";
-        let expected_style = message_styles::ASSISTANT;
+        let expected_style =
+            crate::frontend::chat_mode::message_formatting::message_styles::ASSISTANT;
 
         assert_eq!(formatted_text.lines[0].spans[0].content, expected_prefix);
         assert_eq!(formatted_text.lines[0].spans[0].style, expected_style);
@@ -50,7 +47,7 @@ mod tests {
         };
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "ℹ ";
-        let expected_style = message_styles::SYSTEM;
+        let expected_style = crate::frontend::chat_mode::message_formatting::message_styles::SYSTEM;
 
         assert_eq!(formatted_text.lines[0].spans[0].content, expected_prefix);
         assert_eq!(formatted_text.lines[0].spans[0].style, expected_style);

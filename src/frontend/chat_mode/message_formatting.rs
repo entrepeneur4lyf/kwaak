@@ -5,7 +5,8 @@ use crate::{
     chat_message::{ChatMessage, ChatRole},
 };
 
-mod message_styles {
+pub mod message_styles {
+    // Ensure the module is public
     use super::{Color, Modifier, Style};
 
     pub const USER: Style = Style::new().fg(Color::Cyan).add_modifier(Modifier::ITALIC);
