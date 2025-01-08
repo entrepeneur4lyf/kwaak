@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod chat_tests {
-    use super::super::chat::{Chat, ChatState};
-    use super::super::chat_message::{ChatMessage, ChatRole};
+    use crate::chat::{Chat, ChatState};
+    use crate::chat_message::{ChatMessage, ChatRole};
 
     #[test]
     fn test_default_chat_initialization() {
