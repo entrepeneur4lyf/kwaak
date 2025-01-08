@@ -283,9 +283,6 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
         constraints.push(
             "Try to solve the problem yourself first, only if you cannot solve it, ask for help",
         );
-        constraints.push("Before starting on your initial task, you MUST present a plan to the user and ask for confirmation. If you have already presented a plan and the user has confirmed, do NOT present a new plan until you have completed the task.");
-        constraints
-            .push("You MUST ask the user for confirmation and/or feedback before executing a plan");
     }
 
     let prompt = SystemPrompt::builder()
