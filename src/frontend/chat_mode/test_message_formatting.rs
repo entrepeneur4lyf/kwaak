@@ -1,17 +1,13 @@
 #[cfg(test)]
 mod tests {
     use crate::chat::Chat;
-    use crate::chat_message::{ChatMessage, ChatRole};
+    use crate::chat_message::ChatMessage;
     use crate::frontend::chat_mode::message_formatting::format_chat_message;
 
     #[test]
     fn test_user_message_formatting() {
         let chat = Chat::default();
-        let message = ChatMessage {
-            role: ChatRole::User,
-            content: String::from("Hello, this is a user message."),
-            ..Default::default()
-        };
+        let message = ChatMessage::new_user("Hello, this is a user message.").build();
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "▶ ";
         let expected_style = crate::frontend::chat_mode::message_formatting::message_styles::USER;
@@ -23,11 +19,7 @@ mod tests {
     #[test]
     fn test_assistant_message_formatting() {
         let chat = Chat::default();
-        let message = ChatMessage {
-            role: ChatRole::Assistant,
-            content: String::from("Hello, this is an assistant message."),
-            ..Default::default()
-        };
+        let message = ChatMessage::new_assistant("Hello, this is an assistant message.").build();
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "✦ ";
         let expected_style =
@@ -40,11 +32,7 @@ mod tests {
     #[test]
     fn test_system_message_formatting() {
         let chat = Chat::default();
-        let message = ChatMessage {
-            role: ChatRole::System,
-            content: String::from("This is a system message."),
-            ..Default::default()
-        };
+        let message = ChatMessage::new_system("This is a system message.").build();
         let formatted_text = format_chat_message(&chat, &message);
         let expected_prefix = "ℹ ";
         let expected_style = crate::frontend::chat_mode::message_formatting::message_styles::SYSTEM;
