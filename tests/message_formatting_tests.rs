@@ -1,7 +1,7 @@
-use crate::chat::Chat;
-use crate::chat_message::{ChatMessage, ChatRole};
-use crate::frontend::chat_mode::format_chat_message;
-use ratatui::prelude::*;
+use kwaak::chat::Chat;
+use kwaak::chat_message::{ChatMessage, ChatRole};
+use kwaak::frontend::chat_mode::format_chat_message;
+use ratatui::style::{Color, Modifier};
 
 #[test]
 fn test_user_message_formatting() {
