@@ -141,7 +141,8 @@ pub async fn build_agent(
 
     let tool_summarizer =
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
-    let conversation_summarizer = ConversationSummarizer::new(query_provider.clone(), &tools);
+    let conversation_summarizer =
+        ConversationSummarizer::new(query_provider.clone(), &tools, agent_env.start_ref);
     let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
     let agent = Agent::builder()
