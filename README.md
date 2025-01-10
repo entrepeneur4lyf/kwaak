@@ -95,6 +95,10 @@ Kwaak is part of the [bosun.ai](https://bosun.ai) project. An upcoming platform 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## Latest updates on our blog :fire:
+
+- [Releasing kwaak with kwaak](https://bosun.ai/posts/releasing-kwaak-with-kwaak/)
+
 ## Getting started
 
 ### Requirements
