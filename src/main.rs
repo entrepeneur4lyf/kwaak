@@ -53,14 +53,16 @@ async fn main() -> Result<()> {
     let config = Config::load(&args.config_path).await?;
     let repository = repository::Repository::from_config(config);
 
-    if panic::catch_unwind(|| {
-        storage::get_redb(&repository);
-    })
-    .is_err()
-    {
-        eprintln!("Failed to load database; are you running more than one kwaak on a project?");
-        std::process::exit(1);
-    }
+    fs::create_dir_all(repository.config().cache_dir()).await?;
+    fs::create_dir_all(repository.config().log_dir()).await?;
+    // if panic::catch_unwind(|| {
+    //     storage::get_redb(&repository);
+    // })
+    // .is_err()
+    // {
+    //     eprintln!("Failed to load database; are you running more than one kwaak on a project?");
+    //     std::process::exit(1);
+    // }
 
     fs::create_dir_all(repository.config().cache_dir()).await?;
     fs::create_dir_all(repository.config().log_dir()).await?;

@@ -39,9 +39,7 @@ pub enum LLMConfiguration {
         #[serde(default)]
         prompt_model: Option<String>,
         #[serde(default)]
-        embedding_model: Option<String>,
-        #[serde(default)]
-        vector_size: Option<usize>,
+        embedding_model: Option<EmbeddingModelWithSize>,
         #[serde(default)]
         base_url: Option<Url>,
     },
@@ -58,6 +56,12 @@ pub enum LLMConfiguration {
     // },
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct EmbeddingModelWithSize {
+    pub name: String,
+    pub vector_size: i32,
+}
+
 impl LLMConfiguration {
     pub(crate) fn vector_size(&self) -> i32 {
         match self {
@@ -67,8 +71,13 @@ impl LLMConfiguration {
                 OpenAIEmbeddingModel::TextEmbedding3Small => 1536,
                 OpenAIEmbeddingModel::TextEmbedding3Large => 3072,
             },
-            LLMConfiguration::Ollama { vector_size, .. } => {
-                vector_size.expect("Expected a vector size for ollama embeddings") as i32
+            LLMConfiguration::Ollama {
+                embedding_model, ..
+            } => {
+                embedding_model
+                    .as_ref()
+                    .expect("Expected an embedding model for ollama")
+                    .vector_size
             }
         }
     }
@@ -157,14 +166,14 @@ fn build_ollama(llm_config: &LLMConfiguration) -> Result<Ollama> {
         .to_owned();
 
     if let Some(embedding_model) = embedding_model {
-        builder.default_embed_model(embedding_model);
+        builder.default_embed_model(embedding_model.name.clone());
     }
 
     if let Some(prompt_model) = prompt_model {
         builder.default_prompt_model(prompt_model);
     }
 
-    return builder.build().context("Failed to build Ollama client");
+    builder.build().context("Failed to build Ollama client")
 }
 
 impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {

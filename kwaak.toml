@@ -16,15 +16,15 @@ token = "env:GITHUB_TOKEN"
 
 [llm.indexing]
 provider = "Ollama"
-prompt_model = "gemma2"
+prompt_model = "llama3.2:1b"
 
 [llm.query]
 provider = "Ollama"
-prompt_model = "llama3.3"
+prompt_model = "llama3.2"
 
 [llm.embedding]
 provider = "Ollama"
-embedding_model = "bge-m3"
+embedding_model = { name = "bge-m3", vector_size = 1024 }
 
 [docker]
 dockerfile = "Dockerfile"
