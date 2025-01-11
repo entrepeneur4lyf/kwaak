@@ -3,7 +3,10 @@ use anyhow::{Context as _, Result};
 use serde::{Deserialize, Serialize};
 use swiftide::{
     chat_completion::ChatCompletion,
-    integrations,
+    integrations::{
+        self,
+        ollama::{config::OllamaConfig, Ollama},
+    },
     traits::{EmbeddingModel, SimplePrompt},
 };
 use url::Url;
@@ -32,14 +35,19 @@ pub enum LLMConfiguration {
         embedding_model: OpenAIEmbeddingModel,
         base_url: Option<Url>,
     },
+    Ollama {
+        #[serde(default)]
+        prompt_model: Option<String>,
+        #[serde(default)]
+        embedding_model: Option<String>,
+        #[serde(default)]
+        vector_size: Option<usize>,
+        #[serde(default)]
+        base_url: Option<Url>,
+    },
     // Groq {
     //     api_key: SecretString,
     //     prompt_model: String,
-    // },
-    // Ollama {
-    //     prompt_model: Option<String>,
-    //     embedding_model: Option<String>,
-    //     vector_size: Option<usize>,
     // },
     // AWSBedrock {
     //     prompt_model: String,
@@ -59,6 +67,9 @@ impl LLMConfiguration {
                 OpenAIEmbeddingModel::TextEmbedding3Small => 1536,
                 OpenAIEmbeddingModel::TextEmbedding3Large => 3072,
             },
+            LLMConfiguration::Ollama { vector_size, .. } => {
+                vector_size.expect("Expected a vector size for ollama embeddings") as i32
+            }
         }
     }
 }
@@ -124,6 +135,36 @@ fn build_openai(
         .context("Failed to build OpenAI client")
 }
 
+fn build_ollama(llm_config: &LLMConfiguration) -> Result<Ollama> {
+    let LLMConfiguration::Ollama {
+        prompt_model,
+        embedding_model,
+        base_url,
+        ..
+    } = llm_config
+    else {
+        anyhow::bail!("Expected Ollama configuration")
+    };
+
+    let mut config = OllamaConfig::default();
+
+    if let Some(base_url) = base_url {
+        config.with_api_base(base_url.as_str());
+    };
+
+    let builder = Ollama::builder().client(async_openai::Client::with_config(config));
+
+    if let Some(embedding_model) = embedding_model {
+        builder.default_embed_model(embedding_model);
+    }
+
+    if let Some(prompt_model) = prompt_model {
+        builder.default_prompt_model(prompt_model);
+    }
+
+    return builder.build().context("Failed to build Ollama client");
+}
+
 impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
     type Error = anyhow::Error;
 
@@ -139,7 +180,10 @@ impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
                 embedding_model,
                 prompt_model,
                 base_url.as_ref(),
-            )?),
+            )?) as Box<dyn EmbeddingModel>,
+            LLMConfiguration::Ollama { .. } => {
+                Box::new(build_ollama(self)?) as Box<dyn EmbeddingModel>
+            }
         };
 
         Ok(boxed)
@@ -160,7 +204,10 @@ impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
                 embedding_model,
                 prompt_model,
                 base_url.as_ref(),
-            )?),
+            )?) as Box<dyn SimplePrompt>,
+            LLMConfiguration::Ollama { .. } => {
+                Box::new(build_ollama(self)?) as Box<dyn SimplePrompt>
+            }
         };
 
         Ok(boxed)
@@ -181,7 +228,10 @@ impl TryInto<Box<dyn ChatCompletion>> for &LLMConfiguration {
                 embedding_model,
                 prompt_model,
                 base_url.as_ref(),
-            )?),
+            )?) as Box<dyn ChatCompletion>,
+            LLMConfiguration::Ollama { .. } => {
+                Box::new(build_ollama(self)?) as Box<dyn ChatCompletion>
+            }
         };
 
         Ok(boxed)

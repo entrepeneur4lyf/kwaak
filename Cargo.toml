@@ -25,6 +25,7 @@ swiftide = { version = "0.16.1", features = [
   "openai",
   "tree-sitter",
   "redb",
+  "ollama",
   "swiftide-agents",
 
 ] }
@@ -124,8 +125,8 @@ default = ["otel"]
 ]
 
 [patch.crates-io]
-# swiftide = { path = "../swiftide/swiftide" }
-# swiftide-macros = { path = "../swiftide/swiftide-macros" }
+swiftide = { path = "../swiftide/swiftide" }
+swiftide-macros = { path = "../swiftide/swiftide-macros" }
 # swiftide = { git = "https://github.com/bosun-ai/swiftide", branch = "feat/document-templates" }
 # swiftide-macros = { git = "https://github.com/bosun-ai/swiftide", branch = "feat/document-templates" }
 

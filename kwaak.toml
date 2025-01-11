@@ -15,19 +15,16 @@ main_branch = "master"
 token = "env:GITHUB_TOKEN"
 
 [llm.indexing]
-api_key = "env:KWAAK_OPENAI_API_KEY"
-provider = "OpenAI"
-prompt_model = "gpt-4o-mini"
+provider = "Ollama"
+prompt_model = "gemma2"
 
 [llm.query]
-api_key = "env:KWAAK_OPENAI_API_KEY"
-provider = "OpenAI"
-prompt_model = "gpt-4o"
+provider = "Ollama"
+prompt_model = "llama3.3"
 
 [llm.embedding]
-api_key = "env:KWAAK_OPENAI_API_KEY"
-provider = "OpenAI"
-embedding_model = "text-embedding-3-large"
+provider = "Ollama"
+embedding_model = "bge-m3"
 
 [docker]
 dockerfile = "Dockerfile"
