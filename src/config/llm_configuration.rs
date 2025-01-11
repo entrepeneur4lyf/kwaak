@@ -152,7 +152,9 @@ fn build_ollama(llm_config: &LLMConfiguration) -> Result<Ollama> {
         config.with_api_base(base_url.as_str());
     };
 
-    let builder = Ollama::builder().client(async_openai::Client::with_config(config));
+    let mut builder = Ollama::builder()
+        .client(async_openai::Client::with_config(config))
+        .to_owned();
 
     if let Some(embedding_model) = embedding_model {
         builder.default_embed_model(embedding_model);
