@@ -16,7 +16,7 @@ token = "env:GITHUB_TOKEN"
 
 [llm.indexing]
 provider = "Ollama"
-prompt_model = "llama3.2:1b"
+prompt_model = "llama3.2"
 
 [llm.query]
 provider = "Ollama"
