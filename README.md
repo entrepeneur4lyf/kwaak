@@ -166,6 +166,18 @@ Keybindings:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### How does it work?
+
+On initial boot up, Kwaak will index your codebase. This can take a while, depending on the size. Once indexing has been completed once, subsequent startups will be faster. Indexes are stored with [lancedb](https://github.com/lancedb/lancedb), and indexing is cached with [redb](https://github.com/cberner/redb).
+
+Kwaak provides a chat interface similar to other LLM chat applications. You can type messages to the agent, and the agent will try to accomplish the task and respond.
+
+When starting a chat, the code of the current branch is copied into an on-the-fly created docker container. This container is then used to run the code and execute the commands.
+
+After each chat completion, kwaak will lint, commit, and push the code to the remote repository if any code changes have been made. Kwaak can also create a pull request. Pull requests include an issue link to #48. This helps us identify the success rate of the agents, and also enforces transparency for code reviewers.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Configuration
 
 Kwaak supports configuring different Large Language Models (LLMs) for distinct tasks like indexing, querying, and embedding to optimize performance and accuracy. Be sure to tailor the configurations to fit the scope and blend of the tasks you're tackling.
@@ -242,18 +254,6 @@ These configurations allow you to leverage the strengths of each model effective
 #### Other integrations
 
 - **`tavily_api_key`**: Enables the agent to use [tavily](https://tavily.com) for web search. Their entry-level plan is free. (we are not affiliated)
-
-### How does it work?
-
-On initial boot up, Kwaak will index your codebase. This can take a while, depending on the size. Once indexing has been completed once, subsequent startups will be faster. Indexes are stored with [lancedb](https://github.com/lancedb/lancedb), and indexing is cached with [redb](https://github.com/cberner/redb).
-
-Kwaak provides a chat interface similar to other LLM chat applications. You can type messages to the agent, and the agent will try to accomplish the task and respond.
-
-When starting a chat, the code of the current branch is copied into an on-the-fly created docker container. This container is then used to run the code and execute the commands.
-
-After each chat completion, kwaak will lint, commit, and push the code to the remote repository if any code changes have been made. Kwaak can also create a pull request. Pull requests include an issue link to #48. This helps us identify the success rate of the agents, and also enforces transparency for code reviewers.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 
