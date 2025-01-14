@@ -8,12 +8,12 @@ use std::{
 use agent::available_tools;
 use anyhow::{Context as _, Result};
 use clap::Parser;
-use commands::{CommandResponder, CommandResponse};
+use commands::CommandResponse;
 use config::Config;
 use frontend::App;
 use git::github::GithubSession;
 use kwaak::{
-    agent, chat_message, cli, commands, config, frontend, git,
+    agent, cli, commands, config, frontend, git,
     indexing::{self, index_repository},
     onboarding, repository, storage,
 };
@@ -28,7 +28,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use swiftide::{agents::DefaultContext, chat_completion::Tool, traits::AgentContext};
-use tokio::fs;
+use tokio::{fs, sync::mpsc};
 use uuid::Uuid;
 
 #[cfg(test)]
@@ -135,28 +135,25 @@ async fn start_agent(mut repository: repository::Repository, initial_message: &s
 
     indexing::index_repository(&repository, None).await?;
 
-    let mut command_responder = CommandResponder::default();
-    let responder_for_agent = command_responder.clone();
+    let (tx, mut rx) = mpsc::unbounded_channel();
 
     let handle = tokio::spawn(async move {
-        while let Some(response) = command_responder.recv().await {
+        while let Some(response) = rx.recv().await {
             match response {
-                CommandResponse::Chat(message) => {
-                    if let Some(original) = message.original() {
-                        println!("{original}");
-                    }
+                CommandResponse::Chat(.., message) => {
+                    println!("{message}");
                 }
                 CommandResponse::ActivityUpdate(.., message) => {
                     println!(">> {message}");
                 }
-                CommandResponse::RenameChat(..) => {}
+                CommandResponse::RenameChat(..) | CommandResponse::Completed(..) => {}
             }
         }
     });
 
     let query = initial_message.to_string();
-    let mut agent =
-        agent::build_agent(Uuid::new_v4(), &repository, &query, responder_for_agent).await?;
+    let (mut agent, _) =
+        agent::build_agent(Uuid::new_v4(), &repository, &query, Arc::new(tx)).await?;
 
     agent.query(&query).await?;
     handle.abort();
@@ -186,15 +183,6 @@ async fn start_tui(repository: &repository::Repository, args: &cli::Args) -> Res
 
     if args.skip_indexing {
         app.skip_indexing = true;
-    }
-
-    if cfg!(feature = "test-layout") {
-        app.ui_tx
-            .send(chat_message::ChatMessage::new_user("Hello, show me some markdown!").into())?;
-        app.ui_tx
-            .send(chat_message::ChatMessage::new_system("showing markdown").into())?;
-        app.ui_tx
-            .send(chat_message::ChatMessage::new_assistant(MARKDOWN_TEST).into())?;
     }
 
     let app_result = {
@@ -253,49 +241,3 @@ pub fn restore_tui() -> io::Result<()> {
     execute!(stdout(), LeaveAlternateScreen)?;
     Ok(())
 }
-
-static MARKDOWN_TEST: &str = r#"
-# Main header
-## Examples
-
-Indexing a local code project, chunking into smaller pieces, enriching the nodes with metadata, and persisting into [Qdrant](https://qdrant.tech):
-
-```rust
-indexing::Pipeline::from_loader(FileLoader::new(".").with_extensions(&["rs"]))
-        .with_default_llm_client(openai_client.clone())
-        .filter_cached(Redis::try_from_url(
-            redis_url,
-            "swiftide-examples",
-        )?)
-        .then_chunk(ChunkCode::try_for_language_and_chunk_size(
-            "rust",
-            10..2048,
-        )?)
-        .then(MetadataQACode::default())
-        .then(move |node| my_own_thing(node))
-        .then_in_batch(Embed::new(openai_client.clone()))
-        .then_store_with(
-            Qdrant::builder()
-                .batch_size(50)
-                .vector_size(1536)
-                .build()?,
-        )
-        .run()
-        .await?;
-```
-
-Querying for an example on how to use the query pipeline:
-
-```rust
-query::Pipeline::default()
-    .then_transform_query(GenerateSubquestions::from_client(
-        openai_client.clone(),
-    ))
-    .then_transform_query(Embed::from_client(
-        openai_client.clone(),
-    ))
-    .then_retrieve(qdrant.clone())
-    .then_answer(Simple::from_client(openai_client.clone()))
-    .query("How can I use the query pipeline in Swiftide?")
-    .await?;
-"#;
