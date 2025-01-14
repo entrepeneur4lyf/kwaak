@@ -20,11 +20,11 @@ use crate::{
     chat::{Chat, ChatState},
     chat_message::ChatMessage,
     commands::{Command, CommandEvent},
-    frontend,
+    frontend::{self, actions},
 };
 
 use super::{
-    app_command_responder::AppCommandResponder, chat_mode, logs_mode, ui_event::UIEvent,
+    app_command_responder::AppCommandResponder, chat_mode, logs_mode, splash, ui_event::UIEvent,
     ui_input_command::UserInputCommand,
 };
 
@@ -33,6 +33,8 @@ const HEADER: &str = include_str!("ascii_logo");
 
 /// Handles user and TUI interaction
 pub struct App<'a> {
+    pub splash: splash::Splash<'a>,
+    pub has_indexed_on_boot: bool,
     // /// The chat input
     // pub input: String,
     pub text_input: TextArea<'a>,
@@ -83,7 +85,7 @@ pub enum AppMode {
 }
 
 impl AppMode {
-    fn on_key(self, app: &mut App, key: KeyEvent) {
+    fn on_key(self, app: &mut App, key: &KeyEvent) {
         match self {
             AppMode::Chat => chat_mode::on_key(app, key),
             AppMode::Logs => logs_mode::on_key(app, key),
@@ -126,6 +128,8 @@ impl Default for App<'_> {
         };
 
         Self {
+            splash: splash::Splash::default(),
+            has_indexed_on_boot: false,
             skip_indexing: false,
             text_input: new_text_area(),
             current_chat_uuid: chat.uuid,
@@ -157,7 +161,7 @@ fn new_text_area() -> TextArea<'static> {
 }
 
 impl App<'_> {
-    async fn recv_messages(&mut self) -> Option<UIEvent> {
+    pub async fn recv_messages(&mut self) -> Option<UIEvent> {
         self.ui_rx.recv().await
     }
 
@@ -178,7 +182,7 @@ impl App<'_> {
         self.text_input = new_text_area();
     }
 
-    fn on_key(&mut self, key: KeyEvent) {
+    fn on_key(&mut self, key: &KeyEvent) {
         if key.modifiers == crossterm::event::KeyModifiers::CONTROL
             && key.code == KeyCode::Char('q')
         {
@@ -238,11 +242,8 @@ impl App<'_> {
 
         let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
 
-        let mut has_indexed_on_boot = false;
-        let mut splash = frontend::splash::Splash::default();
-
         if self.skip_indexing {
-            has_indexed_on_boot = true;
+            self.has_indexed_on_boot = true;
         } else {
             self.dispatch_command(self.boot_uuid, Command::IndexRepository);
         }
@@ -250,15 +251,17 @@ impl App<'_> {
         loop {
             // Draw the UI
             terminal.draw(|f| {
-                if has_indexed_on_boot && splash.is_rendered() {
-                    let base_area = self.draw_base_ui(f);
-
-                    self.mode.ui(f, base_area, self);
+                if self.has_indexed_on_boot && self.splash.is_rendered() {
+                    self.render_tui(f);
                 } else {
-                    splash.render(f);
+                    self.splash.render(f);
                 }
             })?;
-            if !splash.is_rendered() {
+
+            if let Some(event) = self.recv_messages().await {
+                self.handle_single_event(&event).await;
+            }
+            if !self.splash.is_rendered() {
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
 
@@ -267,116 +270,6 @@ impl App<'_> {
             }
 
             // Handle events
-            if let Some(event) = self.recv_messages().await {
-                if !matches!(event, UIEvent::Tick | UIEvent::Input(_)) {
-                    tracing::debug!("Received ui event: {:?}", event);
-                }
-                match event {
-                    UIEvent::Input(key) => {
-                        self.on_key(key);
-                    }
-                    UIEvent::Tick => {
-                        // Handle periodic tasks if necessary
-                    }
-                    UIEvent::CommandDone(uuid) => {
-                        if uuid == self.boot_uuid {
-                            has_indexed_on_boot = true;
-                            self.current_chat_mut()
-                                .expect("Boot uuid should always be present")
-                                .transition(ChatState::Ready);
-                        } else if let Some(chat) = self.find_chat_mut(uuid) {
-                            chat.transition(ChatState::Ready);
-                        }
-                    }
-                    UIEvent::ActivityUpdate(uuid, activity) => {
-                        if uuid == self.boot_uuid {
-                            splash.set_message(activity);
-                        } else if let Some(chat) = self.find_chat_mut(uuid) {
-                            chat.transition(ChatState::LoadingWithMessage(activity));
-                        }
-                    }
-                    UIEvent::ChatMessage(uuid, message) => {
-                        self.add_chat_message(uuid, message);
-                    }
-                    UIEvent::NewChat => {
-                        self.add_chat(Chat::default());
-                    }
-                    UIEvent::RenameChat(uuid, name) => {
-                        if let Some(chat) = self.find_chat_mut(uuid) {
-                            chat.name = name;
-                        };
-                    }
-                    UIEvent::NextChat => self.next_chat(),
-                    UIEvent::ChangeMode(mode) => self.change_mode(mode),
-                    UIEvent::Quit => {
-                        tracing::warn!("UI received quit event, quitting");
-
-                        self.dispatch_command(self.current_chat_uuid, Command::Quit);
-                        self.change_mode(AppMode::Quit);
-                    }
-                    UIEvent::DeleteChat => {
-                        let uuid = self.current_chat_uuid;
-                        self.dispatch_command(uuid, Command::StopAgent);
-                        // Remove the chat with the given UUID
-                        self.chats.retain(|chat| chat.uuid != uuid);
-
-                        if self.chats.is_empty() {
-                            self.add_chat(Chat::default());
-                            self.chats_state.select(Some(0));
-                            self.add_chat_message(
-                                self.current_chat_uuid,
-                                ChatMessage::new_system(
-                                    "Nice, you managed to delete the last chat!",
-                                ),
-                            );
-                        } else {
-                            self.next_chat();
-                        }
-                    }
-                    UIEvent::CopyLastMessage => {
-                        let Some(last_message) = self
-                            .current_chat()
-                            .and_then(|c| {
-                                c.messages
-                                    .iter()
-                                    .filter(|m| m.role().is_assistant() || m.role().is_user())
-                                    .last()
-                            })
-                            .map(ChatMessage::formatted_content)
-                        else {
-                            self.add_chat_message(
-                                self.current_chat_uuid,
-                                ChatMessage::new_system("No message to copy"),
-                            );
-                            continue;
-                        }; // Replace with actual retrieval of the last message
-                           //
-                        if let Err(e) = ClipboardContext::new()
-                            .and_then(|mut ctx| ctx.set_contents(last_message.to_string()))
-                        {
-                            tracing::error!("Error copying last message to clipboard {e:#}");
-                            continue;
-                        }
-                        self.add_chat_message(
-                            self.current_chat_uuid,
-                            ChatMessage::new_system("Copied last message to clipboard"),
-                        );
-                    }
-                    UIEvent::UserInputCommand(uuid, cmd) => {
-                        if let Some(cmd) = cmd.to_command() {
-                            self.dispatch_command(uuid, cmd);
-                        } else if let Some(event) = cmd.to_ui_event() {
-                            self.send_ui_event(event);
-                        } else {
-                            tracing::error!("Could not convert ui command to backend command nor ui event {cmd}");
-                            self.add_chat_message(
-                                self.current_chat_uuid,
-                                ChatMessage::new_system("Unknown command"),
-                            );
-                        }
-                    }
-                }
-            }
         }
 
         tracing::warn!("Quitting frontend");
@@ -384,6 +277,98 @@ impl App<'_> {
         handle.abort();
 
         Ok(())
+    }
+
+    pub fn render_tui(&mut self, f: &mut Frame) {
+        let base_area = self.draw_base_ui(f);
+
+        self.mode.ui(f, base_area, self);
+    }
+
+    /// Wait for and handle a single ui event
+    ///
+    /// # Panics
+    ///
+    /// Panics if after boot completed, it cannot find the initial chat
+    pub async fn handle_single_event(&mut self, event: &UIEvent) {
+        if !matches!(event, UIEvent::Tick | UIEvent::Input(_)) {
+            tracing::debug!("Received ui event: {:?}", event);
+        }
+        match event {
+            UIEvent::Input(key) => {
+                self.on_key(key);
+            }
+            UIEvent::Tick => {
+                // Handle periodic tasks if necessary
+            }
+            UIEvent::CommandDone(uuid) => {
+                if *uuid == self.boot_uuid {
+                    self.has_indexed_on_boot = true;
+                    self.current_chat_mut()
+                        .expect("Boot uuid should always be present")
+                        .transition(ChatState::Ready);
+                } else if let Some(chat) = self.find_chat_mut(*uuid) {
+                    chat.transition(ChatState::Ready);
+                }
+            }
+            UIEvent::ActivityUpdate(uuid, activity) => {
+                if *uuid == self.boot_uuid {
+                    self.splash.set_message(activity.to_string());
+                } else if let Some(chat) = self.find_chat_mut(*uuid) {
+                    chat.transition(ChatState::LoadingWithMessage(activity.to_string()));
+                }
+            }
+            UIEvent::ChatMessage(uuid, message) => {
+                self.add_chat_message(*uuid, message.clone());
+            }
+            UIEvent::NewChat => {
+                self.add_chat(Chat::default());
+            }
+            UIEvent::RenameChat(uuid, name) => {
+                if let Some(chat) = self.find_chat_mut(*uuid) {
+                    chat.name = name.to_string();
+                };
+            }
+            UIEvent::NextChat => self.next_chat(),
+            UIEvent::ChangeMode(mode) => self.change_mode(*mode),
+            UIEvent::Quit => {
+                tracing::warn!("UI received quit event, quitting");
+
+                self.dispatch_command(self.current_chat_uuid, Command::Quit);
+                self.change_mode(AppMode::Quit);
+            }
+            UIEvent::DeleteChat => actions::delete_chat(self),
+            UIEvent::CopyLastMessage => actions::copy_last_message(self),
+            UIEvent::DiffPull => actions::diff_pull(self).await,
+            UIEvent::DiffShow => actions::diff_show(self).await,
+            UIEvent::UserInputCommand(uuid, cmd) => {
+                if let Some(cmd) = cmd.to_command() {
+                    self.dispatch_command(*uuid, cmd);
+                } else if let Some(event) = cmd.to_ui_event() {
+                    self.send_ui_event(event);
+                } else {
+                    tracing::error!(
+                        "Could not convert ui command to backend command nor ui event {cmd}"
+                    );
+                    self.add_chat_message(
+                        self.current_chat_uuid,
+                        ChatMessage::new_system("Unknown command"),
+                    );
+                }
+            }
+        }
+    }
+
+    pub async fn handle_events_until(&mut self, stop: impl Fn(&UIEvent) -> bool) {
+        while let Some(event) = self.recv_messages().await {
+            self.handle_single_event(&event).await;
+            if stop(&event) {
+                break;
+            }
+            if self.mode == AppMode::Quit {
+                break;
+            }
+        }
     }
 
     pub fn find_chat_mut(&mut self, uuid: Uuid) -> Option<&mut Chat> {
@@ -402,7 +387,7 @@ impl App<'_> {
         self.find_chat_mut(self.current_chat_uuid)
     }
 
-    fn add_chat(&mut self, mut new_chat: Chat) {
+    pub fn add_chat(&mut self, mut new_chat: Chat) {
         new_chat.name = format!("Chat #{}", self.chats.len() + 1);
 
         self.current_chat_uuid = new_chat.uuid;

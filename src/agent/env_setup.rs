@@ -21,11 +21,12 @@ pub struct EnvSetup<'a> {
 }
 
 /// Returned after setting up the environment
-#[derive(Default, Debug)]
-pub struct Env {
+#[derive(Default, Debug, Clone)]
+pub struct AgentEnvironment {
     #[allow(dead_code)]
     pub branch_name: String,
     pub start_ref: String,
+    pub remote_enabled: bool,
 }
 
 impl EnvSetup<'_> {
@@ -44,35 +45,43 @@ impl EnvSetup<'_> {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn exec_setup_commands(&self) -> Result<Env> {
+    pub async fn exec_setup_commands(&self) -> Result<AgentEnvironment> {
         // Only run these commands if we are running inside a docker container
         if self.repository.config().tool_executor != SupportedToolExecutors::Docker {
-            return Ok(Env {
+            return Ok(AgentEnvironment {
                 branch_name: self.get_current_branch().await?,
                 start_ref: self.get_current_ref().await?,
+                remote_enabled: false,
             });
         }
 
-        self.setup_github_auth().await?;
+        let mut remote_enabled = true;
+        if let Err(e) = self.setup_github_auth().await {
+            tracing::warn!(error = ?e, "Failed to setup github auth");
+            remote_enabled = false;
+        }
         self.configure_git_user().await?;
         self.switch_to_work_branch().await?;
 
-        Ok(Env {
+        Ok(AgentEnvironment {
             branch_name: self.get_current_branch().await?,
             start_ref: self.get_current_ref().await?,
+            remote_enabled,
         })
     }
 
     async fn setup_github_auth(&self) -> Result<()> {
-        let origin_url = self
+        let Some(github_session) = self.github_session else {
+            anyhow::bail!("Github session is required to setup github auth");
+        };
+
+        let Ok(origin_url) = self
             .executor
             .exec_cmd(&Command::shell("git remote get-url origin"))
             .await
-            .context("Could not get origin url")?
-            .output;
-
-        let Some(github_session) = self.github_session else {
-            bail!("When running inside docker, a valid github token is required")
+            .map(|t| t.output)
+        else {
+            anyhow::bail!("Could not get origin url; does the repository have a remote of origin enabled? Github integration will be disabled");
         };
 
         let url_with_token = github_session.add_token_to_url(&origin_url)?;
@@ -98,8 +107,6 @@ impl EnvSetup<'_> {
         Ok(())
     }
 
-    // NOTE: Git branch is currently hardcoded to `kwaak/{uuid}` in the frontend, using the same
-    // uuid as the chat
     async fn switch_to_work_branch(&self) -> Result<()> {
         let branch_name = format!("kwaak/{}", self.uuid);
         let cmd = Command::Shell(format!("git checkout -b {branch_name}"));

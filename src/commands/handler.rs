@@ -8,12 +8,16 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use crate::{agent, frontend::App, indexing, repository::Repository};
+use crate::{
+    agent::{self, RunningAgent},
+    frontend::App,
+    git, indexing,
+    repository::Repository,
+};
 
 use super::{
     command::{Command, CommandEvent},
     responder::{CommandResponse, Responder},
-    running_agent::RunningAgent,
 };
 
 /// Commands always flow via the `CommandHandler`
@@ -80,24 +84,34 @@ impl CommandHandler {
 
                 joinset.spawn(async move {
                     let result = this_handler.handle_command_event(&repository, &event, &event.command()).await;
-                    // ui_tx.send(UIEvent::CommandDone(cmd.uuid())).unwrap();
                     event.responder().handle(CommandResponse::Completed(event.uuid()));
 
                     if let Err(error) = result {
                         tracing::error!(?error, cmd = %event.command(), "Failed to handle command {cmd} with error {error:#}", cmd= event.command());
-                            event.responder().system_message(&format!(
-                                    "Failed to handle command: {error:#}"
-                                ));
+                        event.responder().system_message(&format!(
+                                "Failed to handle command: {error:#}"
+                            ));
+
                     };
                 });
+
+                // During testing, we want to bail fast and not let the command handler continue
+                if cfg!(feature = "testing") {
+                    if let Some(task_result) = joinset.join_next().await {
+                        tracing::warn!("Task completed");
+                        if let Err(e) = task_result {
+                            tracing::warn!("Task failed: {e:#?}");
+                            eprintln!("{e:#?}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
             }
 
             tracing::warn!("CommandHandler shutting down");
         })
     }
 
-    /// TODO: Most commands should probably be handled in a tokio task
-    /// Maybe generalize tasks to make ui updates easier?
     #[tracing::instrument(skip_all, fields(otel.name = %cmd.to_string(), uuid = %event.uuid()), err)]
     async fn handle_command_event(
         &self,
@@ -133,7 +147,7 @@ impl CommandHandler {
 
                 }?;
             }
-            Command::Exec { command } => {
+            Command::Diff => {
                 let Some(agent) = self.find_agent_by_uuid(event.uuid()).await else {
                     event
                         .responder()
@@ -141,9 +155,10 @@ impl CommandHandler {
                     return Ok(());
                 };
 
-                let _result = agent.executor.exec_cmd(&command).await;
-                todo!();
+                let base_sha = &agent.agent_environment.start_ref;
+                let diff = git::util::diff(agent.executor.as_ref(), &base_sha, "HEAD").await?;
 
+                event.responder().system_message(&diff);
                 // And now it needs to go back to the frontend again
             }
             Command::Quit { .. } => unreachable!("Quit should be handled earlier"),
@@ -171,16 +186,9 @@ impl CommandHandler {
             return Ok(agent.clone());
         }
 
-        let (agent, executor) =
-            agent::build_agent(uuid, &self.repository, query, responder).await?;
-
-        let running_agent = RunningAgent {
-            agent: Arc::new(Mutex::new(agent)),
-            cancel_token: CancellationToken::new(),
-            executor,
-        };
-
+        let running_agent = agent::start_agent(uuid, &self.repository, query, responder).await?;
         let cloned = running_agent.clone();
+
         self.agents.write().await.insert(uuid, running_agent);
 
         Ok(cloned)
@@ -192,8 +200,8 @@ impl CommandHandler {
     }
 
     async fn stop_agent(&self, uuid: Uuid, responder: Arc<dyn Responder>) -> Result<()> {
-        let mut locked_agents = self.agents.write().await;
-        let Some(agent) = locked_agents.get_mut(&uuid) else {
+        let agents = self.agents.read().await;
+        let Some(agent) = agents.get(&uuid) else {
             responder.system_message("No agent found (yet), is it starting up?");
             return Ok(());
         };

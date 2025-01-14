@@ -1,3 +1,11 @@
+/// When a user types an input command (/ prefix) it is parsed into a `UserInputCommand`
+/// and then bubled up to an `UIEvent::UserInputCommand``
+///
+/// The event handler in the app will then try to convert the `UserInputCommand` into a `Command`
+/// or an `UIEvent` depending on which is implemented
+///
+/// Alternative solution could be to have a thing that executes user input commands directly,
+/// removing the need for the UIEvent roundtrip
 use crate::commands::Command;
 use anyhow::{Context as _, Result};
 
@@ -22,7 +30,6 @@ pub enum UserInputCommand {
     NewChat,
     DeleteChat,
     Copy,
-    #[strum(disabled)] // <-- Different PR
     Diff(DiffVariant),
 }
 
@@ -39,10 +46,11 @@ pub enum UserInputCommand {
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum DiffVariant {
+    /// Print the current changes
     #[default]
     Show,
-    Apply,
-    Download,
+    /// Pulls the current changes into the same branch as the agent is working in
+    Pull,
 }
 
 impl UserInputCommand {
@@ -69,6 +77,10 @@ impl UserInputCommand {
             UserInputCommand::NewChat => Some(UIEvent::NewChat),
             UserInputCommand::Copy => Some(UIEvent::CopyLastMessage),
             UserInputCommand::DeleteChat => Some(UIEvent::DeleteChat),
+            UserInputCommand::Diff(diff_variant) => match diff_variant {
+                DiffVariant::Show => Some(UIEvent::DiffShow),
+                DiffVariant::Pull => Some(UIEvent::DiffPull),
+            },
             _ => None,
         }
     }
@@ -127,17 +139,12 @@ mod tests {
         }
     }
 
-    #[ignore = "future pull request"]
     #[test]
     fn test_parse_diff_input() {
         let test_cases = vec![
             ("/diff", UserInputCommand::Diff(DiffVariant::Show)),
             ("/diff show", UserInputCommand::Diff(DiffVariant::Show)),
-            ("/diff apply", UserInputCommand::Diff(DiffVariant::Apply)),
-            (
-                "/diff download",
-                UserInputCommand::Diff(DiffVariant::Download),
-            ),
+            ("/diff pull", UserInputCommand::Diff(DiffVariant::Pull)),
         ];
 
         for (input, expected_command) in test_cases {

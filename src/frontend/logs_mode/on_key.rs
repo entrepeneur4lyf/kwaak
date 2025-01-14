@@ -3,7 +3,7 @@ use tui_logger::TuiWidgetEvent;
 
 use crate::frontend::{app::AppMode, App};
 
-pub fn on_key(app: &mut App, key: KeyEvent) {
+pub fn on_key(app: &mut App, key: &KeyEvent) {
     let state = &mut app.log_state;
 
     match key.code {

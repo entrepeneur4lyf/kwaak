@@ -6,7 +6,7 @@ use crate::chat_message::ChatMessage;
 use super::{app::AppMode, ui_input_command::UserInputCommand};
 
 // Event handling
-#[derive(Debug, Clone, strum::Display, PartialEq)]
+#[derive(Debug, Clone, strum::Display, PartialEq, strum::EnumIs)]
 #[allow(dead_code)]
 pub enum UIEvent {
     /// A key is pressed
@@ -35,6 +35,10 @@ pub enum UIEvent {
     DeleteChat,
     /// Received a user command (prefixed with '/') from the user
     UserInputCommand(Uuid, UserInputCommand),
+    /// Pulls the current changes into the same branch as the agent is working in
+    DiffPull,
+    /// Show the current changes
+    DiffShow,
 }
 
 impl From<KeyEvent> for UIEvent {

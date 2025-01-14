@@ -1,6 +1,7 @@
 use std::sync::{Arc, OnceLock};
 
 use anyhow::Result;
+use async_trait::async_trait;
 use swiftide::chat_completion;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -9,7 +10,7 @@ use crate::commands::{CommandResponse, Responder};
 
 use super::ui_event::UIEvent;
 
-static INSTANCE: OnceLock<Arc<AppCommandResponder>> = OnceLock::new();
+static INSTANCE: OnceLock<AppCommandResponder> = OnceLock::new();
 
 /// Handles responses from commands application wide
 ///
@@ -18,6 +19,8 @@ static INSTANCE: OnceLock<Arc<AppCommandResponder>> = OnceLock::new();
 /// frontend, without knowing about the frontend
 ///
 /// Only one is expected to be running at a time
+///
+/// TODO: If only used in app, singleton is not needed
 #[derive(Debug, Clone)]
 pub struct AppCommandResponder {
     // ui_tx: mpsc::UnboundedSender<UIEvent>,
@@ -27,7 +30,7 @@ pub struct AppCommandResponder {
 
 #[derive(Debug, Clone)]
 pub struct AppCommandResponderForChatId {
-    inner: Arc<AppCommandResponder>,
+    inner: mpsc::UnboundedSender<CommandResponse>,
     uuid: uuid::Uuid,
 }
 
@@ -37,14 +40,14 @@ impl AppCommandResponder {
             anyhow::bail!("App command responder already initialized");
         }
 
+        tracing::info!("Initializing app command responder");
         let (tx, mut rx) = mpsc::unbounded_channel();
         let handle = tokio::spawn(async move {
             while let Some(response) = rx.recv().await {
+                tracing::debug!("[RESPONDER] Received response: {:?}", response);
                 let ui_event = match response {
                     CommandResponse::Chat(uuid, msg) => UIEvent::ChatMessage(uuid, msg.into()),
-                    CommandResponse::ActivityUpdate(uuid, state) => {
-                        UIEvent::ActivityUpdate(uuid, state)
-                    }
+                    CommandResponse::Activity(uuid, state) => UIEvent::ActivityUpdate(uuid, state),
                     CommandResponse::RenameChat(uuid, name) => UIEvent::RenameChat(uuid, name),
                     CommandResponse::Completed(uuid) => UIEvent::CommandDone(uuid),
                 };
@@ -53,15 +56,16 @@ impl AppCommandResponder {
                     tracing::error!("Failed to send response to ui: {:#}", err);
                 }
             }
+            tracing::info!("App command responder shutting down");
         });
 
         // Create the app responder, spawn a task to handle responses, the once cell returns a
         // clone of the responder without the rx
         INSTANCE
-            .set(Arc::new(AppCommandResponder {
+            .set(AppCommandResponder {
                 tx,
                 _handle: handle.into(),
-            }))
+            })
             .map_err(|_| anyhow::anyhow!("Failed to set global frontend command responder"))?;
 
         Ok(())
@@ -73,14 +77,19 @@ impl AppCommandResponder {
             .expect("App command responder not initialized")
             .clone();
 
-        Arc::new(AppCommandResponderForChatId { inner, uuid }) as Arc<dyn Responder>
+        Arc::new(AppCommandResponderForChatId {
+            inner: inner.tx.clone(),
+            uuid,
+        }) as Arc<dyn Responder>
     }
 }
 
+#[async_trait]
 impl Responder for AppCommandResponderForChatId {
     fn handle(&self, response: CommandResponse) {
+        tracing::debug!("[RESPONDER SENDER] Sending response: {:?}", response);
         let response = response.with_uuid(self.uuid);
-        if let Err(err) = self.inner.tx.send(response) {
+        if let Err(err) = self.inner.send(response) {
             tracing::error!("Failed to send response for command: {:?}", err);
         }
     }
@@ -93,7 +102,7 @@ impl Responder for AppCommandResponderForChatId {
     }
 
     fn update(&self, state: &str) {
-        self.handle(CommandResponse::ActivityUpdate(self.uuid, state.into()));
+        self.handle(CommandResponse::Activity(self.uuid, state.into()));
     }
 
     fn rename(&self, name: &str) {

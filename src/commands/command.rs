@@ -28,8 +28,8 @@ pub enum Command {
     /// Chat with an agent
     Chat { message: String },
 
-    /// Execute a tool executor compatible command in a running tool executor
-    Exec { command: swiftide::traits::Command },
+    /// Get the current changes made by the agent
+    Diff,
 }
 
 #[derive(Debug, Clone, Builder)]

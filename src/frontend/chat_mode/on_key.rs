@@ -6,7 +6,7 @@ use crate::{
     frontend::{ui_event::UIEvent, ui_input_command::UserInputCommand, App},
 };
 
-pub fn on_key(app: &mut App, key: KeyEvent) {
+pub fn on_key(app: &mut App, key: &KeyEvent) {
     let current_input = app.text_input.lines().join("\n");
 
     // `Ctrl-s` to send the message in the text input
@@ -88,7 +88,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) {
                 .position(current_chat.vertical_scroll);
         }
         _ => {
-            app.text_input.input(key);
+            app.text_input.input(*key);
         }
     }
 }

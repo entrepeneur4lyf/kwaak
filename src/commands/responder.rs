@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use swiftide::chat_completion;
@@ -12,8 +13,9 @@ use uuid::Uuid;
 /// not the same 'thing')
 #[derive(Debug, Clone)]
 pub enum CommandResponse {
+    /// Messages coming from an agent
     Chat(Uuid, chat_completion::ChatMessage),
-    ActivityUpdate(Uuid, String),
+    Activity(Uuid, String),
     RenameChat(Uuid, String),
     Completed(Uuid),
 }
@@ -23,9 +25,7 @@ impl CommandResponse {
     pub fn with_uuid(self, uuid: Uuid) -> Self {
         match self {
             CommandResponse::Chat(uuid, msg) => CommandResponse::Chat(uuid, msg),
-            CommandResponse::ActivityUpdate(_, state) => {
-                CommandResponse::ActivityUpdate(uuid, state)
-            }
+            CommandResponse::Activity(_, state) => CommandResponse::Activity(uuid, state),
             CommandResponse::RenameChat(_, name) => CommandResponse::RenameChat(uuid, name),
             CommandResponse::Completed(_) => CommandResponse::Completed(uuid),
         }
@@ -56,6 +56,7 @@ pub trait Responder: std::fmt::Debug + Send + Sync {
     fn rename(&self, name: &str);
 }
 
+// TODO: Naming should be identical to command response
 impl Responder for tokio::sync::mpsc::UnboundedSender<CommandResponse> {
     fn handle(&self, response: CommandResponse) {
         let _ = self.send(response);
@@ -66,14 +67,11 @@ impl Responder for tokio::sync::mpsc::UnboundedSender<CommandResponse> {
     }
 
     fn system_message(&self, message: &str) {
-        let _ = self.send(CommandResponse::ActivityUpdate(
-            Uuid::default(),
-            message.to_string(),
-        ));
+        let _ = self.send(CommandResponse::Chat(Uuid::default(), message.to_string()));
     }
 
     fn update(&self, state: &str) {
-        let _ = self.send(CommandResponse::ActivityUpdate(
+        let _ = self.send(CommandResponse::Activity(
             Uuid::default(),
             state.to_string(),
         ));
