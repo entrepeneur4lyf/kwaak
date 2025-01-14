@@ -16,7 +16,7 @@ use super::{
     conversation_summarizer::ConversationSummarizer,
     env_setup::{self, EnvSetup},
     tool_summarizer::ToolSummarizer,
-    tools,
+    tools, RunningAgent,
 };
 use crate::{
     commands::Responder, config::SupportedToolExecutors, git::github::GithubSession, indexing,
@@ -33,7 +33,7 @@ async fn generate_initial_context(repository: &Repository, query: &str) -> Resul
 pub fn available_tools(
     repository: &Repository,
     github_session: Option<&Arc<GithubSession>>,
-    agent_env: Option<&env_setup::Env>,
+    agent_env: Option<&env_setup::AgentEnvironment>,
 ) -> Result<Vec<Box<dyn Tool>>> {
     let query_pipeline = indexing::build_query_pipeline(repository)?;
 
@@ -96,12 +96,12 @@ async fn start_tool_executor(uuid: Uuid, repository: &Repository) -> Result<Arc<
 }
 
 #[tracing::instrument(skip(repository, command_responder))]
-pub async fn build_agent(
+pub async fn start_agent(
     uuid: Uuid,
     repository: &Repository,
     query: &str,
     command_responder: Arc<dyn Responder>,
-) -> Result<(Agent, Arc<dyn ToolExecutor>)> {
+) -> Result<RunningAgent> {
     command_responder.update("starting up agent for the first time, this might take a while");
 
     let query_provider: Box<dyn ChatCompletion> =
@@ -142,7 +142,7 @@ pub async fn build_agent(
     let tool_summarizer =
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
     let conversation_summarizer =
-        ConversationSummarizer::new(query_provider.clone(), &tools, agent_env.start_ref);
+        ConversationSummarizer::new(query_provider.clone(), &tools, &agent_env.start_ref);
     let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
     let agent = Agent::builder()
@@ -234,7 +234,11 @@ pub async fn build_agent(
         .llm(&query_provider)
         .build()?;
 
-    Ok((agent, executor))
+    RunningAgent::builder()
+        .agent(agent)
+        .executor(executor)
+        .agent_environment(agent_env)
+        .build()
 }
 
 fn build_system_prompt(repository: &Repository) -> Result<Prompt> {

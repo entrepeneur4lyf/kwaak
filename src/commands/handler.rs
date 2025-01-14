@@ -2,18 +2,22 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use tokio::{
-    sync::{mpsc, Mutex, RwLock},
+    sync::{mpsc, RwLock},
     task::{self},
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use crate::{agent, frontend::App, indexing, repository::Repository};
+use crate::{
+    agent::{self, RunningAgent},
+    frontend::App,
+    git, indexing,
+    repository::Repository,
+};
 
 use super::{
     command::{Command, CommandEvent},
     responder::{CommandResponse, Responder},
-    running_agent::RunningAgent,
 };
 
 /// Commands always flow via the `CommandHandler`
@@ -133,7 +137,7 @@ impl CommandHandler {
 
                 }?;
             }
-            Command::Exec { command } => {
+            Command::Diff => {
                 let Some(agent) = self.find_agent_by_uuid(event.uuid()).await else {
                     event
                         .responder()
@@ -141,9 +145,10 @@ impl CommandHandler {
                     return Ok(());
                 };
 
-                let _result = agent.executor.exec_cmd(&command).await;
-                todo!();
+                let base_sha = &agent.agent_environment.start_ref;
+                let diff = git::util::diff(agent.executor.as_ref(), &base_sha, "HEAD").await?;
 
+                event.responder().system_message(&diff);
                 // And now it needs to go back to the frontend again
             }
             Command::Quit { .. } => unreachable!("Quit should be handled earlier"),
@@ -171,16 +176,9 @@ impl CommandHandler {
             return Ok(agent.clone());
         }
 
-        let (agent, executor) =
-            agent::build_agent(uuid, &self.repository, query, responder).await?;
-
-        let running_agent = RunningAgent {
-            agent: Arc::new(Mutex::new(agent)),
-            cancel_token: CancellationToken::new(),
-            executor,
-        };
-
+        let running_agent = agent::start_agent(uuid, &self.repository, query, responder).await?;
         let cloned = running_agent.clone();
+
         self.agents.write().await.insert(uuid, running_agent);
 
         Ok(cloned)

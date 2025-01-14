@@ -35,6 +35,10 @@ pub enum UIEvent {
     DeleteChat,
     /// Received a user command (prefixed with '/') from the user
     UserInputCommand(Uuid, UserInputCommand),
+    /// Pulls the current changes into the same branch as the agent is working in
+    DiffPull,
+    /// Show the current changes
+    DiffShow,
 }
 
 impl From<KeyEvent> for UIEvent {

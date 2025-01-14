@@ -1,5 +1,4 @@
 use anyhow::Result;
-use copypasta::{ClipboardContext, ClipboardProvider};
 use std::time::Duration;
 use strum::IntoEnumIterator as _;
 use tui_logger::TuiWidgetState;
@@ -20,7 +19,7 @@ use crate::{
     chat::{Chat, ChatState},
     chat_message::ChatMessage,
     commands::{Command, CommandEvent},
-    frontend,
+    frontend::{self, actions},
 };
 
 use super::{
@@ -314,54 +313,10 @@ impl App<'_> {
                         self.dispatch_command(self.current_chat_uuid, Command::Quit);
                         self.change_mode(AppMode::Quit);
                     }
-                    UIEvent::DeleteChat => {
-                        let uuid = self.current_chat_uuid;
-                        self.dispatch_command(uuid, Command::StopAgent);
-                        // Remove the chat with the given UUID
-                        self.chats.retain(|chat| chat.uuid != uuid);
-
-                        if self.chats.is_empty() {
-                            self.add_chat(Chat::default());
-                            self.chats_state.select(Some(0));
-                            self.add_chat_message(
-                                self.current_chat_uuid,
-                                ChatMessage::new_system(
-                                    "Nice, you managed to delete the last chat!",
-                                ),
-                            );
-                        } else {
-                            self.next_chat();
-                        }
-                    }
-                    UIEvent::CopyLastMessage => {
-                        let Some(last_message) = self
-                            .current_chat()
-                            .and_then(|c| {
-                                c.messages
-                                    .iter()
-                                    .filter(|m| m.role().is_assistant() || m.role().is_user())
-                                    .last()
-                            })
-                            .map(ChatMessage::formatted_content)
-                        else {
-                            self.add_chat_message(
-                                self.current_chat_uuid,
-                                ChatMessage::new_system("No message to copy"),
-                            );
-                            continue;
-                        }; // Replace with actual retrieval of the last message
-                           //
-                        if let Err(e) = ClipboardContext::new()
-                            .and_then(|mut ctx| ctx.set_contents(last_message.to_string()))
-                        {
-                            tracing::error!("Error copying last message to clipboard {e:#}");
-                            continue;
-                        }
-                        self.add_chat_message(
-                            self.current_chat_uuid,
-                            ChatMessage::new_system("Copied last message to clipboard"),
-                        );
-                    }
+                    UIEvent::DeleteChat => actions::delete_chat(self),
+                    UIEvent::CopyLastMessage => actions::copy_last_message(self),
+                    UIEvent::DiffPull => actions::diff_pull(self).await,
+                    UIEvent::DiffShow => actions::diff_show(self).await,
                     UIEvent::UserInputCommand(uuid, cmd) => {
                         if let Some(cmd) = cmd.to_command() {
                             self.dispatch_command(uuid, cmd);
@@ -402,7 +357,7 @@ impl App<'_> {
         self.find_chat_mut(self.current_chat_uuid)
     }
 
-    fn add_chat(&mut self, mut new_chat: Chat) {
+    pub fn add_chat(&mut self, mut new_chat: Chat) {
         new_chat.name = format!("Chat #{}", self.chats.len() + 1);
 
         self.current_chat_uuid = new_chat.uuid;

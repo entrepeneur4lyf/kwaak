@@ -6,6 +6,7 @@ mod splash;
 mod ui_event;
 mod ui_input_command;
 
+mod actions;
 mod app_command_responder;
 /// Different frontend ui modes
 mod chat_mode;

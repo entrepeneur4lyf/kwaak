@@ -21,8 +21,8 @@ pub struct EnvSetup<'a> {
 }
 
 /// Returned after setting up the environment
-#[derive(Default, Debug)]
-pub struct Env {
+#[derive(Default, Debug, Clone)]
+pub struct AgentEnvironment {
     #[allow(dead_code)]
     pub branch_name: String,
     pub start_ref: String,
@@ -44,10 +44,10 @@ impl EnvSetup<'_> {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn exec_setup_commands(&self) -> Result<Env> {
+    pub async fn exec_setup_commands(&self) -> Result<AgentEnvironment> {
         // Only run these commands if we are running inside a docker container
         if self.repository.config().tool_executor != SupportedToolExecutors::Docker {
-            return Ok(Env {
+            return Ok(AgentEnvironment {
                 branch_name: self.get_current_branch().await?,
                 start_ref: self.get_current_ref().await?,
             });
@@ -57,7 +57,7 @@ impl EnvSetup<'_> {
         self.configure_git_user().await?;
         self.switch_to_work_branch().await?;
 
-        Ok(Env {
+        Ok(AgentEnvironment {
             branch_name: self.get_current_branch().await?,
             start_ref: self.get_current_ref().await?,
         })
