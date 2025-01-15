@@ -143,8 +143,11 @@ async fn start_agent(mut repository: repository::Repository, initial_message: &s
                 CommandResponse::Chat(.., message) => {
                     println!("{message}");
                 }
-                CommandResponse::ActivityUpdate(.., message) => {
+                CommandResponse::Activity(.., message) => {
                     println!(">> {message}");
+                }
+                CommandResponse::BackendMessage(.., message) => {
+                    println!("Backend: {message}");
                 }
                 CommandResponse::RenameChat(..) | CommandResponse::Completed(..) => {}
             }
@@ -152,8 +155,7 @@ async fn start_agent(mut repository: repository::Repository, initial_message: &s
     });
 
     let query = initial_message.to_string();
-    let (mut agent, _) =
-        agent::build_agent(Uuid::new_v4(), &repository, &query, Arc::new(tx)).await?;
+    let agent = agent::start_agent(Uuid::new_v4(), &repository, &query, Arc::new(tx)).await?;
 
     agent.query(&query).await?;
     handle.abort();

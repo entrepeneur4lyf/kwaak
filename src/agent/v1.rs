@@ -7,7 +7,7 @@ use swiftide::{
     },
     chat_completion::{self, ChatCompletion, Tool},
     prompt::Prompt,
-    traits::{Command, SimplePrompt, ToolExecutor},
+    traits::{AgentContext, Command, SimplePrompt, ToolExecutor},
 };
 use tavily::Tavily;
 use uuid::Uuid;
@@ -16,7 +16,7 @@ use super::{
     conversation_summarizer::ConversationSummarizer,
     env_setup::{self, EnvSetup},
     tool_summarizer::ToolSummarizer,
-    tools,
+    tools, RunningAgent,
 };
 use crate::{
     commands::Responder, config::SupportedToolExecutors, git::github::GithubSession, indexing,
@@ -33,7 +33,7 @@ async fn generate_initial_context(repository: &Repository, query: &str) -> Resul
 pub fn available_tools(
     repository: &Repository,
     github_session: Option<&Arc<GithubSession>>,
-    agent_env: Option<&env_setup::Env>,
+    agent_env: Option<&env_setup::AgentEnvironment>,
 ) -> Result<Vec<Box<dyn Tool>>> {
     let query_pipeline = indexing::build_query_pipeline(repository)?;
 
@@ -80,6 +80,7 @@ async fn start_tool_executor(uuid: Uuid, repository: &Repository) -> Result<Arc<
             }
             let running_executor = executor
                 .with_context_path(&repository.config().docker.context)
+                .with_working_dir(repository.path())
                 .with_image_name(&repository.config().project_name)
                 .with_dockerfile(dockerfile)
                 .with_container_uuid(uuid)
@@ -96,12 +97,12 @@ async fn start_tool_executor(uuid: Uuid, repository: &Repository) -> Result<Arc<
 }
 
 #[tracing::instrument(skip(repository, command_responder))]
-pub async fn build_agent(
+pub async fn start_agent(
     uuid: Uuid,
     repository: &Repository,
     query: &str,
     command_responder: Arc<dyn Responder>,
-) -> Result<(Agent, Arc<dyn ToolExecutor>)> {
+) -> Result<RunningAgent> {
     command_responder.update("starting up agent for the first time, this might take a while");
 
     let query_provider: Box<dyn ChatCompletion> =
@@ -130,6 +131,12 @@ pub async fn build_agent(
 
     let mut context = DefaultContext::from_executor(Arc::clone(&executor));
 
+    let top_level_project_overview = context
+        .exec_cmd(&Command::shell("fd -iH -d2"))
+        .await?
+        .output;
+    tracing::debug!(top_level_project_overview = ?top_level_project_overview, "Top level project overview");
+
     if repository.config().endless_mode {
         context.with_stop_on_assistant(false);
     }
@@ -142,7 +149,7 @@ pub async fn build_agent(
     let tool_summarizer =
         ToolSummarizer::new(fast_query_provider, &["run_tests", "run_coverage"], &tools);
     let conversation_summarizer =
-        ConversationSummarizer::new(query_provider.clone(), &tools, agent_env.start_ref);
+        ConversationSummarizer::new(query_provider.clone(), &tools, &agent_env.start_ref);
     let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
     let agent = Agent::builder()
@@ -157,7 +164,7 @@ pub async fn build_agent(
                     .add_message(chat_completion::ChatMessage::new_user(initial_context))
                     .await;
 
-                let top_level_project_overview = context.exec_cmd(&Command::shell("fd -d2")).await?.output;
+                let top_level_project_overview = context.exec_cmd(&Command::shell("fd -iH -d2")).await?.output;
                 context.add_message(chat_completion::ChatMessage::new_user(format!("The following is a max depth 2, high level overview of the directory structure of the project: \n ```{top_level_project_overview}```"))).await;
 
                 Ok(())
@@ -224,8 +231,10 @@ pub async fn build_agent(
                 )
                 .context("Could not commit files to git")?;
 
-                accept_non_zero_exit(context.exec_cmd(&Command::shell("git push")).await)
-                    .context("Could not push changes to git")?;
+                if agent_env.remote_enabled {
+                    accept_non_zero_exit(context.exec_cmd(&Command::shell("git push")).await)
+                        .context("Could not push changes to git")?;
+                }
 
                 Ok(())
             })
@@ -234,7 +243,11 @@ pub async fn build_agent(
         .llm(&query_provider)
         .build()?;
 
-    Ok((agent, executor))
+    RunningAgent::builder()
+        .agent(agent)
+        .executor(executor)
+        .agent_environment(agent_env)
+        .build()
 }
 
 fn build_system_prompt(repository: &Repository) -> Result<Prompt> {

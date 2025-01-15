@@ -28,8 +28,12 @@ pub enum Command {
     /// Chat with an agent
     Chat { message: String },
 
-    /// Execute a tool executor compatible command in a running tool executor
-    Exec { command: swiftide::traits::Command },
+    /// Get the current changes made by the agent
+    Diff,
+
+    /// Execute a command in the context of an agent
+    /// and get the output
+    Exec { cmd: swiftide::traits::Command },
 }
 
 #[derive(Debug, Clone, Builder)]
@@ -40,6 +44,14 @@ pub struct CommandEvent {
 }
 
 impl CommandEvent {
+    #[must_use]
+    pub fn quit() -> Self {
+        CommandEvent {
+            command: Command::Quit,
+            responder: Arc::new(()),
+            uuid: Uuid::new_v4(),
+        }
+    }
     #[must_use]
     pub fn builder() -> CommandEventBuilder {
         CommandEventBuilder::default()

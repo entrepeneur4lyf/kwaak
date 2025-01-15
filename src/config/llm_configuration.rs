@@ -1,3 +1,6 @@
+#[cfg(feature = "testing")]
+use crate::test_utils::NoopLLM;
+
 use super::ApiKey;
 use anyhow::{Context as _, Result};
 use serde::{Deserialize, Serialize};
@@ -43,17 +46,18 @@ pub enum LLMConfiguration {
         #[serde(default)]
         base_url: Option<Url>,
     },
-    // Groq {
-    //     api_key: SecretString,
-    //     prompt_model: String,
-    // },
-    // AWSBedrock {
-    //     prompt_model: String,
-    // },
-    // FastEmbed {
-    //     embedding_model: String,
-    //     vector_size: usize,
-    // },
+    #[cfg(feature = "testing")]
+    Testing, // Groq {
+             //     api_key: SecretString,
+             //     prompt_model: String,
+             // },
+             // AWSBedrock {
+             //     prompt_model: String,
+             // },
+             // FastEmbed {
+             //     embedding_model: String,
+             //     vector_size: usize,
+             // },
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -79,6 +83,8 @@ impl LLMConfiguration {
                     .expect("Expected an embedding model for ollama")
                     .vector_size
             }
+            #[cfg(feature = "testing")]
+            LLMConfiguration::Testing => 1,
         }
     }
 }
@@ -195,6 +201,8 @@ impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
             LLMConfiguration::Ollama { .. } => {
                 Box::new(build_ollama(self)?) as Box<dyn EmbeddingModel>
             }
+            #[cfg(feature = "testing")]
+            LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn EmbeddingModel>,
         };
 
         Ok(boxed)
@@ -219,6 +227,8 @@ impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
             LLMConfiguration::Ollama { .. } => {
                 Box::new(build_ollama(self)?) as Box<dyn SimplePrompt>
             }
+            #[cfg(feature = "testing")]
+            LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn SimplePrompt>,
         };
 
         Ok(boxed)
@@ -243,6 +253,8 @@ impl TryInto<Box<dyn ChatCompletion>> for &LLMConfiguration {
             LLMConfiguration::Ollama { .. } => {
                 Box::new(build_ollama(self)?) as Box<dyn ChatCompletion>
             }
+            #[cfg(feature = "testing")]
+            LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn ChatCompletion>,
         };
 
         Ok(boxed)

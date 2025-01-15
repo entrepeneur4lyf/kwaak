@@ -19,6 +19,7 @@ jobs:
   test:
     name: coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main

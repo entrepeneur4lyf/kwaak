@@ -2,18 +2,23 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use tokio::{
-    sync::{mpsc, Mutex, RwLock},
+    sync::{mpsc, RwLock},
     task::{self},
 };
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::AbortOnDropHandle};
 use uuid::Uuid;
 
-use crate::{agent, frontend::App, indexing, repository::Repository};
+use crate::{
+    agent::{self, RunningAgent},
+    frontend::App,
+    git, indexing,
+    repository::Repository,
+    util::accept_non_zero_exit,
+};
 
 use super::{
     command::{Command, CommandEvent},
     responder::{CommandResponse, Responder},
-    running_agent::RunningAgent,
 };
 
 /// Commands always flow via the `CommandHandler`
@@ -48,19 +53,18 @@ impl CommandHandler {
         app.command_tx = Some(self.tx.clone());
     }
 
-    #[must_use]
     /// Starts the command handler
     ///
     /// # Panics
     ///
     /// - Missing ui sender
     /// - Missing receiver for commands
-    pub fn start(mut self) -> tokio::task::JoinHandle<()> {
+    pub fn start(mut self) -> AbortOnDropHandle<()> {
         let repository = Arc::clone(&self.repository);
         let mut rx = self.rx.take().expect("Expected a receiver");
         let this_handler = Arc::new(self);
 
-        task::spawn(async move {
+        AbortOnDropHandle::new(task::spawn(async move {
             // Handle spawned commands gracefully on quit
             // JoinSet invokes abort on drop
             let mut joinset = tokio::task::JoinSet::new();
@@ -80,24 +84,22 @@ impl CommandHandler {
 
                 joinset.spawn(async move {
                     let result = this_handler.handle_command_event(&repository, &event, &event.command()).await;
-                    // ui_tx.send(UIEvent::CommandDone(cmd.uuid())).unwrap();
-                    event.responder().handle(CommandResponse::Completed(event.uuid()));
+                    event.responder().send(CommandResponse::Completed(event.uuid()));
 
                     if let Err(error) = result {
                         tracing::error!(?error, cmd = %event.command(), "Failed to handle command {cmd} with error {error:#}", cmd= event.command());
-                            event.responder().system_message(&format!(
-                                    "Failed to handle command: {error:#}"
-                                ));
+                        event.responder().system_message(&format!(
+                                "Failed to handle command: {error:#}"
+                            ));
+
                     };
                 });
             }
 
             tracing::warn!("CommandHandler shutting down");
-        })
+        }))
     }
 
-    /// TODO: Most commands should probably be handled in a tokio task
-    /// Maybe generalize tasks to make ui updates easier?
     #[tracing::instrument(skip_all, fields(otel.name = %cmd.to_string(), uuid = %event.uuid()), err)]
     async fn handle_command_event(
         &self,
@@ -133,7 +135,7 @@ impl CommandHandler {
 
                 }?;
             }
-            Command::Exec { command } => {
+            Command::Diff => {
                 let Some(agent) = self.find_agent_by_uuid(event.uuid()).await else {
                     event
                         .responder()
@@ -141,16 +143,35 @@ impl CommandHandler {
                     return Ok(());
                 };
 
-                let _result = agent.executor.exec_cmd(&command).await;
-                todo!();
+                let base_sha = &agent.agent_environment.start_ref;
+                let diff = git::util::diff(agent.executor.as_ref(), &base_sha).await?;
 
-                // And now it needs to go back to the frontend again
+                event.responder().system_message(&diff);
+            }
+            Command::Exec { cmd } => {
+                let Some(agent) = self.find_agent_by_uuid(event.uuid()).await else {
+                    event
+                        .responder()
+                        .system_message("No agent found (yet), is it starting up?");
+                    return Ok(());
+                };
+
+                let output = accept_non_zero_exit(agent.executor.exec_cmd(cmd).await)?.output;
+
+                event.responder().system_message(&output);
             }
             Command::Quit { .. } => unreachable!("Quit should be handled earlier"),
         }
         // Sleep for a tiny bit to avoid racing with agent responses
         tokio::time::sleep(Duration::from_millis(50)).await;
-        let elapsed = now.elapsed();
+        let mut elapsed = now.elapsed();
+
+        // We cannot pause time in tokio because the larger tests
+        // require multi thread and snapshot testing is still nice
+        if cfg!(feature = "testing") {
+            elapsed = Duration::from_secs(0);
+        }
+
         event.responder().system_message(&format!(
             "Command {cmd} successful in {} seconds",
             elapsed.as_secs_f64().round()
@@ -171,16 +192,9 @@ impl CommandHandler {
             return Ok(agent.clone());
         }
 
-        let (agent, executor) =
-            agent::build_agent(uuid, &self.repository, query, responder).await?;
-
-        let running_agent = RunningAgent {
-            agent: Arc::new(Mutex::new(agent)),
-            cancel_token: CancellationToken::new(),
-            executor,
-        };
-
+        let running_agent = agent::start_agent(uuid, &self.repository, query, responder).await?;
         let cloned = running_agent.clone();
+
         self.agents.write().await.insert(uuid, running_agent);
 
         Ok(cloned)
@@ -192,8 +206,8 @@ impl CommandHandler {
     }
 
     async fn stop_agent(&self, uuid: Uuid, responder: Arc<dyn Responder>) -> Result<()> {
-        let mut locked_agents = self.agents.write().await;
-        let Some(agent) = locked_agents.get_mut(&uuid) else {
+        let agents = self.agents.read().await;
+        let Some(agent) = agents.get(&uuid) else {
             responder.system_message("No agent found (yet), is it starting up?");
             return Ok(());
         };

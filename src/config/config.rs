@@ -170,6 +170,8 @@ impl Config {
         match self.indexing_provider() {
             LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
             LLMConfiguration::Ollama { .. } => num_cpus::get(),
+            #[cfg(feature = "testing")]
+            LLMConfiguration::Testing => num_cpus::get(),
         }
     }
 
@@ -182,6 +184,8 @@ impl Config {
         match self.indexing_provider() {
             LLMConfiguration::OpenAI { .. } => 12,
             LLMConfiguration::Ollama { .. } => 256,
+            #[cfg(feature = "testing")]
+            LLMConfiguration::Testing => 1,
         }
     }
 }

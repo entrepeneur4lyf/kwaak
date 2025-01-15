@@ -9,12 +9,18 @@ use uuid::Uuid;
 ///
 /// TODO: Remove the UUID here, the responder is expected to know the uuid
 /// of the command, and it confuses with the uuid to identify chats (same value only for convenience,
-/// not the same 'thing')
+/// not the same 'thing') OR have only 3 generic types.
 #[derive(Debug, Clone)]
 pub enum CommandResponse {
+    /// Messages coming from an agent
     Chat(Uuid, chat_completion::ChatMessage),
-    ActivityUpdate(Uuid, String),
+    /// Short activity updates
+    Activity(Uuid, String),
+    /// A chat has been renamed
     RenameChat(Uuid, String),
+    /// Backend system messages (kwaak currently just renders these as system chat like messages)
+    BackendMessage(Uuid, String),
+    /// A command has been completed
     Completed(Uuid),
 }
 
@@ -23,10 +29,9 @@ impl CommandResponse {
     pub fn with_uuid(self, uuid: Uuid) -> Self {
         match self {
             CommandResponse::Chat(uuid, msg) => CommandResponse::Chat(uuid, msg),
-            CommandResponse::ActivityUpdate(_, state) => {
-                CommandResponse::ActivityUpdate(uuid, state)
-            }
+            CommandResponse::Activity(_, state) => CommandResponse::Activity(uuid, state),
             CommandResponse::RenameChat(_, name) => CommandResponse::RenameChat(uuid, name),
+            CommandResponse::BackendMessage(_, msg) => CommandResponse::BackendMessage(uuid, msg),
             CommandResponse::Completed(_) => CommandResponse::Completed(uuid),
         }
     }
@@ -41,7 +46,7 @@ impl CommandResponse {
 #[cfg_attr(test, automock)]
 pub trait Responder: std::fmt::Debug + Send + Sync {
     /// Generic handler for command responses
-    fn handle(&self, response: CommandResponse);
+    fn send(&self, response: CommandResponse);
 
     /// Messages from an agent
     fn agent_message(&self, message: chat_completion::ChatMessage);
@@ -56,8 +61,9 @@ pub trait Responder: std::fmt::Debug + Send + Sync {
     fn rename(&self, name: &str);
 }
 
+// TODO: Naming should be identical to command response
 impl Responder for tokio::sync::mpsc::UnboundedSender<CommandResponse> {
-    fn handle(&self, response: CommandResponse) {
+    fn send(&self, response: CommandResponse) {
         let _ = self.send(response);
     }
 
@@ -65,15 +71,16 @@ impl Responder for tokio::sync::mpsc::UnboundedSender<CommandResponse> {
         let _ = self.send(CommandResponse::Chat(Uuid::default(), message));
     }
 
+    // TODO: These should not be swiftide messages, they should be backend messages
     fn system_message(&self, message: &str) {
-        let _ = self.send(CommandResponse::ActivityUpdate(
+        let _ = self.send(CommandResponse::BackendMessage(
             Uuid::default(),
             message.to_string(),
         ));
     }
 
     fn update(&self, state: &str) {
-        let _ = self.send(CommandResponse::ActivityUpdate(
+        let _ = self.send(CommandResponse::Activity(
             Uuid::default(),
             state.to_string(),
         ));
@@ -88,8 +95,8 @@ impl Responder for tokio::sync::mpsc::UnboundedSender<CommandResponse> {
 }
 
 impl Responder for Arc<dyn Responder> {
-    fn handle(&self, response: CommandResponse) {
-        self.as_ref().handle(response);
+    fn send(&self, response: CommandResponse) {
+        self.as_ref().send(response);
     }
 
     fn agent_message(&self, message: chat_completion::ChatMessage) {
@@ -107,4 +114,17 @@ impl Responder for Arc<dyn Responder> {
     fn rename(&self, name: &str) {
         self.as_ref().rename(name);
     }
+}
+
+// noop responder
+impl Responder for () {
+    fn send(&self, _response: CommandResponse) {}
+
+    fn agent_message(&self, _message: chat_completion::ChatMessage) {}
+
+    fn system_message(&self, _message: &str) {}
+
+    fn update(&self, _state: &str) {}
+
+    fn rename(&self, _name: &str) {}
 }
