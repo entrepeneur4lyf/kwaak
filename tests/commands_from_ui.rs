@@ -6,6 +6,17 @@ use ratatui::Terminal;
 use swiftide_core::Persist;
 use uuid::Uuid;
 
+/// Macro to wait for a command to be done
+macro_rules! assert_command_done {
+    ($app:expr, $uuid:expr) => {
+        let event = $app
+            .handle_events_until(UIEvent::is_command_done)
+            .await
+            .unwrap();
+
+        assert_eq!(event, UIEvent::CommandDone($uuid));
+    };
+}
 #[test_log::test(tokio::test(flavor = "multi_thread"))]
 async fn test_diff() {
     let mut app = App::default();
@@ -34,12 +45,7 @@ async fn test_diff() {
         },
     );
 
-    let event = app
-        .handle_events_until(UIEvent::is_command_done)
-        .await
-        .unwrap();
-
-    assert_eq!(event, UIEvent::CommandDone(fixed_uuid));
+    assert_command_done!(app, fixed_uuid);
 
     // The user asks for a diff, it should be empty
     app.send_ui_event(UIEvent::UserInputCommand(
@@ -47,18 +53,32 @@ async fn test_diff() {
         UserInputCommand::Diff(DiffVariant::Show),
     ));
 
-    let event = app
-        .handle_events_until(UIEvent::is_command_done)
-        .await
-        .unwrap();
-
-    assert_eq!(event, UIEvent::CommandDone(fixed_uuid));
+    assert_command_done!(app, fixed_uuid);
 
     // Render the main chat screen with all the state changes
     let mut terminal = Terminal::new(TestBackend::new(160, 40)).unwrap();
     terminal.draw(|f| ui(f, f.area(), &mut app)).unwrap();
     insta::assert_snapshot!(terminal.backend());
 
-    // otherwise the tests will hang -.-
-    // handler_guard.abort();
+    // Now let's add a file and check the diff
+    app.dispatch_command(
+        fixed_uuid,
+        Command::Exec {
+            cmd: swiftide::traits::Command::write_file("hello.txt", "world"),
+        },
+    );
+
+    assert_command_done!(app, fixed_uuid);
+
+    // now get the diff
+    app.send_ui_event(UIEvent::UserInputCommand(
+        fixed_uuid,
+        UserInputCommand::Diff(DiffVariant::Show),
+    ));
+
+    assert_command_done!(app, fixed_uuid);
+
+    let mut terminal = Terminal::new(TestBackend::new(160, 40)).unwrap();
+    terminal.draw(|f| ui(f, f.area(), &mut app)).unwrap();
+    insta::assert_snapshot!(terminal.backend());
 }

@@ -13,6 +13,7 @@ use crate::{
     frontend::App,
     git, indexing,
     repository::Repository,
+    util::accept_non_zero_exit,
 };
 
 use super::{
@@ -146,6 +147,18 @@ impl CommandHandler {
                 let diff = git::util::diff(agent.executor.as_ref(), &base_sha, "HEAD").await?;
 
                 event.responder().system_message(&diff);
+            }
+            Command::Exec { cmd } => {
+                let Some(agent) = self.find_agent_by_uuid(event.uuid()).await else {
+                    event
+                        .responder()
+                        .system_message("No agent found (yet), is it starting up?");
+                    return Ok(());
+                };
+
+                let output = accept_non_zero_exit(agent.executor.exec_cmd(cmd).await)?.output;
+
+                event.responder().system_message(&output);
             }
             Command::Quit { .. } => unreachable!("Quit should be handled earlier"),
         }

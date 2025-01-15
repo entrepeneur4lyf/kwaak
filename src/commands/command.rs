@@ -30,6 +30,10 @@ pub enum Command {
 
     /// Get the current changes made by the agent
     Diff,
+
+    /// Execute a command in the context of an agent
+    /// and get the output
+    Exec { cmd: swiftide::traits::Command },
 }
 
 #[derive(Debug, Clone, Builder)]
