@@ -1,3 +1,5 @@
+use ratatui::text::Text;
+
 /// Represents a chat message that can be stored in a [`Chat`]
 ///
 /// Messages are expected to be formatted strings and are displayed as-is. Markdown is rendered
@@ -7,7 +9,9 @@
 #[derive(Clone, Default, PartialEq)]
 pub struct ChatMessage {
     role: ChatRole,
-    formatted_content: String,
+    content: String,
+    /// Owned rendered text
+    rendered: Option<Text<'static>>,
     original: Option<swiftide::chat_completion::ChatMessage>,
 }
 
@@ -18,8 +22,7 @@ impl std::fmt::Debug for ChatMessage {
             .field("role", &self.role)
             .field(
                 "content",
-                &self.formatted_content[..std::cmp::min(10, self.formatted_content.len())]
-                    .to_string(),
+                &self.content[..std::cmp::min(10, self.content.len())].to_string(),
             )
             .field("original", &self.original)
             .finish()
@@ -50,35 +53,35 @@ impl ChatMessage {
     pub fn new_user(msg: impl Into<String>) -> ChatMessage {
         ChatMessage::default()
             .with_role(ChatRole::User)
-            .with_formatted_content(msg.into())
+            .with_content(msg.into())
             .to_owned()
     }
 
     pub fn new_system(msg: impl Into<String>) -> ChatMessage {
         ChatMessage::default()
             .with_role(ChatRole::System)
-            .with_formatted_content(msg.into())
+            .with_content(msg.into())
             .to_owned()
     }
 
     pub fn new_command(cmd: impl Into<String>) -> ChatMessage {
         ChatMessage::default()
             .with_role(ChatRole::Command)
-            .with_formatted_content(cmd.into().to_string())
+            .with_content(cmd.into().to_string())
             .to_owned()
     }
 
     pub fn new_assistant(msg: impl Into<String>) -> ChatMessage {
         ChatMessage::default()
             .with_role(ChatRole::Assistant)
-            .with_formatted_content(msg.into())
+            .with_content(msg.into())
             .to_owned()
     }
 
     pub fn new_tool(msg: impl Into<String>) -> ChatMessage {
         ChatMessage::default()
             .with_role(ChatRole::Tool)
-            .with_formatted_content(msg.into())
+            .with_content(msg.into())
             .to_owned()
     }
 
@@ -87,8 +90,8 @@ impl ChatMessage {
         self
     }
 
-    pub fn with_formatted_content(&mut self, content: impl Into<String>) -> &mut Self {
-        self.formatted_content = content.into();
+    pub fn with_content(&mut self, content: impl Into<String>) -> &mut Self {
+        self.content = content.into();
         self
     }
 
@@ -97,9 +100,18 @@ impl ChatMessage {
         self
     }
 
+    pub fn with_rendered(&mut self, rendered: Option<Text<'static>>) -> &mut Self {
+        self.rendered = rendered;
+        self
+    }
+
+    pub fn rendered(&self) -> Option<&Text<'static>> {
+        self.rendered.as_ref()
+    }
+
     #[must_use]
-    pub fn formatted_content(&self) -> &str {
-        &self.formatted_content
+    pub fn content(&self) -> &str {
+        &self.content
     }
     #[must_use]
     pub fn role(&self) -> &ChatRole {

@@ -184,6 +184,7 @@ impl Config {
         match self.indexing_provider() {
             LLMConfiguration::OpenAI { .. } => 12,
             LLMConfiguration::Ollama { .. } => 256,
+            #[cfg(feature = "testing")]
             LLMConfiguration::Testing => 1,
         }
     }

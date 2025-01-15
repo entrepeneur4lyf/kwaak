@@ -129,7 +129,7 @@ mod tests {
         match ui_event {
             UIEvent::ChatMessage(received_uuid, received_message) => {
                 assert_eq!(received_uuid, TEST_UUID);
-                assert_eq!(received_message.formatted_content(), "Test message");
+                assert_eq!(received_message.content(), "Test message");
                 assert!(received_message.role().is_system());
             }
             _ => panic!("Unexpected UI event received"),

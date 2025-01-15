@@ -38,7 +38,7 @@ pub fn copy_last_message(app: &mut App) {
                 .filter(|m| m.role().is_assistant() || m.role().is_user())
                 .last()
         })
-        .map(ChatMessage::formatted_content)
+        .map(ChatMessage::content)
     else {
         app.add_chat_message(
             app.current_chat_uuid,

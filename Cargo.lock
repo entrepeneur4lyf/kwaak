@@ -3514,6 +3514,7 @@ dependencies = [
 name = "kwaak"
 version = "0.2.0"
 dependencies = [
+ "ansi-to-tui",
  "anyhow",
  "assert_cmd",
  "async-openai",

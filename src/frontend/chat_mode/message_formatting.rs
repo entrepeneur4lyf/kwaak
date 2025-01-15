@@ -37,10 +37,14 @@ pub fn get_style_and_prefix(role: &ChatRole) -> (&'static str, Style) {
 
 // TODO: Maybe have tool state just on the message?
 pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) -> Text<'a> {
+    // TODO: Use this as a cache
+    if let Some(rendered) = message.rendered() {
+        return rendered.to_owned();
+    }
     let (prefix, style) = get_style_and_prefix(message.role());
 
     // Render markdown first
-    let mut rendered_text = tui_markdown::from_str(message.formatted_content());
+    let mut rendered_text = tui_markdown::from_str(message.content());
 
     // Prepend the styled prefix to the first line
     if let Some(first_line) = rendered_text.lines.first_mut() {
@@ -61,7 +65,7 @@ pub fn format_chat_message<'a>(current_chat: &Chat, message: &'a ChatMessage) ->
     if let Some(swiftide::chat_completion::ChatMessage::Assistant(.., Some(tool_calls))) =
         message.original()
     {
-        if !message.formatted_content().is_empty() {
+        if !message.content().is_empty() {
             rendered_text.push_line(Line::from("\n\n"));
         }
         for tool_call in tool_calls {

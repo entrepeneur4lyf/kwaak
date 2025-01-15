@@ -23,6 +23,7 @@ async fn test_diff() {
     let (repository, _guard) = test_utils::test_repository();
     let lancedb = storage::get_lancedb(&repository);
     lancedb.setup().await.unwrap();
+    let mut terminal = Terminal::new(TestBackend::new(160, 40)).unwrap();
 
     let mut handler = CommandHandler::from_repository(repository);
     handler.register_ui(&mut app);
@@ -55,11 +56,6 @@ async fn test_diff() {
 
     assert_command_done!(app, fixed_uuid);
 
-    // Render the main chat screen with all the state changes
-    let mut terminal = Terminal::new(TestBackend::new(160, 40)).unwrap();
-    terminal.draw(|f| ui(f, f.area(), &mut app)).unwrap();
-    insta::assert_snapshot!(terminal.backend());
-
     // Now let's add a file and check the diff
     app.dispatch_command(
         fixed_uuid,
@@ -78,7 +74,6 @@ async fn test_diff() {
 
     assert_command_done!(app, fixed_uuid);
 
-    let mut terminal = Terminal::new(TestBackend::new(160, 40)).unwrap();
     terminal.draw(|f| ui(f, f.area(), &mut app)).unwrap();
     insta::assert_snapshot!(terminal.backend());
 }

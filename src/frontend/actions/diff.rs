@@ -3,9 +3,7 @@ use std::sync::Arc;
 use crate::{
     chat_message::ChatMessage,
     commands::{Command, CommandEvent, CommandResponse, Responder},
-    frontend::{
-        ui_event::UIEvent, App,
-    },
+    frontend::{ui_event::UIEvent, App},
 };
 
 // TODO: Remove panics :))
@@ -37,10 +35,13 @@ pub async fn diff_show(app: &mut App<'_>) {
             CommandResponse::BackendMessage(_, ref payload) => {
                 if diff_message.is_empty() {
                     diff_message = payload.to_string();
+                    let rendered = ansi_to_tui::IntoText::into_text(&diff_message).ok();
 
                     app.send_ui_event(UIEvent::ChatMessage(
                         current_chat_uuid,
-                        ChatMessage::new_system(diff_message.clone()),
+                        ChatMessage::new_system(diff_message.clone())
+                            .with_rendered(rendered)
+                            .to_owned(),
                     ));
                 } else {
                     app_tx.send(msg);
@@ -53,10 +54,6 @@ pub async fn diff_show(app: &mut App<'_>) {
             _ => app_tx.send(msg),
         }
     }
-
-    tracing::debug!("Diff message: {}", diff_message);
-
-    // TODO: Diff should be rendered with i.e. ansi-to-tui here
 }
 
 pub async fn diff_pull(app: &mut App<'_>) {}
