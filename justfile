@@ -8,5 +8,5 @@ lint:
 
 lint_fix:
   cargo fmt --all
-  cargo fix --allow-dirty --allow-staged
+  cargo fix --all-features --allow-dirty --allow-staged
   typos -w

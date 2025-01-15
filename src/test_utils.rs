@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use swiftide::{chat_completion::ChatCompletionResponse, Embedding};
+use swiftide::chat_completion::ChatCompletionResponse;
 use swiftide_core::{ChatCompletion, EmbeddingModel, SimplePrompt};
 use uuid::Uuid;
 

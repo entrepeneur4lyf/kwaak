@@ -1,5 +1,4 @@
 use anyhow::Result;
-use copypasta::{ClipboardContext, ClipboardProvider};
 use std::time::Duration;
 use strum::IntoEnumIterator as _;
 use tui_logger::TuiWidgetState;
@@ -20,7 +19,7 @@ use crate::{
     chat::{Chat, ChatState},
     chat_message::ChatMessage,
     commands::{Command, CommandEvent},
-    frontend::{self, actions},
+    frontend::{actions},
 };
 
 use super::{

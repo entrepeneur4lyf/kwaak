@@ -4,11 +4,9 @@ use crate::{
     chat_message::ChatMessage,
     commands::{Command, CommandEvent, CommandResponse, Responder},
     frontend::{
-        app_command_responder::AppCommandResponderForChatId, ui_event::UIEvent, App,
-        AppCommandResponder,
+        ui_event::UIEvent, App,
     },
 };
-use swiftide::traits::Command as ExecCmd;
 
 // TODO: Remove panics :))
 pub async fn diff_show(app: &mut App<'_>) {

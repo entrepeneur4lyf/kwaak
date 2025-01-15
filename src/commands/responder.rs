@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use swiftide::chat_completion;
 use uuid::Uuid;
 
-use crate::chat_message::ChatMessage;
 
 /// Uuid here refers to the identifier of the command
 ///

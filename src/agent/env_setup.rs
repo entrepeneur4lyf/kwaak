@@ -1,7 +1,5 @@
 //! Series of commands to run before each agent starts inside the docker container
 
-use anyhow::bail;
-use anyhow::Context as _;
 use anyhow::Result;
 use secrecy::ExposeSecret;
 use swiftide::traits::Command;

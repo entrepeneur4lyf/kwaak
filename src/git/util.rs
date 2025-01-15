@@ -1,5 +1,4 @@
 use anyhow::Result;
-use swiftide::chat_completion::ToolOutput;
 use swiftide_core::{Command, ToolExecutor};
 
 use crate::util::accept_non_zero_exit;

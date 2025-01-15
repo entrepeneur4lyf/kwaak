@@ -1,6 +1,5 @@
-use kwaak::chat::Chat;
 use kwaak::commands::{Command, CommandHandler};
-use kwaak::frontend::{ui, App, AppCommandResponder, DiffVariant, UIEvent, UserInputCommand};
+use kwaak::frontend::{ui, App, DiffVariant, UIEvent, UserInputCommand};
 use kwaak::{storage, test_utils};
 use ratatui::backend::TestBackend;
 use ratatui::Terminal;
