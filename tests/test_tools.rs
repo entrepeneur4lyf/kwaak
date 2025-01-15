@@ -77,4 +77,9 @@ async fn test_search_code() {
     // always ignores case
     let case_insensitive = invoke!(&tool, &context, json!({"query": "RuNs-On"}));
     assert!(case_insensitive.contains(".github/workflows"));
+
+    // Should only do literal searches
+    let literal_search = invoke!(&tool, &context, json!({"query": "[features]"}));
+    assert_eq!(literal_search.lines().count(), 2); // header and match in cargo toml
+    assert!(literal_search.contains("Cargo.toml"));
 }

@@ -145,7 +145,7 @@ impl ResetFile {
     )
 )]
 pub async fn search_code(context: &dyn AgentContext, query: &str) -> Result<ToolOutput, ToolError> {
-    let cmd = Command::Shell(format!("rg -i. '{query}'"));
+    let cmd = Command::Shell(format!("rg -i. -F '{query}'"));
     let output = accept_non_zero_exit(context.exec_cmd(&cmd).await)?;
     Ok(output.into())
 }
