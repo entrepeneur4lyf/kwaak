@@ -41,6 +41,14 @@ pub struct CommandEvent {
 
 impl CommandEvent {
     #[must_use]
+    pub fn quit() -> Self {
+        CommandEvent {
+            command: Command::Quit,
+            responder: Arc::new(()),
+            uuid: Uuid::new_v4(),
+        }
+    }
+    #[must_use]
     pub fn builder() -> CommandEventBuilder {
         CommandEventBuilder::default()
     }

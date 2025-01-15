@@ -5,7 +5,7 @@ use tokio::{
     sync::{mpsc, Mutex, RwLock},
     task::{self},
 };
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::AbortOnDropHandle};
 use uuid::Uuid;
 
 use crate::{
@@ -52,19 +52,18 @@ impl CommandHandler {
         app.command_tx = Some(self.tx.clone());
     }
 
-    #[must_use]
     /// Starts the command handler
     ///
     /// # Panics
     ///
     /// - Missing ui sender
     /// - Missing receiver for commands
-    pub fn start(mut self) -> tokio::task::JoinHandle<()> {
+    pub fn start(mut self) -> AbortOnDropHandle<()> {
         let repository = Arc::clone(&self.repository);
         let mut rx = self.rx.take().expect("Expected a receiver");
         let this_handler = Arc::new(self);
 
-        task::spawn(async move {
+        AbortOnDropHandle::new(task::spawn(async move {
             // Handle spawned commands gracefully on quit
             // JoinSet invokes abort on drop
             let mut joinset = tokio::task::JoinSet::new();
@@ -84,7 +83,7 @@ impl CommandHandler {
 
                 joinset.spawn(async move {
                     let result = this_handler.handle_command_event(&repository, &event, &event.command()).await;
-                    event.responder().handle(CommandResponse::Completed(event.uuid()));
+                    event.responder().send(CommandResponse::Completed(event.uuid()));
 
                     if let Err(error) = result {
                         tracing::error!(?error, cmd = %event.command(), "Failed to handle command {cmd} with error {error:#}", cmd= event.command());
@@ -94,22 +93,10 @@ impl CommandHandler {
 
                     };
                 });
-
-                // During testing, we want to bail fast and not let the command handler continue
-                if cfg!(feature = "testing") {
-                    if let Some(task_result) = joinset.join_next().await {
-                        tracing::warn!("Task completed");
-                        if let Err(e) = task_result {
-                            tracing::warn!("Task failed: {e:#?}");
-                            eprintln!("{e:#?}");
-                            std::process::exit(1);
-                        }
-                    }
-                }
             }
 
             tracing::warn!("CommandHandler shutting down");
-        })
+        }))
     }
 
     #[tracing::instrument(skip_all, fields(otel.name = %cmd.to_string(), uuid = %event.uuid()), err)]
@@ -159,13 +146,19 @@ impl CommandHandler {
                 let diff = git::util::diff(agent.executor.as_ref(), &base_sha, "HEAD").await?;
 
                 event.responder().system_message(&diff);
-                // And now it needs to go back to the frontend again
             }
             Command::Quit { .. } => unreachable!("Quit should be handled earlier"),
         }
         // Sleep for a tiny bit to avoid racing with agent responses
         tokio::time::sleep(Duration::from_millis(50)).await;
-        let elapsed = now.elapsed();
+        let mut elapsed = now.elapsed();
+
+        // We cannot pause time in tokio because the larger tests
+        // require multi thread and snapshot testing is still nice
+        if cfg!(feature = "testing") {
+            elapsed = Duration::from_secs(0);
+        }
+
         event.responder().system_message(&format!(
             "Command {cmd} successful in {} seconds",
             elapsed.as_secs_f64().round()

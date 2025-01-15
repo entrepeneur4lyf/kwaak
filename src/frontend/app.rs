@@ -54,6 +54,10 @@ pub struct App<'a> {
     /// Sends commands to the backend
     pub command_tx: Option<mpsc::UnboundedSender<CommandEvent>>,
 
+    /// Responds to commands from the backend
+    /// And maps them to ui events
+    pub command_responder: AppCommandResponder,
+
     /// Mode the app is in, manages the which layout is rendered and if it should quit
     pub mode: AppMode,
 
@@ -127,6 +131,8 @@ impl Default for App<'_> {
             ..Chat::default()
         };
 
+        let command_responder = AppCommandResponder::spawn_for(ui_tx.clone());
+
         Self {
             splash: splash::Splash::default(),
             has_indexed_on_boot: false,
@@ -134,6 +140,7 @@ impl Default for App<'_> {
             text_input: new_text_area(),
             current_chat_uuid: chat.uuid,
             chats: vec![chat],
+            command_responder,
             ui_tx,
             ui_rx,
             command_tx: None,
@@ -209,7 +216,7 @@ impl App<'_> {
         let event = CommandEvent::builder()
             .command(cmd)
             .uuid(uuid)
-            .responder(AppCommandResponder::for_chat_id(uuid))
+            .responder(self.command_responder.for_chat_id(uuid))
             .build()
             .expect("Infallible; Failed to build command event");
 
@@ -237,9 +244,6 @@ impl App<'_> {
         &mut self,
         terminal: &mut Terminal<B>,
     ) -> Result<()> {
-        // WARN: Before this point, running commands will panic
-        AppCommandResponder::init(self.ui_tx.clone())?;
-
         let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
 
         if self.skip_indexing {
@@ -359,16 +363,24 @@ impl App<'_> {
         }
     }
 
-    pub async fn handle_events_until(&mut self, stop: impl Fn(&UIEvent) -> bool) {
+    #[cfg(feature = "testing")]
+    /// Used for testing so we can do something and wait for it to complete
+    ///
+    /// *will* hang until event is encountered
+    pub async fn handle_events_until(
+        &mut self,
+        stop_fn: impl Fn(&UIEvent) -> bool,
+    ) -> Option<UIEvent> {
         while let Some(event) = self.recv_messages().await {
             self.handle_single_event(&event).await;
-            if stop(&event) {
-                break;
+            if stop_fn(&event) {
+                return Some(event);
             }
             if self.mode == AppMode::Quit {
-                break;
+                return Some(event);
             }
         }
+        None
     }
 
     pub fn find_chat_mut(&mut self, uuid: Uuid) -> Option<&mut Chat> {
@@ -478,7 +490,9 @@ async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
             }
         }
         // Send a tick event, ignore if the receiver is gone
-        let _ = ui_tx.send(UIEvent::Tick);
+        if ui_tx.send(UIEvent::Tick).is_err() {
+            break Ok(());
+        }
     }
 }
 

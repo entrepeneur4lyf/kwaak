@@ -6,17 +6,24 @@ use mockall::automock;
 use swiftide::chat_completion;
 use uuid::Uuid;
 
+use crate::chat_message::ChatMessage;
+
 /// Uuid here refers to the identifier of the command
 ///
 /// TODO: Remove the UUID here, the responder is expected to know the uuid
 /// of the command, and it confuses with the uuid to identify chats (same value only for convenience,
-/// not the same 'thing')
+/// not the same 'thing') OR have only 3 generic types.
 #[derive(Debug, Clone)]
 pub enum CommandResponse {
     /// Messages coming from an agent
     Chat(Uuid, chat_completion::ChatMessage),
+    /// Short activity updates
     Activity(Uuid, String),
+    /// A chat has been renamed
     RenameChat(Uuid, String),
+    /// Backend system messages (kwaak currently just renders these as system chat like messages)
+    BackendMessage(Uuid, String),
+    /// A command has been completed
     Completed(Uuid),
 }
 
@@ -27,6 +34,7 @@ impl CommandResponse {
             CommandResponse::Chat(uuid, msg) => CommandResponse::Chat(uuid, msg),
             CommandResponse::Activity(_, state) => CommandResponse::Activity(uuid, state),
             CommandResponse::RenameChat(_, name) => CommandResponse::RenameChat(uuid, name),
+            CommandResponse::BackendMessage(_, msg) => CommandResponse::BackendMessage(uuid, msg),
             CommandResponse::Completed(_) => CommandResponse::Completed(uuid),
         }
     }
@@ -41,7 +49,7 @@ impl CommandResponse {
 #[cfg_attr(test, automock)]
 pub trait Responder: std::fmt::Debug + Send + Sync {
     /// Generic handler for command responses
-    fn handle(&self, response: CommandResponse);
+    fn send(&self, response: CommandResponse);
 
     /// Messages from an agent
     fn agent_message(&self, message: chat_completion::ChatMessage);
@@ -58,7 +66,7 @@ pub trait Responder: std::fmt::Debug + Send + Sync {
 
 // TODO: Naming should be identical to command response
 impl Responder for tokio::sync::mpsc::UnboundedSender<CommandResponse> {
-    fn handle(&self, response: CommandResponse) {
+    fn send(&self, response: CommandResponse) {
         let _ = self.send(response);
     }
 
@@ -66,8 +74,12 @@ impl Responder for tokio::sync::mpsc::UnboundedSender<CommandResponse> {
         let _ = self.send(CommandResponse::Chat(Uuid::default(), message));
     }
 
+    // TODO: These should not be swiftide messages, they should be backend messages
     fn system_message(&self, message: &str) {
-        let _ = self.send(CommandResponse::Chat(Uuid::default(), message.to_string()));
+        let _ = self.send(CommandResponse::BackendMessage(
+            Uuid::default(),
+            message.to_string(),
+        ));
     }
 
     fn update(&self, state: &str) {
@@ -86,8 +98,8 @@ impl Responder for tokio::sync::mpsc::UnboundedSender<CommandResponse> {
 }
 
 impl Responder for Arc<dyn Responder> {
-    fn handle(&self, response: CommandResponse) {
-        self.as_ref().handle(response);
+    fn send(&self, response: CommandResponse) {
+        self.as_ref().send(response);
     }
 
     fn agent_message(&self, message: chat_completion::ChatMessage) {
@@ -105,4 +117,17 @@ impl Responder for Arc<dyn Responder> {
     fn rename(&self, name: &str) {
         self.as_ref().rename(name);
     }
+}
+
+// noop responder
+impl Responder for () {
+    fn send(&self, response: CommandResponse) {}
+
+    fn agent_message(&self, message: chat_completion::ChatMessage) {}
+
+    fn system_message(&self, message: &str) {}
+
+    fn update(&self, state: &str) {}
+
+    fn rename(&self, name: &str) {}
 }

@@ -4,13 +4,15 @@ use anyhow::Result;
 use async_trait::async_trait;
 use swiftide::chat_completion;
 use tokio::sync::mpsc;
+use tokio_util::task::AbortOnDropHandle;
 use uuid::Uuid;
 
-use crate::commands::{CommandResponse, Responder};
+use crate::{
+    chat_message::ChatMessage,
+    commands::{CommandResponse, Responder},
+};
 
 use super::ui_event::UIEvent;
-
-static INSTANCE: OnceLock<AppCommandResponder> = OnceLock::new();
 
 /// Handles responses from commands application wide
 ///
@@ -21,11 +23,11 @@ static INSTANCE: OnceLock<AppCommandResponder> = OnceLock::new();
 /// Only one is expected to be running at a time
 ///
 /// TODO: If only used in app, singleton is not needed
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AppCommandResponder {
     // ui_tx: mpsc::UnboundedSender<UIEvent>,
     tx: mpsc::UnboundedSender<CommandResponse>,
-    _handle: Arc<tokio::task::JoinHandle<()>>,
+    handle: AbortOnDropHandle<()>,
 }
 
 #[derive(Debug, Clone)]
@@ -35,11 +37,7 @@ pub struct AppCommandResponderForChatId {
 }
 
 impl AppCommandResponder {
-    pub fn init(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
-        if INSTANCE.get().is_some() {
-            anyhow::bail!("App command responder already initialized");
-        }
-
+    pub fn spawn_for(ui_tx: mpsc::UnboundedSender<UIEvent>) -> AppCommandResponder {
         tracing::info!("Initializing app command responder");
         let (tx, mut rx) = mpsc::unbounded_channel();
         let handle = tokio::spawn(async move {
@@ -50,6 +48,9 @@ impl AppCommandResponder {
                     CommandResponse::Activity(uuid, state) => UIEvent::ActivityUpdate(uuid, state),
                     CommandResponse::RenameChat(uuid, name) => UIEvent::RenameChat(uuid, name),
                     CommandResponse::Completed(uuid) => UIEvent::CommandDone(uuid),
+                    CommandResponse::BackendMessage(uuid, msg) => {
+                        UIEvent::ChatMessage(uuid, ChatMessage::new_system(&msg))
+                    }
                 };
 
                 if let Err(err) = ui_tx.send(ui_event) {
@@ -61,24 +62,15 @@ impl AppCommandResponder {
 
         // Create the app responder, spawn a task to handle responses, the once cell returns a
         // clone of the responder without the rx
-        INSTANCE
-            .set(AppCommandResponder {
-                tx,
-                _handle: handle.into(),
-            })
-            .map_err(|_| anyhow::anyhow!("Failed to set global frontend command responder"))?;
-
-        Ok(())
+        AppCommandResponder {
+            tx,
+            handle: AbortOnDropHandle::new(handle),
+        }
     }
 
-    pub fn for_chat_id(uuid: Uuid) -> Arc<dyn Responder> {
-        let inner = INSTANCE
-            .get()
-            .expect("App command responder not initialized")
-            .clone();
-
+    pub fn for_chat_id(&self, uuid: Uuid) -> Arc<dyn Responder> {
         Arc::new(AppCommandResponderForChatId {
-            inner: inner.tx.clone(),
+            inner: self.tx.clone(),
             uuid,
         }) as Arc<dyn Responder>
     }
@@ -86,7 +78,7 @@ impl AppCommandResponder {
 
 #[async_trait]
 impl Responder for AppCommandResponderForChatId {
-    fn handle(&self, response: CommandResponse) {
+    fn send(&self, response: CommandResponse) {
         tracing::debug!("[RESPONDER SENDER] Sending response: {:?}", response);
         let response = response.with_uuid(self.uuid);
         if let Err(err) = self.inner.send(response) {
@@ -95,22 +87,22 @@ impl Responder for AppCommandResponderForChatId {
     }
 
     fn system_message(&self, message: &str) {
-        self.handle(CommandResponse::Chat(
+        self.send(CommandResponse::Chat(
             self.uuid,
             chat_completion::ChatMessage::new_system(message),
         ));
     }
 
     fn update(&self, state: &str) {
-        self.handle(CommandResponse::Activity(self.uuid, state.into()));
+        self.send(CommandResponse::Activity(self.uuid, state.into()));
     }
 
     fn rename(&self, name: &str) {
-        self.handle(CommandResponse::RenameChat(self.uuid, name.into()));
+        self.send(CommandResponse::RenameChat(self.uuid, name.into()));
     }
 
     fn agent_message(&self, message: chat_completion::ChatMessage) {
-        self.handle(CommandResponse::Chat(self.uuid, message));
+        self.send(CommandResponse::Chat(self.uuid, message));
     }
 }
 
@@ -125,9 +117,9 @@ mod tests {
     #[tokio::test]
     async fn test_app_responder() {
         let (ui_tx, mut ui_rx) = mpsc::unbounded_channel();
-        let _ = AppCommandResponder::init(ui_tx);
+        let app = AppCommandResponder::spawn_for(ui_tx);
 
-        let responder = AppCommandResponder::for_chat_id(TEST_UUID);
+        let responder = app.for_chat_id(TEST_UUID);
 
         responder.system_message("Test message");
 
@@ -144,7 +136,7 @@ mod tests {
             _ => panic!("Unexpected UI event received"),
         }
 
-        responder.handle(CommandResponse::Completed(Uuid::new_v4()));
+        responder.send(CommandResponse::Completed(Uuid::new_v4()));
 
         // Verify the UI event is received
         if let Some(ui_event) = ui_rx.recv().await {

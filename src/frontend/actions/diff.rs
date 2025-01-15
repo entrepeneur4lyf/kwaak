@@ -3,7 +3,10 @@ use std::sync::Arc;
 use crate::{
     chat_message::ChatMessage,
     commands::{Command, CommandEvent, CommandResponse, Responder},
-    frontend::{ui_event::UIEvent, App},
+    frontend::{
+        app_command_responder::AppCommandResponderForChatId, ui_event::UIEvent, App,
+        AppCommandResponder,
+    },
 };
 use swiftide::traits::Command as ExecCmd;
 
@@ -27,16 +30,35 @@ pub async fn diff_show(app: &mut App<'_>) {
         .send(event)
         .expect("Failed to dispatch command");
 
-    // Error handling should probably just forward the error to the UI
-    let diff_message = match rx.recv().await.expect("Failed to receive diff") {
-        CommandResponse::Activity(_, payload) => payload,
-        msg => panic!("Expected chat message got {msg:?}"),
-    };
+    // App tx so we forward everything else
+    // TODO: Think of a nicer way to do this. It's a bit hacky. Maybe a forwarder?
+    let app_tx = app.command_responder.for_chat_id(current_chat_uuid);
+    let mut diff_message = String::new();
+    while let Some(msg) = rx.recv().await {
+        match msg {
+            CommandResponse::BackendMessage(_, ref payload) => {
+                if diff_message.is_empty() {
+                    diff_message = payload.to_string();
 
-    app.send_ui_event(UIEvent::ChatMessage(
-        current_chat_uuid,
-        ChatMessage::new_system(diff_message),
-    ));
+                    app.send_ui_event(UIEvent::ChatMessage(
+                        current_chat_uuid,
+                        ChatMessage::new_system(diff_message.clone()),
+                    ));
+                } else {
+                    app_tx.send(msg);
+                }
+            }
+            CommandResponse::Completed(_) => {
+                app_tx.send(msg);
+                break;
+            }
+            _ => app_tx.send(msg),
+        }
+    }
+
+    tracing::debug!("Diff message: {}", diff_message);
+
+    // TODO: Diff should be rendered with i.e. ansi-to-tui here
 }
 
 pub async fn diff_pull(app: &mut App<'_>) {}
