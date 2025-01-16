@@ -76,7 +76,6 @@ impl UserInputCommand {
     #[must_use]
     pub fn to_command(&self) -> Option<Command> {
         match self {
-            UserInputCommand::Quit => Some(Command::Quit),
             UserInputCommand::ShowConfig => Some(Command::ShowConfig),
             UserInputCommand::IndexRepository => Some(Command::IndexRepository),
             _ => None,
@@ -94,6 +93,7 @@ impl UserInputCommand {
             UserInputCommand::Copy => Some(UIEvent::CopyLastMessage),
             UserInputCommand::DeleteChat => Some(UIEvent::DeleteChat),
             UserInputCommand::Help => Some(UIEvent::Help),
+            UserInputCommand::Quit => Some(UIEvent::Quit),
             UserInputCommand::Diff(diff_variant) => match diff_variant {
                 DiffVariant::Show => Some(UIEvent::DiffShow),
                 DiffVariant::Pull => Some(UIEvent::DiffPull),
