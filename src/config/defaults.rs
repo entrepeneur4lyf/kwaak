@@ -42,7 +42,6 @@ pub fn default_docker_context() -> PathBuf {
     ".".into()
 }
 
-static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/.*: //p'";
 /// Determines the default branch
 ///
 /// # Panics
@@ -50,20 +49,26 @@ static MAIN_BRANCH_CMD: &str = "git remote show origin | sed -n '/HEAD branch/s/
 /// Panics if no git repository, no remote or no main/master branch
 #[must_use]
 pub fn default_main_branch() -> String {
-    // "main".to_string()
-    std::string::String::from_utf8(
-        Command::new("sh")
-            .arg("-c")
-            .arg(MAIN_BRANCH_CMD)
-            .output()
-            .expect("Failed to get main branch")
-            .stdout
-            .split(|c| c == &b'\n' || c == &b'\r')
-            .next()
-            .expect("Failed to get main branch")
-            .to_owned(),
-    )
-    .expect("Failed to get main branch")
+    const DEFAULT_BRANCH: &str = "main";
+    // Tries to get it from the ref if present, otherwise sets it, the uses rev-parse to get the branch
+    // The ref can be missing if the repo was never cloned (i.e. author and pushed to github directly)
+    const MAIN_BRANCH_CMD: &str =
+    "(git symbolic-ref refs/remotes/origin/HEAD >/dev/null 2>&1 || git remote set-head origin --auto >/dev/null 2>&1) && git rev-parse --abbrev-ref origin/HEAD";
+
+    let Ok(output) = Command::new("sh").arg("-c").arg(MAIN_BRANCH_CMD).output() else {
+        return DEFAULT_BRANCH.to_string();
+    };
+
+    let parsed = std::str::from_utf8(&output.stdout)
+        .unwrap_or(DEFAULT_BRANCH)
+        .trim_start_matches("origin/")
+        .trim();
+
+    if parsed.is_empty() {
+        DEFAULT_BRANCH.to_string()
+    } else {
+        parsed.to_string()
+    }
 }
 
 /// Extracts the owner and repo from the git remote url
