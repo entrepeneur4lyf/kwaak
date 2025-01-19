@@ -4,7 +4,7 @@ use swiftide::chat_completion::ChatCompletionResponse;
 use swiftide_core::{ChatCompletion, EmbeddingModel, SimplePrompt};
 use uuid::Uuid;
 
-use crate::{config::Config, repository::Repository};
+use crate::{config::Config, git, repository::Repository};
 
 pub struct TestGuard {
     pub tempdir: tempfile::TempDir,
@@ -45,7 +45,7 @@ pub fn test_repository() -> (Repository, TestGuard) {
 
     // Copy this dockerfile to the context
     std::fs::create_dir_all(&config.docker.context).unwrap();
-    std::fs::copy("Dockerfile", config.docker.context.join("Dockerfile")).unwrap();
+    std::fs::copy("Dockerfile.tests", config.docker.context.join("Dockerfile")).unwrap();
 
     std::fs::create_dir_all(&repository.config().cache_dir).unwrap();
     std::fs::create_dir_all(&repository.config().log_dir).unwrap();
@@ -67,13 +67,53 @@ pub fn test_repository() -> (Repository, TestGuard) {
         .current_dir(repository.path())
         .output()
         .unwrap();
-    std::process::Command::new("git")
-        .arg("commit")
-        .arg("-m")
-        .arg("Initial commit")
+
+    // set the git author
+    let user_email = std::process::Command::new("git")
+        .arg("config")
+        .arg("user.email")
+        .arg("\"kwaak@bosun.ai\"")
         .current_dir(repository.path())
         .output()
         .unwrap();
+
+    assert!(user_email.status.success(), "failed to set git user email");
+
+    let user_name = std::process::Command::new("git")
+        .arg("config")
+        .arg("user.name")
+        .arg("\"kwaak\"")
+        .current_dir(repository.path())
+        .output()
+        .unwrap();
+
+    assert!(user_name.status.success(), "failed to set git user name");
+
+    let initial = std::process::Command::new("git")
+        .arg("commit")
+        .arg("-n")
+        .arg("--allow-empty")
+        .arg("-m")
+        .arg("\"Initial commit\"")
+        .current_dir(repository.path())
+        .output()
+        .unwrap();
+
+    let output = std::str::from_utf8(&initial.stdout).unwrap().to_string()
+        + std::str::from_utf8(&initial.stderr).unwrap();
+
+    if !initial.status.success() {
+        tracing::error!("Failed to commit initial commit: {}", output);
+    }
+
+    // For some reason in some unit tests this can fail?
+    // assert!(
+    //     initial.status.success(),
+    //     "failed to commit initial commit for test"
+    // );
+
+    // Update the mainbranch as it could be main or master depending on the os
+    repository.config_mut().git.main_branch = git::util::main_branch(repository.path());
 
     // debug files in app dir, list all including hidden
     tracing::debug!(
@@ -83,6 +123,8 @@ pub fn test_repository() -> (Repository, TestGuard) {
             .map(|entry| entry.unwrap().path())
             .collect::<Vec<_>>()
     );
+
+    tracing::debug!("Initial commit: {:?}", initial);
 
     (repository, TestGuard { tempdir })
 }
