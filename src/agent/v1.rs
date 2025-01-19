@@ -46,8 +46,6 @@ pub fn available_tools(
         tools::search_code(),
         tools::fetch_url(),
         tools::ExplainCode::new(query_pipeline).boxed(),
-        tools::RunTests::new(&repository.config().commands.test).boxed(),
-        tools::RunCoverage::new(&repository.config().commands.coverage).boxed(),
     ];
 
     if let Some(github_session) = github_session {
@@ -59,6 +57,14 @@ pub fn available_tools(
         let tavily = Tavily::builder(tavily_api_key.expose_secret()).build()?;
         tools.push(tools::SearchWeb::new(tavily, tavily_api_key.clone()).boxed());
     };
+
+    if let Some(test_command) = &repository.config().commands.test {
+        tools.push(tools::RunTests::new(test_command).boxed());
+    }
+
+    if let Some(coverage_command) = &repository.config().commands.coverage {
+        tools.push(tools::RunCoverage::new(coverage_command).boxed());
+    }
 
     if let Some(env) = agent_env {
         tools.push(tools::ResetFile::new(&env.start_ref).boxed());
