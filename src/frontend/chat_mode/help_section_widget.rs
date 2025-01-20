@@ -29,7 +29,7 @@ impl HelpSectionWidget {
                 .border_set(border_set)
                 .padding(Padding::uniform(1)),
         )
-        .render(top, f.buffer_mut());
+        .render(left, f.buffer_mut());
 
         Paragraph::new(
             [
