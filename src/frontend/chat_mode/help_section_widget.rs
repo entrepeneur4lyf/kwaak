@@ -9,7 +9,12 @@ pub struct HelpSectionWidget;
 impl HelpSectionWidget {
     pub fn render(f: &mut ratatui::Frame, app: &App, area: Rect) {
         let border_set = symbols::border::Set {
-            top_right: symbols::line::NORMAL.vertical_left,
+let rects = Layout::vertical([
+    Constraint::Length((app.supported_commands().len() / 2) as u16 + 3),
+    Constraint::Min(6),
+])
+.split(area);
+let [top, bottom] = [rects[0], rects[1]];
             ..symbols::border::PLAIN
         };
         let [top, bottom] = Layout::vertical([
