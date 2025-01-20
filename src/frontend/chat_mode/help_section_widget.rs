@@ -52,6 +52,6 @@ impl HelpSectionWidget {
                 .borders(Borders::TOP | Borders::RIGHT | Borders::BOTTOM)
                 .padding(Padding::uniform(1)),
         )
-        .render(bottom, f.buffer_mut());
+        .render(right, f.buffer_mut());
     }
 }
