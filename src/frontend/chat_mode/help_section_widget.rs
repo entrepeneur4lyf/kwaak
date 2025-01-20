@@ -1,5 +1,5 @@
-use ratatui::prelude::*;
 use crate::frontend::App;
+use ratatui::prelude::*;
 
 pub struct HelpSectionWidget;
 
@@ -9,39 +9,40 @@ impl HelpSectionWidget {
             top_right: symbols::line::NORMAL.vertical_left,
             ..symbols::border::PLAIN
         };
-let [top, bottom] = Layout::vertical([
-    Constraint::Length((app.supported_commands().len() / 2) as u16 + 3), // Assuming two columns
-    Constraint::Min(6), // Adjusting to ensure keybindings are more visible
-])
-.areas(area);
-        .areas(area);
+        let [top, bottom] = Layout::vertical([
+            Constraint::Length((app.supported_commands().len() / 2) as u16 + 3), // Assuming two columns
+            Constraint::Min(6), // Adjusting to ensure keybindings are more visible
+        ])
+        .split(area);
 
-let commands = app.supported_commands()
-    .chunks(app.supported_commands().len() / 2 + 1)
-    .zip([Alignment::Left, Alignment::Right].iter())
-    .map(|(chunk, &alignment)|
-        Paragraph::new(
-            chunk.iter().map(|c| Line::from(format!("/{c}").bold())).collect::<Vec<Line>>(),
-        )
-        .block(
-            Block::default()
-                .title("Chat commands".bold())
-                .title_alignment(Alignment::Center)
-                .borders(Borders::TOP | Borders::RIGHT)
-                .border_set(border_set)
-                .padding(Padding::uniform(1)),
-        )
-        .alignment(alignment)
-    );
+        let commands = app
+            .supported_commands()
+            .chunks(app.supported_commands().len() / 2 + 1)
+            .zip([Alignment::Left, Alignment::Right].iter())
+            .map(|(chunk, &alignment)| {
+                Paragraph::new(
+                    chunk
+                        .iter()
+                        .map(|c| Line::from(format!("/{c}").bold()))
+                        .collect::<Vec<Line>>(),
+                )
+                .block(
+                    Block::default()
+                        .title("Chat commands".bold())
+                        .title_alignment(Alignment::Center)
+                        .borders(Borders::TOP | Borders::RIGHT)
+                        .border_set(border_set)
+                        .padding(Padding::uniform(1)),
+                )
+                .alignment(alignment)
+            });
 
-for (i, paragraph) in commands.enumerate() {
-    let chunk_area = Layout::horizontal([
-        Constraint::Percentage(50),
-        Constraint::Percentage(50),
-    ])
-    .split(top)[i];
-    paragraph.render(chunk_area, f.buffer_mut());
-}
+        for (i, paragraph) in commands.enumerate() {
+            let chunk_area =
+                Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .split(top)[i];
+            paragraph.render(chunk_area, f.buffer_mut());
+        }
 
         Paragraph::new(
             [
