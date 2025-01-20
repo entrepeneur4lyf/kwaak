@@ -39,6 +39,7 @@ pub fn available_tools(
 
     let mut tools = vec![
         tools::read_file(),
+        tools::read_file_with_line_numbers(),
         tools::write_file(),
         tools::search_file(),
         tools::git(),

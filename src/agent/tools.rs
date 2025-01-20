@@ -7,7 +7,7 @@ use swiftide::{
     query::{search_strategies, states},
     traits::{AgentContext, Command},
 };
-use swiftide_core::{CommandError, CommandOutput};
+use swiftide_core::CommandError;
 use swiftide_macros::{tool, Tool};
 use tavily::Tavily;
 use tokio::sync::Mutex;
