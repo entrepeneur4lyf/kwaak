@@ -1,5 +1,8 @@
 use crate::frontend::App;
-use ratatui::prelude::*;
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Borders, Padding, Paragraph},
+};
 
 pub struct HelpSectionWidget;
 
