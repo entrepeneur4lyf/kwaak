@@ -467,7 +467,7 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
 }
 
 #[tool(
-    description = "Replace a block of text in a file, starting at start_line up to and including end_line. Prefer this over writing the full file content if you only need to change a small part of the file. This avoids unnecessary conflicts. You MUST read the file with line numbers first to know the start and end line numbers of the block you want to replace. Line numbers start at 1",
+    description = "Replace a block of text in a file, starting at start_line up to and including end_line. Prefer this over writing the full file content if you only need to change a small part of the file. This avoids unnecessary conflicts. You MUST read the file with line numbers first to know the start and end line numbers of the block you want to replace. Line numbers start at 1. You cannot call this tool more than once on a file, without reading the line numbers again.",
     param(name = "file_name", description = "Full path of the file"),
     param(
         name = "start_line",
