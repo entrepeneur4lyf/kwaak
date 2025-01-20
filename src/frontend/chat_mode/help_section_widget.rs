@@ -9,17 +9,10 @@ let border_set = symbols::border::Set {
     top_right: symbols::line::NORMAL.vertical_left,
     top_left: symbols::line::NORMAL.vertical_right,
     bottom_right: symbols::line::NORMAL.vertical_left,
-let top_bottom = Layout::vertical([
-    Constraint::Length((app.supported_commands().len() / 2) as u16 + 3),
-    Constraint::Min(6),
-])
-.split(area);
-let top = top_bottom[0];
-let bottom = top_bottom[1];
     vertical_left: symbols::line::NORMAL.vertical,
     vertical_right: symbols::line::NORMAL.vertical,
     horizontal_top: symbols::line::NORMAL.horizontal,
-    horizontal_bottom: symbols::line::NORMAL.horizontal_top,
+    horizontal_bottom: symbols::line::NORMAL.horizontal,
     horizontal: symbols::line::NORMAL.horizontal,
 };
 let rects = Layout::vertical([
