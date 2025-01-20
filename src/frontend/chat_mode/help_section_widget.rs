@@ -15,14 +15,13 @@ let border_set = symbols::border::Set {
     horizontal_bottom: symbols::line::NORMAL.horizontal,
     horizontal: symbols::line::NORMAL.horizontal,
 };
-let rects = Layout::vertical([
-    Constraint::Length((app.supported_commands().len() / 2) as u16 + 3),
-    Constraint::Min(6),
-])
-.split(area);
-let [top, bottom] = [rects[0], rects[1]];
-            ..symbols::border::PLAIN
-        };
+ let top_bottom = Layout::vertical([
+ Constraint::Length((app.supported_commands().len() / 2) as u16 + 3),
+ Constraint::Min(6),
+  ])
+ .split(area);
+ let top = top_bottom[0];
+ let bottom = top_bottom[1];
         let [top, bottom] = Layout::vertical([
             Constraint::Length((app.supported_commands().len() / 2) as u16 + 3), // Assuming two columns
             Constraint::Min(6), // Adjusting to ensure keybindings are more visible
