@@ -11,12 +11,9 @@ impl HelpSectionWidget {
             top_right: symbols::line::NORMAL.vertical_left,
             ..symbols::border::PLAIN
         };
-        let [top, bottom] = Layout::vertical([
-            #[allow(clippy::cast_possible_truncation)]
-            Constraint::Length(app.supported_commands().len() as u16 + 3),
-            Constraint::Min(4),
-        ])
-        .areas(area);
+        let [left, right] =
+            Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .areas(area);
 
         Paragraph::new(
             app.supported_commands()
