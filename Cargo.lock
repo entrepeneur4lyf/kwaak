@@ -7486,6 +7486,8 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 [[package]]
 name = "swiftide"
 version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ae02e04ccd3a7e5b6e654c8899aefc163f7ccfb1bca602d5f2d0bc95a657ce3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7502,6 +7504,8 @@ dependencies = [
 [[package]]
 name = "swiftide-agents"
 version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35c77ce5597bab6cd8db7e427dd4ed5134dc0222e8d9aea641865106e2fe9a4d"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7522,6 +7526,8 @@ dependencies = [
 [[package]]
 name = "swiftide-core"
 version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "593452372b88419ae59b933fb1c5eb5e34189a6e055819f149c6bac675258a32"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7569,6 +7575,8 @@ dependencies = [
 [[package]]
 name = "swiftide-indexing"
 version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccdbf5de08ff08eec1e73f9a23b9717bee71292d1d169ea379728e3a2356d944"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7593,6 +7601,8 @@ dependencies = [
 [[package]]
 name = "swiftide-integrations"
 version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26364f3953497bbe667132dae5f9a73d6a9b9ca899af4769a6bda8f8a729ddae"
 dependencies = [
  "anyhow",
  "arrow",
@@ -7630,6 +7640,8 @@ dependencies = [
 [[package]]
 name = "swiftide-macros"
 version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04844fcf5c6c9d8971c085713975d1214439e2c9a59a702c492349c07912b9a2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7645,6 +7657,8 @@ dependencies = [
 [[package]]
 name = "swiftide-query"
 version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed90f178517c15b1f2e5e46fcc08d135529babaa031fbc75341eefe6546ee8e4"
 dependencies = [
  "anyhow",
  "async-trait",

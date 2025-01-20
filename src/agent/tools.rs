@@ -7,7 +7,7 @@ use swiftide::{
     query::{search_strategies, states},
     traits::{AgentContext, Command},
 };
-use swiftide_core::{CommandError, CommandOutput};
+use swiftide_core::CommandError;
 use swiftide_macros::{tool, Tool};
 use tavily::Tavily;
 use tokio::sync::Mutex;
@@ -56,6 +56,7 @@ pub async fn read_file(
     Ok(output.into())
 }
 
+// TODO: Better to have a single read_file tool with an optional line number flag
 #[tool(
     description = "Reads file content, including line numbers. You MUST use this tool to retrieve line numbers before making a block edit with replace_block",
     param(name = "file_name", description = "Full path of the file")
