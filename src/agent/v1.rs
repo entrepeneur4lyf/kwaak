@@ -45,6 +45,7 @@ pub fn available_tools(
         tools::shell_command(),
         tools::search_code(),
         tools::fetch_url(),
+        tools::replace_block(),
         tools::ExplainCode::new(query_pipeline).boxed(),
     ];
 

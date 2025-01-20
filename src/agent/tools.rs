@@ -7,6 +7,7 @@ use swiftide::{
     query::{search_strategies, states},
     traits::{AgentContext, Command},
 };
+use swiftide_core::{CommandError, CommandOutput};
 use swiftide_macros::{tool, Tool};
 use tavily::Tavily;
 use tokio::sync::Mutex;
@@ -441,4 +442,73 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
             Ok(url_content)
         })
         .map(Into::into)
+}
+
+#[tool(
+    description = "Replace a block of text in a file. Prefer this over writing the full file content if you only need to change a small part of the file. This avoids unnecessary conflicts. You MUST read the file with line numbers first to know the start and end line numbers of the block you want to replace. Line numbers start at 1",
+    param(name = "file_name", description = "Full path of the file"),
+    param(
+        name = "start_line",
+        description = "Start line number of the block to replace"
+    ),
+    param(
+        name = "end_line",
+        description = "End line number of the block to replace. This is inclusive! End line will be replaced as well."
+    ),
+    param(name = "replacement", description = "Replacement content")
+)]
+pub async fn replace_block(
+    context: &dyn AgentContext,
+    file_name: &str,
+    start_line: &str,
+    end_line: &str,
+    replacement: &str,
+) -> Result<ToolOutput, ToolError> {
+    // Read the file content
+    let cmd = Command::ReadFile(file_name.into());
+
+    let file_content = match context.exec_cmd(&cmd).await {
+        Ok(output) => output.output,
+        Err(CommandError::NonZeroExit(output, ..)) => {
+            return Ok(output.into());
+        }
+        Err(e) => return Err(e.into()),
+    };
+
+    let mut lines = file_content.lines().collect::<Vec<_>>();
+
+    let Ok(start_line) = start_line.parse::<usize>() else {
+        return Ok("Invalid start line number, must be a valid number".into());
+    };
+
+    let Ok(end_line) = end_line.parse::<usize>() else {
+        return Ok("Invalid end line number, must be a valid number".into());
+    };
+
+    let lines_len = lines.len();
+
+    if start_line > lines_len || end_line > lines_len {
+        return Ok("Start or end line number is out of bounds".into());
+    }
+
+    if start_line > end_line {
+        return Ok("Start line number must be less than or equal to end line number".into());
+    }
+
+    if start_line == 0 || end_line == 0 {
+        return Ok("Start and end line numbers must be greater than 0".into());
+    }
+
+    // TODO: Out of bounds etc handling
+
+    // Input is 1 indexed, lines are 0 indexed
+    lines.splice(
+        start_line.saturating_sub(1)..=end_line.saturating_sub(1),
+        replacement.lines(),
+    );
+
+    let write_cmd = Command::WriteFile(file_name.into(), lines.join("\n"));
+    context.exec_cmd(&write_cmd).await?;
+
+    Ok(format!("Successfully replaced block in {file_name}").into())
 }
