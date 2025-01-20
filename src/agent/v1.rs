@@ -39,12 +39,14 @@ pub fn available_tools(
 
     let mut tools = vec![
         tools::read_file(),
+        tools::read_file_with_line_numbers(),
         tools::write_file(),
         tools::search_file(),
         tools::git(),
         tools::shell_command(),
         tools::search_code(),
         tools::fetch_url(),
+        tools::replace_block(),
         tools::ExplainCode::new(query_pipeline).boxed(),
     ];
 
@@ -272,6 +274,9 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
 
         // Tool usage
         "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file. Do not make changes other than the ones requested.",
+        "Prefer using block replacements over writing files, if possible. This is faster and less error prone. You can only make ONE block replacement at the time. Otherwise you must retrieve the line numbers again.",
+        "Before replacing a block, you MUST read the file content with the line numbers. You are not allowed to count lines yourself.",
+        "If you intend to edit multiple files or multiple edits in a single file, outline your plan first, then call the first tool immediately",
         "If you create a pull request, you must ensure the tests pass",
         "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
         "NEVER write a file behavore having read it",
