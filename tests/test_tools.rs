@@ -189,3 +189,27 @@ async fn test_replace_block() {
         &tool_response.to_string()
     );
 }
+
+#[test_log::test(tokio::test)]
+async fn test_read_file_with_line_numbers() {
+    let tool = tools::read_file_with_line_numbers();
+    let context = setup_context();
+
+    let tempdir = tempdir().unwrap();
+    std::fs::write(
+        tempdir.path().join("test.txt"),
+        "line1\nline2\nline3\nline4\nline5",
+    )
+    .unwrap();
+
+    let file_content = invoke!(
+        &tool,
+        &context,
+        json!({
+            "file_name": tempdir.path().join("test.txt").to_str().unwrap(),
+        })
+    );
+
+    let expected = "1: line1\n2: line2\n3: line3\n4: line4\n5: line5";
+    assert_eq!(file_content, expected);
+}

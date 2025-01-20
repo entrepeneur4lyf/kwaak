@@ -57,6 +57,28 @@ pub async fn read_file(
 }
 
 #[tool(
+    description = "Reads file content, including line numbers. You MUST use this tool to retrieve line numbers before making a block edit with replace_block",
+    param(name = "file_name", description = "Full path of the file")
+)]
+pub async fn read_file_with_line_numbers(
+    context: &dyn AgentContext,
+    file_name: &str,
+) -> Result<ToolOutput, ToolError> {
+    let cmd = Command::ReadFile(file_name.into());
+
+    // i.e. if the file doesn't exist, just forward that message
+    let output = accept_non_zero_exit(context.exec_cmd(&cmd).await)?;
+
+    let lines = output
+        .output
+        .lines()
+        .enumerate()
+        .map(|(i, l)| format!("{line_num}: {l}", line_num = i + 1));
+
+    Ok(lines.collect::<Vec<_>>().join("\n").into())
+}
+
+#[tool(
     description = "Write to a file. You MUST ALWAYS include the full file content, including what you did not change, as it overwrites the full file. Only make changes that pertain to your task.",
     param(name = "file_name", description = "Full path of the file"),
     param(name = "content", description = "FULL Content to write to the file")
@@ -445,7 +467,7 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
 }
 
 #[tool(
-    description = "Replace a block of text in a file. Prefer this over writing the full file content if you only need to change a small part of the file. This avoids unnecessary conflicts. You MUST read the file with line numbers first to know the start and end line numbers of the block you want to replace. Line numbers start at 1",
+    description = "Replace a block of text in a file, starting at start_line up to and including end_line. Prefer this over writing the full file content if you only need to change a small part of the file. This avoids unnecessary conflicts. You MUST read the file with line numbers first to know the start and end line numbers of the block you want to replace. Line numbers start at 1",
     param(name = "file_name", description = "Full path of the file"),
     param(
         name = "start_line",
