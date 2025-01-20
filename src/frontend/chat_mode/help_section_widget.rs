@@ -18,11 +18,12 @@ let [top, bottom] = Layout::vertical([
 .areas(area);
         .areas(area);
 
+let commands = app.supported_commands()
+    .chunks(app.supported_commands().len() / 2 + 1)
+    .zip([Alignment::Left, Alignment::Right].iter())
+    .map(|(chunk, &alignment)|
         Paragraph::new(
-            app.supported_commands()
-                .iter()
-                .map(|c| Line::from(format!("/{c}").bold()))
-                .collect::<Vec<Line>>(),
+            chunk.iter().map(|c| Line::from(format!("/{c}").bold())).collect::<Vec<Line>>(),
         )
         .block(
             Block::default()
@@ -32,7 +33,17 @@ let [top, bottom] = Layout::vertical([
                 .border_set(border_set)
                 .padding(Padding::uniform(1)),
         )
-        .render(top, f.buffer_mut());
+        .alignment(alignment)
+    );
+
+for (i, paragraph) in commands.enumerate() {
+    let chunk_area = Layout::horizontal([
+        Constraint::Percentage(50),
+        Constraint::Percentage(50),
+    ])
+    .split(top)[i];
+    paragraph.render(chunk_area, f.buffer_mut());
+}
 
         Paragraph::new(
             [
