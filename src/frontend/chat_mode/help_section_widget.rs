@@ -1,6 +1,4 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Padding, Paragraph};
-
 use crate::frontend::App;
 
 pub struct HelpSectionWidget;
