@@ -11,11 +11,11 @@ impl HelpSectionWidget {
             top_right: symbols::line::NORMAL.vertical_left,
             ..symbols::border::PLAIN
         };
-        let [top, bottom] = Layout::vertical([
-            #[allow(clippy::cast_possible_truncation)]
-            Constraint::Length(app.supported_commands().len() as u16 + 3),
-            Constraint::Min(4),
-        ])
+let [top, bottom] = Layout::vertical([
+    Constraint::Length((app.supported_commands().len() / 2) as u16 + 3), // Assuming two columns
+    Constraint::Min(6), // Adjusting to ensure keybindings are more visible
+])
+.areas(area);
         .areas(area);
 
         Paragraph::new(
