@@ -17,28 +17,18 @@ impl HelpSectionWidget {
         let mut columns = Vec::new();
         for col_num in 0..num_cols {
             let col_commands = &app.supported_commands()[col_num * commands_per_col..
-                ((col_num + 1) * commands_per_col).min(num_commands)];
-            columns.push(col_commands
-                .iter()
-                .map(|c| Line::from(format!("/{c} ").bold()))
-                .collect::<Vec<Line>>());
+        for column_line in column_lines {
+            Paragraph::new(column_line)
+                .block(
+                    Block::default()
+                        .title("Chat commands".bold())
+                        .title_alignment(Alignment::Center)
+                        .borders(Borders::TOP | Borders::RIGHT)
+                        .border_set(border_set)
+                        .padding(Padding::uniform(1)),
+                )
+                .render(top, f.buffer_mut());
         }
-
-        let column_lines = (0..commands_per_col).map(|i| {
-            columns.iter().filter_map(|col| col.get(i)).cloned().collect::<Vec<Line>>()
-        }).collect::<Vec<Vec<Line>>>();
-
-        Paragraph::new(
-            app.supported_commands()
-                .iter()
-                .map(|c| Line::from(format!("/{c}").bold()))
-                .collect::<Vec<Line>>(),
-        )
-        .block(
-            Block::default()
-                .title("Chat commands".bold())
-                .title_alignment(Alignment::Center)
-                .borders(Borders::TOP | Borders::RIGHT)
                 .border_set(border_set)
                 .padding(Padding::uniform(1)),
         )
