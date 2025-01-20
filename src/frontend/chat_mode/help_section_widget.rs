@@ -10,13 +10,23 @@ impl HelpSectionWidget {
         let border_set = symbols::border::Set {
             top_right: symbols::line::NORMAL.vertical_left,
             ..symbols::border::PLAIN
-        };
-        let [top, bottom] = Layout::vertical([
-            #[allow(clippy::cast_possible_truncation)]
-            Constraint::Length(app.supported_commands().len() as u16 + 3),
-            Constraint::Min(4),
-        ])
-        .areas(area);
+        let num_commands = app.supported_commands().len();
+        let num_cols = 2; // Set to 2 columns for better visibility
+        let commands_per_col = (num_commands as f32 / num_cols as f32).ceil() as usize;
+
+        let mut columns = Vec::new();
+        for col_num in 0..num_cols {
+            let col_commands = &app.supported_commands()[col_num * commands_per_col..
+                ((col_num + 1) * commands_per_col).min(num_commands)];
+            columns.push(col_commands
+                .iter()
+                .map(|c| Line::from(format!("/{c} ").bold()))
+                .collect::<Vec<Line>>());
+        }
+
+        let column_lines = (0..commands_per_col).map(|i| {
+            columns.iter().filter_map(|col| col.get(i)).cloned().collect::<Vec<Line>>()
+        }).collect::<Vec<Vec<Line>>>();
 
         Paragraph::new(
             app.supported_commands()
