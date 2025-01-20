@@ -32,7 +32,7 @@ impl HelpSectionWidget {
         .render(top, f.buffer_mut());
 
         Paragraph::new(
-        .render(left, f.buffer_mut());
+            [
                 "Page Up/Down - Scroll",
                 "End - Scroll to end",
                 "^s - Send message",
