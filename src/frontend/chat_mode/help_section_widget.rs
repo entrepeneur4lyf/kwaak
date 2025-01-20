@@ -5,10 +5,17 @@ use ratatui::{
 };
 
 pub struct HelpSectionWidget;
-
-impl HelpSectionWidget {
-    pub fn render(f: &mut ratatui::Frame, app: &App, area: Rect) {
-        let border_set = symbols::border::Set {
+let border_set = symbols::border::Set {
+    top_right: symbols::line::NORMAL.vertical_left,
+    top_left: symbols::line::NORMAL.vertical_right,
+    bottom_right: symbols::line::NORMAL.vertical_left,
+    bottom_left: symbols::line::NORMAL.vertical_right,
+    vertical_left: symbols::line::NORMAL.vertical,
+    vertical_right: symbols::line::NORMAL.vertical,
+    horizontal_top: symbols::line::NORMAL.horizontal,
+    horizontal_bottom: symbols::line::NORMAL.horizontal_top,
+    horizontal: symbols::line::NORMAL.horizontal,
+};
 let rects = Layout::vertical([
     Constraint::Length((app.supported_commands().len() / 2) as u16 + 3),
     Constraint::Min(6),
