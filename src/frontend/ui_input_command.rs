@@ -45,6 +45,8 @@ pub enum UserInputCommand {
     ///     /diff show - Shows the diff in the chat
     ///     /diff pull - Pulls the diff into a new branch
     Diff(DiffVariant),
+    /// Retries the last chat with the agent.
+    Retry,
     /// Print help
     Help,
 }
@@ -78,6 +80,7 @@ impl UserInputCommand {
         match self {
             UserInputCommand::ShowConfig => Some(Command::ShowConfig),
             UserInputCommand::IndexRepository => Some(Command::IndexRepository),
+            UserInputCommand::Retry => Some(Command::RetryChat),
             _ => None,
         }
     }
