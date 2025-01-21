@@ -22,7 +22,6 @@ pub fn run() -> Result<()> {
 }
 
 fn create_template_config() -> Result<String> {
-fn create_template_config() -> Result<String> {
     let mut context = tera::Context::new();
 
     // Helper for getting user feedback with a default
