@@ -22,21 +22,39 @@ pub fn run() -> Result<()> {
 }
 
 fn create_template_config() -> Result<String> {
+fn create_template_config() -> Result<String> {
     let mut context = tera::Context::new();
 
-    context.insert(
-        "language",
-        &naive_lang_detect().map_or_else(|| "REQUIRED".to_string(), |l| l.to_string()),
-    );
-    context.insert("project_name", &default_project_name());
+    // Helper for getting user feedback with a default
+    fn input_with_default(prompt: &str, default: &str) -> String {
+        println!("{} [{}]: ", prompt, default);
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).expect("Failed to read input");
+        let trimmed = input.trim();
+        if trimmed.is_empty() { default.to_string() } else { trimmed.to_string() }
+    }
 
-    let (owner, repository) = default_owner_and_repo();
+    // Get user inputs with defaults
+    let language = naive_lang_detect().map_or_else(|| "REQUIRED".to_string(), |l| l.to_string());
+    let language_input = input_with_default("Enter the programming language", &language);
+    context.insert("language", &language_input);
+
+    let project_name = default_project_name();
+    let project_name_input = input_with_default("Enter the project name", &project_name);
+    context.insert("project_name", &project_name_input);
+
+    let (default_owner, default_repository) = default_owner_and_repo();
+    let owner_input = input_with_default("Enter the GitHub owner/org", &default_owner);
+    let repository_input = input_with_default("Enter the GitHub repository", &default_repository);
+    let default_branch = default_main_branch();
+    let branch_input = input_with_default("Enter the main branch", &default_branch);
+
     context.insert(
         "github",
         &json!({
-            "owner": owner,
-            "repository": repository,
-            "main_branch": default_main_branch(),
+            "owner": owner_input,
+            "repository": repository_input,
+            "main_branch": branch_input,
 
         }),
     );
@@ -47,11 +65,6 @@ fn create_template_config() -> Result<String> {
     // Since we want the template annotated with comments, just return the template
     Ok(config)
 }
-
-fn naive_lang_detect() -> Option<SupportedLanguages> {
-    // Check for major package manager files to detect the language
-    // Then return the first language found
-    let language_files = [
         ("Cargo.toml", "Rust"),
         ("Gemfile", "Ruby"),
         ("tsconfig.json", "Typescript"),
