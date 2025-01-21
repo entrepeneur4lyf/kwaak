@@ -64,6 +64,8 @@ fn create_template_config() -> Result<String> {
     // Since we want the template annotated with comments, just return the template
     Ok(config)
 }
+// List of tuples to check for major package manager files to detect the language
+    let language_files = [
         ("Cargo.toml", "Rust"),
         ("Gemfile", "Ruby"),
         ("tsconfig.json", "Typescript"),
@@ -74,6 +76,7 @@ fn create_template_config() -> Result<String> {
         ("build.gradle", "Java"),
         ("pom.xml", "Java"),
         ("go.mod", "Go"),
+];
     ];
 
     // Iterate through the files and detect the language
