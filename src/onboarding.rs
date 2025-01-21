@@ -4,7 +4,6 @@ use crate::{
 };
 use anyhow::{Context as _, Result};
 use serde_json::json;
-use swiftide::integrations::treesitter::SupportedLanguages;
 
 pub fn run() -> Result<()> {
     if std::fs::metadata(".git").is_err() {
@@ -26,11 +25,17 @@ fn create_template_config() -> Result<String> {
 
     // Helper for getting user feedback with a default
     fn input_with_default(prompt: &str, default: &str) -> String {
-        println!("{} [{}]: ", prompt, default);
+        println!("{prompt} [{default}]: ");
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input).expect("Failed to read input");
+        std::io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read input");
         let trimmed = input.trim();
-        if trimmed.is_empty() { default.to_string() } else { trimmed.to_string() }
+        if trimmed.is_empty() {
+            default.to_string()
+        } else {
+            trimmed.to_string()
+        }
     }
 
     // Get user inputs with defaults
@@ -64,7 +69,7 @@ fn create_template_config() -> Result<String> {
     // Since we want the template annotated with comments, just return the template
     Ok(config)
 }
-// List of tuples to check for major package manager files to detect the language
+fn naive_lang_detect() -> Option<String> {
     let language_files = [
         ("Cargo.toml", "Rust"),
         ("Gemfile", "Ruby"),
@@ -76,12 +81,12 @@ fn create_template_config() -> Result<String> {
         ("build.gradle", "Java"),
         ("pom.xml", "Java"),
         ("go.mod", "Go"),
-   ];
+    ];
 
     // Iterate through the files and detect the language
-    for (file, language) in language_files {
+    for (file, language) in &language_files {
         if std::fs::metadata(file).is_ok() {
-            return language.parse().ok();
+            return Some((*language).to_string());
         }
     }
 
