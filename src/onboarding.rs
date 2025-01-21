@@ -76,8 +76,7 @@ fn create_template_config() -> Result<String> {
         ("build.gradle", "Java"),
         ("pom.xml", "Java"),
         ("go.mod", "Go"),
-];
-    ];
+   ];
 
     // Iterate through the files and detect the language
     for (file, language) in language_files {
