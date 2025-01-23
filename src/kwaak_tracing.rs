@@ -96,11 +96,13 @@ use opentelemetry_sdk::trace::TracerProvider;
 
 #[cfg(feature = "otel")]
 fn init_otel() -> TracerProvider {
+    use opentelemetry_otlp::WithTonicConfig;
     use opentelemetry_sdk::runtime;
     use opentelemetry_sdk::trace::TracerProvider;
 
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_tonic()
+        .with_tls_config(tonic::transport::ClientTlsConfig::new().with_native_roots())
         .build()
         .expect("failed to create otlp exporter");
 
