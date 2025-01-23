@@ -123,16 +123,17 @@ pub async fn start_agent(
     };
 
     let system_prompt = build_system_prompt(&repository)?;
-    let ((), executor, initial_context) = tokio::try_join!(
+    let ((), branch_name, executor, initial_context) = tokio::try_join!(
         rename_chat(&query, &fast_query_provider, &command_responder),
+        create_branch_name(&query, &uuid, &fast_query_provider, &command_responder),
         start_tool_executor(uuid, &repository),
         generate_initial_context(&repository, query)
     )?;
 
-    let env_setup = EnvSetup::new(uuid, &repository, github_session.as_deref(), &*executor);
+    let env_setup = EnvSetup::new(&repository, github_session.as_deref(), &*executor);
     // TODO: Feels a bit off to have EnvSetup return an Env, just to pass it to tool creation to
     // get the ref/branch name
-    let agent_env = env_setup.exec_setup_commands().await?;
+    let agent_env = env_setup.exec_setup_commands(branch_name).await?;
 
     let tools = available_tools(&repository, github_session.as_ref(), Some(&agent_env))?;
 
@@ -335,9 +336,46 @@ async fn rename_chat(
         .take(60)
         .collect::<String>();
 
-    command_responder.rename(&chat_name);
+    command_responder.rename_chat(&chat_name);
 
     Ok(())
+}
+
+async fn create_branch_name(
+    query: &str,
+    uuid: &Uuid,
+    fast_query_provider: &dyn SimplePrompt,
+    command_responder: &dyn Responder,
+) -> Result<String> {
+    let name = fast_query_provider
+        .prompt(
+            format!("Give a good, short, max 30 chars git-branch-name for the following query. Only respond with the git-branch-name.:\n{query}")
+                .into(),
+        )
+        .await
+        .context("Could not get chat name")?
+        .trim_matches('"')
+        .chars()
+        .take(30)
+        .collect::<String>();
+
+    // only keep ascii characters
+    let name = name.chars().filter(char::is_ascii).collect::<String>();
+    let name = name.to_lowercase();
+
+    // replace all non-alphanumeric characters with dashes
+    let name = name
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '-' })
+        .collect::<String>();
+
+    // get the first 8 characters of the uuid
+    let uuid_start = uuid.to_string().chars().take(8).collect::<String>();
+    let branch_name = format!("kwaak/{name}-{uuid_start}");
+
+    command_responder.rename_branch(&branch_name);
+
+    Ok(branch_name)
 }
 
 #[cfg(test)]
@@ -360,7 +398,7 @@ mod tests {
         let mut mock_responder = MockResponder::default();
 
         mock_responder
-            .expect_rename()
+            .expect_rename_chat()
             .with(predicate::eq("Excellent title"))
             .once()
             .returning(|_| ());
@@ -381,7 +419,7 @@ mod tests {
         let mut mock_responder = MockResponder::default();
 
         mock_responder
-            .expect_rename()
+            .expect_rename_chat()
             .with(
                 predicate::str::starts_with("Excellent title")
                     .and(predicate::function(|s: &str| s.len() == 60)),
@@ -392,5 +430,64 @@ mod tests {
         rename_chat(&query, &llm_mock as &dyn SimplePrompt, &mock_responder)
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_rename_branch() {
+        let query = "This is a query";
+        let mut llm_mock = MockSimplePrompt::new();
+        llm_mock
+            .expect_prompt()
+            .returning(|_| Ok("excellent-name".to_string()));
+
+        let mut mock_responder = MockResponder::default();
+        let fixed_uuid = Uuid::parse_str("936DA01F9ADD4d9d80C702AF85C822A8").unwrap();
+
+        mock_responder
+            .expect_rename_branch()
+            .with(predicate::str::starts_with("kwaak/excellent-name"))
+            .once()
+            .returning(|_| ());
+
+        create_branch_name(
+            &query,
+            &fixed_uuid,
+            &llm_mock as &dyn SimplePrompt,
+            &mock_responder,
+        )
+        .await
+        .unwrap();
+    }
+
+    // NOTE the prompt is intended to be limited to 30 characters, but the branch name in total
+    // has 15 more characters (total 45): "kwaak/" + "-" + 8 characters from the uuid
+    #[tokio::test]
+    async fn test_rename_branch_limits_45() {
+        let query = "This is a query";
+        let mut llm_mock = MockSimplePrompt::new();
+        llm_mock
+            .expect_prompt()
+            .returning(|_| Ok("excellent-name".repeat(100).to_string()));
+
+        let mut mock_responder = MockResponder::default();
+        let fixed_uuid = Uuid::parse_str("936DA01F9ADD4d9d80C702AF85C822A8").unwrap();
+
+        mock_responder
+            .expect_rename_branch()
+            .with(
+                predicate::str::starts_with("kwaak/excellent-name")
+                    .and(predicate::function(|s: &str| s.len() == 45)),
+            )
+            .once()
+            .returning(|_| ());
+
+        create_branch_name(
+            &query,
+            &fixed_uuid,
+            &llm_mock as &dyn SimplePrompt,
+            &mock_responder,
+        )
+        .await
+        .unwrap();
     }
 }
