@@ -46,8 +46,9 @@ opentelemetry_sdk = { version = "0.27.1", optional = true, features = [
 ] }
 opentelemetry = { version = "0.27.1", optional = true }
 opentelemetry-otlp = { version = "0.27.0", optional = true, features = [
-  "tonic",
+  "tonic", "tls"
 ] }
+tonic = { version = "0.12.3", optional = true, features = ["tls-roots"] }
 
 tui-markdown = "0.3.1"
 uuid = { version = "1.11.0", features = ["v4"] }
@@ -128,6 +129,7 @@ default = ["otel"]
   "dep:opentelemetry_sdk",
   "dep:opentelemetry",
   "dep:opentelemetry-otlp",
+  "dep:tonic",
 ]
 
 
