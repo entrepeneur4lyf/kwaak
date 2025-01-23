@@ -81,18 +81,22 @@ Burn through tech debt with AI agents!<br />
 
 Always wanted to run a team of AI agents locally from your own machine? Write code, improve test coverage, update documentation, or improve code quality, while you focus on building the cool stuff? Kwaak enables you to run a team of autonomous AI agents right from your terminal, **in parallel**.
 
+Kwaak is free and open-source. You can bring your own API keys, or your own models via Ollama.
+
 <p align="center">
 
 ![demo](./images/demo.gif)
 
 </p>
 
-Powered by [Swiftide](https://github.com/bosun-ai/swiftide), Kwaak is aware of your codebase and can answer questions about your code, find examples, write and execute code, create pull requests, and more. Unlike other tools, Kwaak is focussed on autonomous agents, and can run multiple agents at the same time.
+Kwaak is aware of your codebase and can answer questions about your code, find examples, write and execute code, create pull requests, and more. Unlike other tools, Kwaak is focussed on autonomous agents, and can run multiple agents at the same time.
 
 > [!CAUTION]
 > Kwaak can be considered alpha software. The project is under active development; expect breaking changes. Contributions, feedback, and bug reports are very welcome.
 
 Kwaak is part of the [bosun.ai](https://bosun.ai) project. An upcoming platform for autonomous code improvement.
+
+Powered by [Swiftide](https://github.com/bosun-ai/swiftide)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -163,15 +167,15 @@ cargo install kwaak
 
 #### Setup
 
-Once installed, you can run `kwaak init` in the project you want to use Kwaak in. This will create a `kwaak.toml` in your project root. You can edit this file to configure Kwaak.
-
-After verifying the default configuration, one required step is to set up the `test` and `coverage` commands. There are also some optional settings you can consider.
+Once installed, you can run `kwaak init` in the project you want to use Kwaak in. This will create a `kwaak.toml` configuration file in the root of your project.
 
 Api keys can be prefixed by `env:`, `text:` and `file:` to read secrets from the environment, a text string, or a file respectively.
 
+We highly recommend taking a look at the configuration file and adjusting it to your needs. There are various options that can improve the performance and accuracy of the agents.
+
 ### Running Kwaak
 
-You can then run `kwaak` in the root of your project. This will start the Kwaak terminal interface. On initial bootup, Kwaak will index your codebase. This can take a while, depending on the size. Once indexing has been completed, subsequent startups will be faster.
+You can then run `kwaak` in the root of your project. On initial bootup, Kwaak will index your codebase. This can take a while, depending on the size. Once indexing has been completed, subsequent startups will be faster.
 
 Keybindings:
 
