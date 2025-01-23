@@ -96,11 +96,33 @@ use opentelemetry_sdk::trace::TracerProvider;
 
 #[cfg(feature = "otel")]
 fn init_otel() -> TracerProvider {
+    use opentelemetry_otlp::WithTonicConfig;
     use opentelemetry_sdk::runtime;
     use opentelemetry_sdk::trace::TracerProvider;
 
-    let exporter = opentelemetry_otlp::SpanExporter::builder()
-        .with_tonic()
+    let mut exporter_builder = opentelemetry_otlp::SpanExporter::builder().with_tonic();
+
+    let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or_default();
+    let insecure = std::env::var("OTEL_EXPORTER_OTLP_INSECURE").unwrap_or_default();
+
+    // This logic is based on https://opentelemetry.io/docs/specs/otel/protocol/exporter/
+    let needs_tls = if endpoint.starts_with("https:") {
+        true
+    } else if endpoint.starts_with("http:") {
+        false
+    } else if insecure == "true" {
+        false
+    } else {
+        true
+    };
+
+    if needs_tls {
+        // TODO: This only supports native roots. We should support custom TLS certificates as well.
+        exporter_builder = exporter_builder
+            .with_tls_config(tonic::transport::ClientTlsConfig::new().with_native_roots());
+    }
+
+    let exporter = exporter_builder
         .build()
         .expect("failed to create otlp exporter");
 
