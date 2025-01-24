@@ -241,19 +241,18 @@ fn new_text_area() -> TextArea<'static> {
                     .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
             }
-                                }
-                            }
-                            UIEvent::Help => actions::help(self),
-    }
+            UIEvent::ScrollEnd => {
+                let Some(current_chat) = self.current_chat_mut() else {
+                    return;
+                };
+                // Keep the last 10 lines in view
+                let scroll_position = current_chat.num_lines.saturating_sub(10);
 
-    #[cfg(debug_assertions)]
-    /// Used for testing so we can do something and wait for it to complete
-    ///
-    /// *will* hang until event is encountered
-    pub async fn handle_events_until(
-        &mut self,
-        stop_fn: impl Fn(&UIEvent) -> bool,
-    ) -> Option<UIEvent> {
+                current_chat.vertical_scroll = scroll_position;
+                current_chat.vertical_scroll_state =
+                    current_chat.vertical_scroll_state.position(scroll_position);
+            }
+            UIEvent::Help => actions::help(self),
         while let Some(event) = self.recv_messages().await {
             self.handle_single_event(&event).await;
             if stop_fn(&event) {
