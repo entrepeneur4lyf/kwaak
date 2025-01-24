@@ -24,6 +24,7 @@ use ratatui::{
 
 use ::tracing::instrument;
 use crossterm::{
+    event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -239,6 +240,10 @@ pub fn init_panic_hook() {
 pub fn init_tui() -> io::Result<Terminal<impl Backend>> {
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen)?;
+    execute!(
+        stdout(),
+        PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
+    )?;
     Terminal::new(CrosstermBackend::new(stdout()))
 }
 
@@ -250,5 +255,6 @@ pub fn init_tui() -> io::Result<Terminal<impl Backend>> {
 pub fn restore_tui() -> io::Result<()> {
     disable_raw_mode()?;
     execute!(stdout(), LeaveAlternateScreen)?;
+    execute!(stdout(), PopKeyboardEnhancementFlags)?;
     Ok(())
 }

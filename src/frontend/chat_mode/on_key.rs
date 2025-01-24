@@ -9,12 +9,20 @@ use crate::{
 pub fn on_key(app: &mut App, key: &KeyEvent) {
     let current_input = app.text_input.lines().join("\n");
 
-    // `Ctrl-s` to send the message in the text input
-    if key.code == KeyCode::Char('s')
+    // `Ctrl-Enter` or `Shift-Enter` or `Ctrl-s` to send the message in the text input
+    if (key.code == KeyCode::Char('s')
         && key
             .modifiers
-            .contains(crossterm::event::KeyModifiers::CONTROL)
-        && !current_input.is_empty()
+            .contains(crossterm::event::KeyModifiers::CONTROL))
+        || (key.code == KeyCode::Enter
+            && key
+                .modifiers
+                .contains(crossterm::event::KeyModifiers::CONTROL))
+        || (key.code == KeyCode::Enter
+            && key
+                .modifiers
+                .contains(crossterm::event::KeyModifiers::SHIFT))
+            && !current_input.is_empty()
     {
         let message = if current_input.starts_with('/') {
             handle_input_command(app)
