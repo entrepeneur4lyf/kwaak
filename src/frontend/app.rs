@@ -254,6 +254,7 @@ fn new_text_area() -> TextArea<'static> {
             }
             UIEvent::Help => actions::help(self),
         }
+    }
 
         while let Some(event) = self.recv_messages().await {
             self.handle_single_event(&event).await;
