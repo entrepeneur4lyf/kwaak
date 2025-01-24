@@ -255,23 +255,26 @@ impl App<'_> {
     /// Overrides the working directory
     ///
     /// Any actions that use ie system commands use this directory
-    pub fn with_workdir(mut self, workdir: impl Into<PathBuf>) -> Self {
-        self.workdir = workdir.into();
-        self
-    }
+fn new_text_area() -> TextArea<'static> {
+    let mut text_area = TextArea::default();
 
-    #[tracing::instrument(skip_all)]
-    pub async fn run<B: ratatui::backend::Backend>(
-        &mut self,
-        terminal: &mut Terminal<B>,
-    ) -> Result<()> {
-        let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
+    text_area.set_placeholder_text("Send a message to an agent ...");
+    text_area.set_placeholder_style(Style::default().fg(Color::Gray));
+    text_area.set_cursor_line_style(Style::reset());
 
-        if self.skip_indexing {
-            self.has_indexed_on_boot = true;
-        } else {
-            self.dispatch_command(self.boot_uuid, Command::IndexRepository);
+    // Set up for line wrapping: Listen for key inputs and
+    // Manually break lines based on the width of the TextArea
+    text_area.set_key_press_handler(|input_event, text| {
+        let current_width = text.area().width as usize; // Assume a method to get current width
+        let mut lines = text.lines().clone();
+        for line in lines.iter_mut() {
+            *line = line.chars().collect::<Vec<_>>().chunks(current_width).map(|c| c.iter().collect::<String>()).collect::<Vec<_>>().join("\n");
         }
+        text.set_lines(lines);
+    });
+
+    text_area
+}
 
         loop {
             // Draw the UI
