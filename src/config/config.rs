@@ -129,11 +129,42 @@ impl FromStr for Config {
     pub fn override_with_env(&mut self) {
         use std::env;
 
-        let mut config: Config = Self::from_str(std::str::from_utf8(&file)?)?;
-        config.override_with_env();
-        Ok(config)
-    }
+        if let Ok(log_dir) = env::var("KWAAK_LOG_DIR") {
+            self.log_dir = PathBuf::from(log_dir);
         }
+
+        if let Ok(indexing_concurrency) = env::var("KWAAK_INDEXING_CONCURRENCY") {
+            if let Ok(value) = indexing_concurrency.parse::<usize>() {
+                self.indexing_concurrency = Some(value);
+            }
+        }
+
+        if let Ok(indexing_batch_size) = env::var("KWAAK_INDEXING_BATCH_SIZE") {
+            if let Ok(value) = indexing_batch_size.parse::<usize>() {
+                self.indexing_batch_size = Some(value);
+            }
+        }
+
+        if let Ok(tavily_api_key) = env::var("KWAAK_TAVILY_API_KEY") {
+            self.tavily_api_key = Some(ApiKey::new(tavily_api_key));
+        }
+
+        if let Ok(github_api_key) = env::var("KWAAK_GITHUB_API_KEY") {
+            self.github_api_key = Some(ApiKey::new(github_api_key));
+        }
+
+        if let Ok(openai_api_key) = env::var("KWAAK_OPENAI_API_KEY") {
+            self.openai_api_key = Some(ApiKey::new(openai_api_key));
+        }
+
+        if let Ok(endless_mode) = env::var("KWAAK_ENDLESS_MODE") {
+            self.endless_mode = endless_mode == "true";
+        }
+
+        if let Ok(otel_enabled) = env::var("KWAAK_OTEL_ENABLED") {
+            self.otel_enabled = otel_enabled == "true";
+        }
+    }
 
         if let Ok(log_dir) = env::var("KWAAK_LOG_DIR") {
             self.log_dir = PathBuf::from(log_dir);
