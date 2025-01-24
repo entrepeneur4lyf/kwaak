@@ -7,68 +7,44 @@ use crate::{
 };
 
 pub fn on_key(app: &mut App, key: &KeyEvent) {
-    let current_input = app.text_input.lines().join("\n");
-
-    // `Ctrl-s` to send the message in the text input
-    if key.code == KeyCode::Char('s')
-        && key
-            .modifiers
-            .contains(crossterm::event::KeyModifiers::CONTROL)
-        && !current_input.is_empty()
-    {
-        let message = if current_input.starts_with('/') {
-            handle_input_command(app)
-        } else {
-            app.dispatch_command(
-                app.current_chat_uuid,
-                Command::Chat {
-                    message: current_input.clone(),
-                },
-            );
-
-            ChatMessage::new_user(current_input)
-        };
-
-        app.send_ui_event(UIEvent::ChatMessage(app.current_chat_uuid, message));
-
-        app.reset_text_input();
-
-        return;
-    }
-
-    // `Ctrl-x` to stop a running agent
-    if key.code == KeyCode::Char('x')
-        && key
-            .modifiers
-            .contains(crossterm::event::KeyModifiers::CONTROL)
-    {
-        app.dispatch_command(app.current_chat_uuid, Command::StopAgent);
-        return;
-    }
-
-    // `Ctrl-n` to start a new chat
-    if key.code == KeyCode::Char('n')
-        && key
-            .modifiers
-            .contains(crossterm::event::KeyModifiers::CONTROL)
-    {
-        app.send_ui_event(UIEvent::NewChat);
-        return;
-    }
+    let mut current_input = app.text_input.lines().join("\n");
 
     match key.code {
-        KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
-        KeyCode::End => {
-            app.send_ui_event(UIEvent::ScrollEnd);
+        KeyCode::Enter => {
+            // Simulates new line on Enter, sending the message
+            if !current_input.is_empty() {
+                let message = if current_input.starts_with('/') {
+                    handle_input_command(app)
+                } else {
+                    app.dispatch_command(
+                        app.current_chat_uuid,
+                        Command::Chat {
+                            message: current_input.clone(),
+                        },
+                    );
+
+                    ChatMessage::new_user(current_input)
+                };
+
+                app.send_ui_event(UIEvent::ChatMessage(app.current_chat_uuid, message));
+                app.reset_text_input();
+            }
         }
-        KeyCode::PageDown => {
-            app.send_ui_event(UIEvent::ScrollDown);
-        }
-        KeyCode::PageUp => {
-            app.send_ui_event(UIEvent::ScrollUp);
+        KeyCode::Backspace => {
+            // Handle backspace to delete characters
+            app.text_input.input(*key);
         }
         _ => {
+            // Handle regular text input
             app.text_input.input(*key);
+            current_input = app.text_input.lines().join("\n");
+
+            // Check for manual line wrapping logic
+            let input_width = 40; // Assume 40 as max chars per line for demo purposes
+            if current_input.lines().last().unwrap_or("").len() >= input_width {
+                app.text_input
+                    .input(KeyEvent::new(KeyCode::Enter, event::KeyModifiers::NONE));
+            }
         }
     }
 }
