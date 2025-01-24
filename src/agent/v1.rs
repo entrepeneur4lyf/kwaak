@@ -115,7 +115,7 @@ pub async fn start_agent(
     let query_provider: Box<dyn ChatCompletion> =
         repository.config().query_provider().try_into()?;
     let fast_query_provider: Box<dyn SimplePrompt> =
-        repository.config().indexing_provider().try_into()?;
+let fast_query_provider: Box<dyn SimplePrompt> = repository.config().embedding_provider().try_into()?;
 
     let github_session = match repository.config().github_api_key {
         Some(_) => Some(Arc::new(GithubSession::from_repository(&repository)?)),
