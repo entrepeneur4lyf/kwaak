@@ -129,12 +129,9 @@ impl FromStr for Config {
 impl Config {
     /// Loads the configuration file from the current path
     pub async fn load(path: impl AsRef<Path>) -> Result<Config> {
-        let file = tokio::fs::read(path)
-            .await
-            .context("Could not find `kwaak.toml` in current directory")?;
-
-        Self::from_str(std::str::from_utf8(&file)?)
-    }
+        let mut config: Config = Self::from_str(std::str::from_utf8(&file)?)?;
+        config.override_with_env();
+        Ok(config)
 
     // Seeds the api keys into the LLM configurations
     //
