@@ -1,3 +1,4 @@
+use config::{Config as ConfigRs, Environment, File};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -127,17 +128,22 @@ impl FromStr for Config {
 }
 
 impl Config {
-    /// Loads the configuration file from the current path
-    pub async fn load(path: impl AsRef<Path>) -> Result<Config> {
-        let file = tokio::fs::read(path)
-            .await
-            .context("Could not find `kwaak.toml` in current directory")?;
+    pub fn load(path: &Path) -> Result<Self> {
+        let builder = ConfigRs::builder()
+            .add_source(File::from(path))
+            .add_source(File::with_name("kwaak.local").required(false))
+            .add_source(
+                Environment::with_prefix("KWAAK")
+                    .separator("_")
+                    .convert_case(config::Case::Lower),
+            );
 
-        Self::from_str(std::str::from_utf8(&file)?)
+        let config = builder.build()?;
+
+        config.try_deserialize().map_err(Into::into) // Here using serde to deserialize into Self
     }
 
     // Seeds the api keys into the LLM configurations
-    //
     pub fn fill_llm_api_keys(mut self) -> Result<Self> {
         let LLMConfigurations {
             indexing,
