@@ -7,9 +7,9 @@ mod tests {
     use kwaak::test_utils::test_repository;
     use std::pin::Pin;
     use std::sync::Arc;
-    use swiftide::chat_completion::{Tool, ToolCall, ToolError, ToolOutput};
     use swiftide::prompt::Prompt;
     use swiftide::traits::AgentContext;
+    use swiftide_core::chat_completion::{Tool, ToolError, ToolOutput};
 
     // Mock implementation of SimplePrompt
     #[derive(Debug, Clone)]
