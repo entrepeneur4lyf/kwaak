@@ -41,11 +41,11 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
 
             // Check for manual line wrapping logic
             if current_input.lines().last().unwrap_or("").len() >= INPUT_WIDTH {
-                app.text_input.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+                app.text_input
+                    .input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
             }
         }
     }
-}
 }
 
 pub fn handle_input_command(app: &mut App) -> ChatMessage {
