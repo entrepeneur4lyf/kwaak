@@ -180,7 +180,6 @@ fn new_text_area() -> TextArea<'static> {
 
     text_area
 }
-            }
             UIEvent::ChatMessage(uuid, message) => {
                 self.add_chat_message(*uuid, message.clone());
             }
