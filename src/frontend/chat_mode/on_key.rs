@@ -7,6 +7,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn on_key(app: &mut App, key: &KeyEvent) {
     let mut current_input = app.text_input.lines().join("\n");
+    const INPUT_WIDTH: usize = 80; // Define input width for line wrapping
 
     match key.code {
         KeyCode::Enter => {
@@ -39,11 +40,12 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
             current_input = app.text_input.lines().join("\n");
 
             // Check for manual line wrapping logic
-            if current_input.lines().last().unwrap_or("").len() >= input_width {
-                app.text_input
-                    .input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+            if current_input.lines().last().unwrap_or("").len() >= INPUT_WIDTH {
+                app.text_input.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
             }
         }
+    }
+}
     }
 }
 
