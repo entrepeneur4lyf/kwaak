@@ -2,11 +2,14 @@
 mod tests {
     use anyhow::Error;
     use async_trait::async_trait;
-    use kwaak::agent::ToolSummarizer;
+    use futures::Future;
+    use kwaak::agent::tool_summarizer::ToolSummarizer;
     use kwaak::test_utils::test_repository;
+    use std::pin::Pin;
     use std::sync::Arc;
-    use swiftide::chat_completion::{Tool, ToolOutput};
+    use swiftide::chat_completion::{Tool, ToolCall, ToolError, ToolOutput};
     use swiftide::prompt::Prompt;
+    use swiftide::traits::AgentContext;
 
     // Mock implementation of SimplePrompt
     #[derive(Debug, Clone)]
@@ -19,15 +22,15 @@ mod tests {
         }
     }
 
-    // Mock implementation of Tool
+    #[derive(Clone)]
     struct MockTool {
         name: String,
     }
 
     #[async_trait]
     impl Tool for MockTool {
-        fn name(&self) -> &str {
-            &self.name
+        fn name(&self) -> &'static str {
+            "mock_tool"
         }
 
         fn tool_spec(&self) -> swiftide::chat_completion::ToolSpec {
@@ -37,14 +40,23 @@ mod tests {
             }
         }
 
+        async fn invoke(
+            &'async_trait self,
+            _context: &'async_trait (dyn AgentContext + 'async_trait),
+            _args: Option<&str>,
+        ) -> Pin<Box<dyn Future<Output = Result<ToolOutput, ToolError>> + Send + 'async_trait>>
+        {
+            Box::pin(async move { Ok(ToolOutput::new_success("mocked tool output")) })
+        }
+
         async fn call(&self, _args: &str) -> Result<ToolOutput, String> {
-            Ok(ToolOutput::new("mocked tool output"))
+            Ok(ToolOutput::new_success("mocked tool output"))
         }
     }
 
     #[tokio::test]
     async fn test_summarize_hook() {
-        let repo = test_repository();
+        let _repo = test_repository();
         let llm = Arc::new(MockPrompt {});
         let tools_to_summarize = vec!["mock_tool"];
         let available_tools = vec![Box::new(MockTool {
