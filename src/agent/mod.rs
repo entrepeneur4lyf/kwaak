@@ -1,7 +1,7 @@
 mod conversation_summarizer;
 mod env_setup;
 mod running_agent;
-mod tool_summarizer;
+pub mod tool_summarizer;
 pub mod tools;
 mod v1;
 
