@@ -241,19 +241,9 @@ fn new_text_area() -> TextArea<'static> {
                     .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
             }
-            UIEvent::ScrollEnd => {
-                let Some(current_chat) = self.current_chat_mut() else {
-                    return;
-                };
-                // Keep the last 10 lines in view
-                let scroll_position = current_chat.num_lines.saturating_sub(10);
-
-                current_chat.vertical_scroll = scroll_position;
-                current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(scroll_position);
-            }
-            UIEvent::Help => actions::help(self),
-        }
+                                }
+                            }
+                            UIEvent::Help => actions::help(self),
     }
 
     #[cfg(debug_assertions)]
