@@ -253,10 +253,18 @@ fn new_text_area() -> TextArea<'static> {
                 current_chat.vertical_scroll_state =
                     current_chat.vertical_scroll_state.position(scroll_position);
             }
-            UIEvent::Help => actions::help(self),
-            _ => {} // Add this to handle any cases not explicitly matched
         }
-    }
+
+        while let Some(event) = self.recv_messages().await {
+            self.handle_single_event(&event).await;
+            if stop_fn(&event) {
+                return Some(event);
+            }
+            if self.mode == AppMode::Quit {
+                return Some(event);
+            }
+        }
+        None
     }
 
         while let Some(event) = self.recv_messages().await {
