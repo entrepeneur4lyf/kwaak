@@ -126,100 +126,100 @@ impl FromStr for Config {
     }
 }
 
-    pub fn override_with_env(&mut self) {
-        use std::env;
+pub fn override_with_env(&mut self) {
+    use std::env;
 
-        if let Ok(log_dir) = env::var("KWAAK_LOG_DIR") {
-            self.log_dir = PathBuf::from(log_dir);
-        }
+    if let Ok(log_dir) = env::var("KWAAK_LOG_DIR") {
+        self.log_dir = PathBuf::from(log_dir);
+    }
 
-        if let Ok(indexing_concurrency) = env::var("KWAAK_INDEXING_CONCURRENCY") {
-            if let Ok(value) = indexing_concurrency.parse::<usize>() {
-                self.indexing_concurrency = Some(value);
-            }
-        }
-
-        if let Ok(indexing_batch_size) = env::var("KWAAK_INDEXING_BATCH_SIZE") {
-            if let Ok(value) = indexing_batch_size.parse::<usize>() {
-                self.indexing_batch_size = Some(value);
-            }
-        }
-
-        if let Ok(tavily_api_key) = env::var("KWAAK_TAVILY_API_KEY") {
-            self.tavily_api_key = Some(ApiKey::new(tavily_api_key));
-        }
-
-        if let Ok(github_api_key) = env::var("KWAAK_GITHUB_API_KEY") {
-            self.github_api_key = Some(ApiKey::new(github_api_key));
-        }
-
-        if let Ok(openai_api_key) = env::var("KWAAK_OPENAI_API_KEY") {
-            self.openai_api_key = Some(ApiKey::new(openai_api_key));
-        }
-
-        if let Ok(endless_mode) = env::var("KWAAK_ENDLESS_MODE") {
-            self.endless_mode = endless_mode == "true";
-        }
-
-        if let Ok(otel_enabled) = env::var("KWAAK_OTEL_ENABLED") {
-            self.otel_enabled = otel_enabled == "true";
+    if let Ok(indexing_concurrency) = env::var("KWAAK_INDEXING_CONCURRENCY") {
+        if let Ok(value) = indexing_concurrency.parse::<usize>() {
+            self.indexing_concurrency = Some(value);
         }
     }
 
-    #[must_use]
-    pub fn embedding_provider(&self) -> &LLMConfiguration {
-        let LLMConfigurations { embedding, .. } = &*self.llm;
-        embedding
-    }
-
-    #[must_use]
-    pub fn query_provider(&self) -> &LLMConfiguration {
-        let LLMConfigurations { query, .. } = &*self.llm;
-        query
-    }
-
-    #[must_use]
-    pub fn cache_dir(&self) -> &Path {
-        self.cache_dir.as_path()
-    }
-
-    #[must_use]
-    pub fn log_dir(&self) -> &Path {
-        self.log_dir.as_path()
-    }
-
-    #[must_use]
-    pub fn indexing_concurrency(&self) -> usize {
-        if let Some(concurrency) = self.indexing_concurrency {
-            return concurrency;
-        };
-
-        match self.indexing_provider() {
-            LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
-            LLMConfiguration::Ollama { .. } => num_cpus::get(),
-            #[cfg(debug_assertions)]
-            LLMConfiguration::Testing => num_cpus::get(),
+    if let Ok(indexing_batch_size) = env::var("KWAAK_INDEXING_BATCH_SIZE") {
+        if let Ok(value) = indexing_batch_size.parse::<usize>() {
+            self.indexing_batch_size = Some(value);
         }
     }
 
-    #[must_use]
-    pub fn indexing_batch_size(&self) -> usize {
-        if let Some(batch_size) = self.indexing_batch_size {
-            return batch_size;
-        };
-
-        match self.indexing_provider() {
-            LLMConfiguration::OpenAI { .. } => 12,
-            LLMConfiguration::Ollama { .. } => 256,
-            #[cfg(debug_assertions)]
-            LLMConfiguration::Testing => 1,
-        }
+    if let Ok(tavily_api_key) = env::var("KWAAK_TAVILY_API_KEY") {
+        self.tavily_api_key = Some(ApiKey::new(tavily_api_key));
     }
 
-    #[must_use]
-    pub fn is_github_enabled(&self) -> bool {
-        self.github_api_key.is_some() && self.git.owner.is_some() && self.git.repository.is_some()
+    if let Ok(github_api_key) = env::var("KWAAK_GITHUB_API_KEY") {
+        self.github_api_key = Some(ApiKey::new(github_api_key));
     }
+
+    if let Ok(openai_api_key) = env::var("KWAAK_OPENAI_API_KEY") {
+        self.openai_api_key = Some(ApiKey::new(openai_api_key));
+    }
+
+    if let Ok(endless_mode) = env::var("KWAAK_ENDLESS_MODE") {
+        self.endless_mode = endless_mode == "true";
+    }
+
+    if let Ok(otel_enabled) = env::var("KWAAK_OTEL_ENABLED") {
+        self.otel_enabled = otel_enabled == "true";
+    }
+}
+
+#[must_use]
+pub fn embedding_provider(&self) -> &LLMConfiguration {
+    let LLMConfigurations { embedding, .. } = &*self.llm;
+    embedding
+}
+
+#[must_use]
+pub fn query_provider(&self) -> &LLMConfiguration {
+    let LLMConfigurations { query, .. } = &*self.llm;
+    query
+}
+
+#[must_use]
+pub fn cache_dir(&self) -> &Path {
+    self.cache_dir.as_path()
+}
+
+#[must_use]
+pub fn log_dir(&self) -> &Path {
+    self.log_dir.as_path()
+}
+
+#[must_use]
+pub fn indexing_concurrency(&self) -> usize {
+    if let Some(concurrency) = self.indexing_concurrency {
+        return concurrency;
+    };
+
+    match self.indexing_provider() {
+        LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
+        LLMConfiguration::Ollama { .. } => num_cpus::get(),
+        #[cfg(debug_assertions)]
+        LLMConfiguration::Testing => num_cpus::get(),
+    }
+}
+
+#[must_use]
+pub fn indexing_batch_size(&self) -> usize {
+    if let Some(batch_size) = self.indexing_batch_size {
+        return batch_size;
+    };
+
+    match self.indexing_provider() {
+        LLMConfiguration::OpenAI { .. } => 12,
+        LLMConfiguration::Ollama { .. } => 256,
+        #[cfg(debug_assertions)]
+        LLMConfiguration::Testing => 1,
+    }
+}
+
+#[must_use]
+#[must_use]
+pub fn is_github_enabled(&self) -> bool {
+    self.github_api_key.is_some() && self.git.owner.is_some() && self.git.repository.is_some()
 }
 
 fn fill_llm(llm: &mut LLMConfiguration, root_key: Option<&ApiKey>) -> Result<()> {
