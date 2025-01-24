@@ -129,12 +129,10 @@ impl FromStr for Config {
     pub fn override_with_env(&mut self) {
         use std::env;
 
-        if let Ok(project_name) = env::var("KWAAK_PROJECT_NAME") {
-            self.project_name = project_name;
-        }
-
-        if let Ok(cache_dir) = env::var("KWAAK_CACHE_DIR") {
-            self.cache_dir = PathBuf::from(cache_dir);
+        let mut config: Config = Self::from_str(std::str::from_utf8(&file)?)?;
+        config.override_with_env();
+        Ok(config)
+    }
         }
 
         if let Ok(log_dir) = env::var("KWAAK_LOG_DIR") {
