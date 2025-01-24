@@ -241,7 +241,6 @@ impl Config {
     pub fn is_github_enabled(&self) -> bool {
         self.github_api_key.is_some() && self.git.owner.is_some() && self.git.repository.is_some()
     }
-}
 fn fill_llm(llm: &mut LLMConfiguration, root_key: Option<&ApiKey>) -> Result<()> {
     match llm {
         LLMConfiguration::OpenAI { api_key, .. } => {
