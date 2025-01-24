@@ -167,19 +167,182 @@ fn new_text_area() -> TextArea<'static> {
     text_area.set_placeholder_style(Style::default().fg(Color::Gray));
     text_area.set_cursor_line_style(Style::reset());
 
-    // Set up for line wrapping: Listen for key inputs and
-    // Manually break lines based on the width of the TextArea
-    text_area.set_key_press_handler(|_input_event, text| {
-        let current_width = text.area().width as usize; // Assume a method to get current width
-        let mut lines = text.lines().clone();
-        for line in lines.iter_mut() {
-            *line = line.chars().collect::<Vec<_>>().chunks(current_width).map(|c| c.iter().collect::<String>()).collect::<Vec<_>>().join("\n");
-        }
-        text.set_lines(lines);
-    });
-
     text_area
 }
+
+impl App<'_> {
+    pub async fn recv_messages(&mut self) -> Option<UIEvent> {
+        self.ui_rx.recv().await
+    }
+
+    #[allow(clippy::unused_self)]
+    pub fn supported_commands(&self) -> Vec<UserInputCommand> {
+        UserInputCommand::iter().collect()
+    }
+
+    pub fn send_ui_event(&self, msg: impl Into<UIEvent>) {
+        let event = msg.into();
+        tracing::debug!("Sending ui event {event}");
+        if let Err(err) = self.ui_tx.send(event) {
+            tracing::error!("Failed to send ui event {err}");
+        }
+    }
+
+    pub fn reset_text_input(&mut self) {
+        self.text_input = new_text_area();
+    }
+
+    fn on_key(&mut self, key: &KeyEvent) {
+        if key.modifiers == crossterm::event::KeyModifiers::CONTROL
+            && key.code == KeyCode::Char('q')
+        {
+            tracing::warn!("Ctrl-Q pressed, quitting");
+            return self.send_ui_event(UIEvent::Quit);
+        }
+
+        if let KeyCode::F(index) = key.code {
+            let index = index - 1;
+            if let Some(mode) = AppMode::from_index(index as usize) {
+                return self.change_mode(mode);
+            }
+        }
+
+        self.mode.on_key(self, key);
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub fn dispatch_command(&mut self, uuid: Uuid, cmd: Command) {
+        if let Some(chat) = self.current_chat_mut() {
+            chat.transition(ChatState::Loading);
+        }
+
+        let event = CommandEvent::builder()
+            .command(cmd)
+            .uuid(uuid)
+            .responder(self.command_responder.for_chat_id(uuid))
+            .build()
+            .expect("Infallible; Failed to build command event");
+
+        self.dispatch_command_event(event);
+    }
+
+    /// Dispatch a command event to the backend
+    ///
+    /// # Panics
+    ///
+    /// If the command dispatcher is not set or the handler is disconnected
+    pub fn dispatch_command_event(&mut self, event: CommandEvent) {
+        self.command_tx
+            .as_ref()
+            .expect("Command tx not set")
+            .send(event)
+            .expect("Failed to dispatch command");
+    }
+
+    pub fn add_chat_message(&mut self, chat_id: Uuid, message: impl Into<ChatMessage>) {
+        let message = message.into();
+        if chat_id == self.boot_uuid {
+            return;
+        }
+        if let Some(chat) = self.find_chat_mut(chat_id) {
+            chat.add_message(message);
+        } else {
+            tracing::error!("Could not find chat with id {chat_id}");
+        }
+    }
+
+    #[must_use]
+    /// Overrides the working directory
+    ///
+    /// Any actions that use ie system commands use this directory
+    pub fn with_workdir(mut self, workdir: impl Into<PathBuf>) -> Self {
+        self.workdir = workdir.into();
+        self
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn run<B: ratatui::backend::Backend>(
+        &mut self,
+        terminal: &mut Terminal<B>,
+    ) -> Result<()> {
+        let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
+
+        if self.skip_indexing {
+            self.has_indexed_on_boot = true;
+        } else {
+            self.dispatch_command(self.boot_uuid, Command::IndexRepository);
+        }
+
+        loop {
+            // Draw the UI
+            terminal.draw(|f| {
+                if self.has_indexed_on_boot && self.splash.is_rendered() {
+                    self.render_tui(f);
+                } else {
+                    self.splash.render(f);
+                }
+            })?;
+
+            if let Some(event) = self.recv_messages().await {
+                self.handle_single_event(&event).await;
+            }
+            if !self.splash.is_rendered() {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+
+            if self.mode == AppMode::Quit {
+                break;
+            }
+
+            // Handle events
+        }
+
+        tracing::warn!("Quitting frontend");
+
+        handle.abort();
+
+        Ok(())
+    }
+
+    pub fn render_tui(&mut self, f: &mut Frame) {
+        let base_area = self.draw_base_ui(f);
+
+        self.mode.ui(f, base_area, self);
+    }
+
+    /// Wait for and handle a single ui event
+    ///
+    /// # Panics
+    ///
+    /// Panics if after boot completed, it cannot find the initial chat
+    pub async fn handle_single_event(&mut self, event: &UIEvent) {
+        if !matches!(event, UIEvent::Tick | UIEvent::Input(_)) {
+            tracing::debug!("Received ui event: {:?}", event);
+        }
+        match event {
+            UIEvent::Input(key) => {
+                self.on_key(key);
+            }
+            UIEvent::Tick => {
+                // Handle periodic tasks if necessary
+            }
+            UIEvent::CommandDone(uuid) => {
+                if *uuid == self.boot_uuid {
+                    self.has_indexed_on_boot = true;
+                    self.current_chat_mut()
+                        .expect("Boot uuid should always be present")
+                        .transition(ChatState::Ready);
+                } else if let Some(chat) = self.find_chat_mut(*uuid) {
+                    chat.transition(ChatState::Ready);
+                }
+            }
+            UIEvent::ActivityUpdate(uuid, activity) => {
+                if *uuid == self.boot_uuid {
+                    self.splash.set_message(activity.to_string());
+                } else if let Some(chat) = self.find_chat_mut(*uuid) {
+                    chat.transition(ChatState::LoadingWithMessage(activity.to_string()));
+                }
+            }
             UIEvent::ChatMessage(uuid, message) => {
                 self.add_chat_message(*uuid, message.clone());
             }
@@ -241,7 +404,6 @@ fn new_text_area() -> TextArea<'static> {
                     .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
             }
-        
             UIEvent::ScrollEnd => {
                 let Some(current_chat) = self.current_chat_mut() else {
                     return;
@@ -253,20 +415,18 @@ fn new_text_area() -> TextArea<'static> {
                 current_chat.vertical_scroll_state =
                     current_chat.vertical_scroll_state.position(scroll_position);
             }
+            UIEvent::Help => actions::help(self),
         }
-
-        while let Some(event) = self.recv_messages().await {
-            self.handle_single_event(&event).await;
-            if stop_fn(&event) {
-                return Some(event);
-            }
-            if self.mode == AppMode::Quit {
-                return Some(event);
-            }
-        }
-        None
     }
 
+    #[cfg(debug_assertions)]
+    /// Used for testing so we can do something and wait for it to complete
+    ///
+    /// *will* hang until event is encountered
+    pub async fn handle_events_until(
+        &mut self,
+        stop_fn: impl Fn(&UIEvent) -> bool,
+    ) -> Option<UIEvent> {
         while let Some(event) = self.recv_messages().await {
             self.handle_single_event(&event).await;
             if stop_fn(&event) {
