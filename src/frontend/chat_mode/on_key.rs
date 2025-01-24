@@ -46,7 +46,6 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
         }
     }
 }
-    }
 }
 
 pub fn handle_input_command(app: &mut App) -> ChatMessage {
