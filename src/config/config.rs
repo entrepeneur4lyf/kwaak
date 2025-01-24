@@ -166,17 +166,17 @@ impl Config {
             self.otel_enabled = otel_enabled == "true";
         }
     }
-
+impl Config {
     pub fn indexing_concurrency(&self) -> usize {
         if let Some(concurrency) = self.indexing_concurrency {
             return concurrency;
         };
 
-       match self.embedding_provider() {
-          LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
-          LLMConfiguration::Ollama { .. } => num_cpus::get(),
-          #[cfg(debug_assertions)]
-          LLMConfiguration::Testing => num_cpus::get(),
+        match self.embedding_provider() {
+            LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
+            LLMConfiguration::Ollama { .. } => num_cpus::get(),
+            #[cfg(debug_assertions)]
+            LLMConfiguration::Testing => num_cpus::get(),
         }
     }
 
@@ -185,13 +185,12 @@ impl Config {
             return batch_size;
         };
 
-       match self.embedding_provider() {
-          LLMConfiguration::OpenAI { .. } => 12,
-          LLMConfiguration::Ollama { .. } => 256,
-          #[cfg(debug_assertions)]
-          LLMConfiguration::Testing => 1,
+        match self.embedding_provider() {
+            LLMConfiguration::OpenAI { .. } => 12,
+            LLMConfiguration::Ollama { .. } => 256,
+            #[cfg(debug_assertions)]
+            LLMConfiguration::Testing => 1,
         }
-    }
     }
 
     pub fn embedding_provider(&self) -> &LLMConfiguration {
@@ -212,36 +211,10 @@ impl Config {
         self.log_dir.as_path()
     }
 
-    pub fn indexing_concurrency(&self) -> usize {
-        if let Some(concurrency) = self.indexing_concurrency {
-            return concurrency;
-        };
-
-        match self.indexing_provider() {
-            LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
-            LLMConfiguration::Ollama { .. } => num_cpus::get(),
-            #[cfg(debug_assertions)]
-            LLMConfiguration::Testing => num_cpus::get(),
-        }
-    }
-
-    pub fn indexing_batch_size(&self) -> usize {
-        if let Some(batch_size) = self.indexing_batch_size {
-            return batch_size;
-        };
-
-        match self.indexing_provider() {
-            LLMConfiguration::OpenAI { .. } => 12,
-            LLMConfiguration::Ollama { .. } => 256,
-            #[cfg(debug_assertions)]
-            LLMConfiguration::Testing => 1,
-        }
-    }
-
     pub fn is_github_enabled(&self) -> bool {
         self.github_api_key.is_some() && self.git.owner.is_some() && self.git.repository.is_some()
     }
-fn fill_llm(llm: &mut LLMConfiguration, root_key: Option<&ApiKey>) -> Result<()> {
+}
     match llm {
         LLMConfiguration::OpenAI { api_key, .. } => {
             // If the user omitted api_key in the config,
