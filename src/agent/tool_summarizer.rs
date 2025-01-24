@@ -4,15 +4,19 @@ use swiftide::{
     agents::hooks::AfterToolFn,
     chat_completion::{Tool, ToolCall, ToolOutput},
     prompt::Prompt,
+    traits::Command,
     traits::SimplePrompt,
 };
 use tracing::Instrument as _;
+
+use crate::util::accept_non_zero_exit;
 
 #[derive(Clone)]
 pub struct ToolSummarizer<'a> {
     llm: Arc<dyn SimplePrompt>,
     tools_to_summarize: Vec<&'a str>,
     available_tools: Vec<Box<dyn Tool>>,
+    git_start_sha: String,
 }
 
 impl<'a> ToolSummarizer<'a> {
@@ -20,11 +24,13 @@ impl<'a> ToolSummarizer<'a> {
         llm: Box<dyn SimplePrompt>,
         tools_to_summarize: &[&'a str],
         available_tools: &[Box<dyn Tool>],
+        git_start_sha: impl Into<String>,
     ) -> Self {
         Self {
             llm: llm.into(),
             tools_to_summarize: tools_to_summarize.into(),
             available_tools: available_tools.into(),
+            git_start_sha: git_start_sha.into(),
         }
     }
 
@@ -34,7 +40,7 @@ impl<'a> ToolSummarizer<'a> {
     where
         'a: 'b,
     {
-        move |_context, tool_call, tool_output| {
+        move |context, tool_call, tool_output| {
             let llm = self.llm.clone();
 
             let Some(tool) = self
@@ -47,11 +53,30 @@ impl<'a> ToolSummarizer<'a> {
             };
 
             if let Ok(output) = tool_output {
-                let prompt = self.prompt(tool, tool_call, output);
+                let git_start_sha = self.git_start_sha.clone();
 
                 let span = tracing::info_span!("summarize_tool", tool = tool.name());
+                let prompt = self.prompt(tool, tool_call, output);
+
                 return Box::pin(
                     async move {
+                        let current_diff = accept_non_zero_exit(
+                            context
+                                .exec_cmd(&Command::shell(format!(
+                                    "git diff {git_start_sha} --no-color"
+                                )))
+                                .await,
+                        )?
+                        .output;
+
+                        let current_diff = if current_diff.is_empty() {
+                            None
+                        } else {
+                            Some(current_diff)
+                        };
+
+                        let prompt = prompt.with_context_value("diff", current_diff);
+
                         let summary = llm.prompt(prompt).await?;
                         tracing::debug!(summary = %summary, original = %output, "Summarized tool output");
                         *output = summary.into();
@@ -65,6 +90,9 @@ impl<'a> ToolSummarizer<'a> {
         }
     }
 
+    // tfw changing to jinja halfway through
+    // The older prompts (like these) are a mess. It would be so nice to have everything in
+    // templates and use partials.
     fn prompt(&self, tool: &dyn Tool, tool_call: &ToolCall, tool_output: &ToolOutput) -> Prompt {
         let available_tools = self
             .available_tools
@@ -97,6 +125,13 @@ impl<'a> ToolSummarizer<'a> {
 
             {additional_instructions}
     
+            {{% if diff -%}}
+            ## Current changes made
+            ````
+            {{{{ diff }}}}
+            ````
+            {{% endif %}}
+
             ## Tool output
             ```
             {tool_output}
