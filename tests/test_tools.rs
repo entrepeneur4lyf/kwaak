@@ -162,7 +162,7 @@ async fn test_replace_block() {
     let tool_response = tool
         .invoke(&context as &dyn AgentContext, Some(&tool_args.to_string()))
         .await
-        .unwrap_err();
+        .unwrap();
 
     assert!(
         tool_response
