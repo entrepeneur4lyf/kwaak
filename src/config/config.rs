@@ -166,6 +166,55 @@ impl Config {
             self.otel_enabled = otel_enabled == "true";
         }
     }
+
+    pub fn indexing_concurrency(&self) -> usize {
+        if let Some(concurrency) = self.indexing_concurrency {
+            return concurrency;
+        };
+
+        match self.embedding_provider() {
+            LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
+            LLMConfiguration::Ollama { .. } => num_cpus::get(),
+            #[cfg(debug_assertions)]
+            LLMConfiguration::Testing => num_cpus::get(),
+        }
+    }
+
+    pub fn indexing_batch_size(&self) -> usize {
+        if let Some(batch_size) = self.indexing_batch_size {
+            return batch_size;
+        };
+
+        match self.embedding_provider() {
+            LLMConfiguration::OpenAI { .. } => 12,
+            LLMConfiguration::Ollama { .. } => 256,
+            #[cfg(debug_assertions)]
+            LLMConfiguration::Testing => 1,
+        }
+    }
+
+    pub fn embedding_provider(&self) -> &LLMConfiguration {
+        let LLMConfigurations { embedding, .. } = &*self.llm;
+        embedding
+    }
+
+    pub fn query_provider(&self) -> &LLMConfiguration {
+        let LLMConfigurations { query, .. } = &*self.llm;
+        query
+    }
+
+    pub fn cache_dir(&self) -> &Path {
+        self.cache_dir.as_path()
+    }
+
+    pub fn log_dir(&self) -> &Path {
+        self.log_dir.as_path()
+    }
+
+    pub fn is_github_enabled(&self) -> bool {
+        self.github_api_key.is_some() && self.git.owner.is_some() && self.git.repository.is_some()
+    }
+}
 impl Config {
     pub fn indexing_concurrency(&self) -> usize {
         if let Some(concurrency) = self.indexing_concurrency {
