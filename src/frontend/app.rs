@@ -241,6 +241,7 @@ fn new_text_area() -> TextArea<'static> {
                     .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
             }
+        
             UIEvent::ScrollEnd => {
                 let Some(current_chat) = self.current_chat_mut() else {
                     return;
@@ -253,7 +254,9 @@ fn new_text_area() -> TextArea<'static> {
                     current_chat.vertical_scroll_state.position(scroll_position);
             }
             UIEvent::Help => actions::help(self),
+            _ => {} // Add this to handle any cases not explicitly matched
         }
+    }
     }
 
         while let Some(event) = self.recv_messages().await {
