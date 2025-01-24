@@ -186,7 +186,6 @@ impl App<'_> {
 
     pub fn send_ui_event(&self, msg: impl Into<UIEvent>) {
         let event = msg.into();
-        tracing::debug!("Sending ui event {event}");
         if let Err(err) = self.ui_tx.send(event) {
             tracing::error!("Failed to send ui event {err}");
         }

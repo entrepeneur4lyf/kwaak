@@ -1443,7 +1443,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e329294a796e9b22329669c1f433a746983f9e324e07f4ef135be81bb2262de4"
 dependencies = [
  "async-trait",
- "convert_case",
+ "convert_case 0.6.0",
  "json5",
  "pathdiff",
  "ron",
@@ -1485,6 +1485,15 @@ dependencies = [
  "getrandom",
  "once_cell",
  "tiny-keccak",
+]
+
+[[package]]
+name = "convert_case"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
 ]
 
 [[package]]
@@ -7875,7 +7884,7 @@ checksum = "d1b68017db2b0276c29cbef7ebd08bb1a89ce4d38d44f2dde8d2dbf624284cf5"
 dependencies = [
  "anyhow",
  "async-trait",
- "convert_case",
+ "convert_case 0.7.1",
  "darling",
  "proc-macro2",
  "quote",
