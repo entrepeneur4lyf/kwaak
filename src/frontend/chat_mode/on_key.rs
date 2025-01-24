@@ -40,9 +40,24 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
 
             // Check for manual line wrapping logic
             let input_width = 40; // Assume 40 as max chars per line for demo purposes
-            if current_input.lines().last().unwrap_or("").len() >= input_width {
-                app.text_input
+                }
+            }
+        }
     }
+}
+
+pub fn handle_input_command(app: &mut App) -> ChatMessage {
+    let current_input = app.text_input.lines().join("\n");
+
+    let Ok(cmd) = UserInputCommand::parse_from_input(&current_input) else {
+        return ChatMessage::new_system("Unknown command").clone();
+    };
+
+    let message = ChatMessage::new_command(cmd.as_ref()).clone();
+
+    app.send_ui_event(UIEvent::UserInputCommand(app.current_chat_uuid, cmd));
+
+    message
 }
 
 pub fn handle_input_command(app: &mut App) -> ChatMessage {
