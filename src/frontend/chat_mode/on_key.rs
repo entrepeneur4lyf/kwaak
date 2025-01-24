@@ -39,8 +39,10 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
             current_input = app.text_input.lines().join("\n");
 
             // Check for manual line wrapping logic
-        if current_input.lines().last().unwrap_or("").len() >= input_width {
-            app.text_input.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+            if current_input.lines().last().unwrap_or("").len() >= input_width {
+                app.text_input
+                    .input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+            }
         }
     }
 }
