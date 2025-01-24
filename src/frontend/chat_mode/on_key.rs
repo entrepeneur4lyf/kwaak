@@ -42,9 +42,7 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
             let input_width = 40; // Assume 40 as max chars per line for demo purposes
             if current_input.lines().last().unwrap_or("").len() >= input_width {
                 app.text_input
-                    .input(KeyEvent::new(KeyCode::Enter, event::KeyModifiers::NONE));
-.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        }
+                app.text_input.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     }
 }
 
