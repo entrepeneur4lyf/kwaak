@@ -147,15 +147,15 @@ impl Config {
         }
 
         if let Ok(tavily_api_key) = env::var("KWAAK_TAVILY_API_KEY") {
-            self.tavily_api_key = Some(ApiKey::new(tavily_api_key));
+            self.tavily_api_key = Some(ApiKey::new(tavily_api_key.into()));
         }
 
         if let Ok(github_api_key) = env::var("KWAAK_GITHUB_API_KEY") {
-            self.github_api_key = Some(ApiKey::new(github_api_key));
+            self.github_api_key = Some(ApiKey::new(github_api_key.into()));
         }
 
         if let Ok(openai_api_key) = env::var("KWAAK_OPENAI_API_KEY") {
-            self.openai_api_key = Some(ApiKey::new(openai_api_key));
+            self.openai_api_key = Some(ApiKey::new(openai_api_key.into()));
         }
 
         if let Ok(endless_mode) = env::var("KWAAK_ENDLESS_MODE") {
@@ -165,6 +165,33 @@ impl Config {
         if let Ok(otel_enabled) = env::var("KWAAK_OTEL_ENABLED") {
             self.otel_enabled = otel_enabled == "true";
         }
+    }
+
+    pub fn indexing_concurrency(&self) -> usize {
+        if let Some(concurrency) = self.indexing_concurrency {
+            return concurrency;
+        };
+
+       match self.embedding_provider() {
+          LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
+          LLMConfiguration::Ollama { .. } => num_cpus::get(),
+          #[cfg(debug_assertions)]
+          LLMConfiguration::Testing => num_cpus::get(),
+        }
+    }
+
+    pub fn indexing_batch_size(&self) -> usize {
+        if let Some(batch_size) = self.indexing_batch_size {
+            return batch_size;
+        };
+
+       match self.embedding_provider() {
+          LLMConfiguration::OpenAI { .. } => 12,
+          LLMConfiguration::Ollama { .. } => 256,
+          #[cfg(debug_assertions)]
+          LLMConfiguration::Testing => 1,
+        }
+    }
     }
 
     pub fn embedding_provider(&self) -> &LLMConfiguration {
