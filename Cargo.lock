@@ -1461,9 +1461,9 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.6.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -3946,6 +3946,15 @@ name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -7609,9 +7618,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "swiftide"
-version = "0.17.2"
+version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b373ddbd61f56f044278e8c5af67ef9159aa928133eba8c3a00e639c4e3a5fd2"
+checksum = "ea491c7ded81419a2271cd39296f346bbcdbc33a912dc9db6b34e61a2e4ec23a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7649,16 +7658,16 @@ dependencies = [
 
 [[package]]
 name = "swiftide-core"
-version = "0.17.2"
+version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8d3ccf9c3501e519a09731005cc35683107792a94f5beb9693c699057b811e7"
+checksum = "9c210d22871d5053a26a24f8bfa9c354c52acffb059828fc937aacb2294e3cbc"
 dependencies = [
  "anyhow",
  "async-trait",
  "derive_builder",
  "dyn-clone",
  "futures-util",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "lazy_static",
  "mockall",
  "pin-project",
@@ -7763,9 +7772,9 @@ dependencies = [
 
 [[package]]
 name = "swiftide-macros"
-version = "0.17.2"
+version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33ba95ede264d71c9d4dd2a2cb7aca4895916ede8faceb271a7789852fe06734"
+checksum = "d1b68017db2b0276c29cbef7ebd08bb1a89ce4d38d44f2dde8d2dbf624284cf5"
 dependencies = [
  "anyhow",
  "async-trait",
