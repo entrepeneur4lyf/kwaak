@@ -323,28 +323,26 @@ fn new_text_area() -> TextArea<'static> {
             tracing::debug!("Received ui event: {:?}", event);
         }
         match event {
-            UIEvent::Input(key) => {
-                self.on_key(key);
-            }
-            UIEvent::Tick => {
-                // Handle periodic tasks if necessary
-            }
-            UIEvent::CommandDone(uuid) => {
-                if *uuid == self.boot_uuid {
-                    self.has_indexed_on_boot = true;
-                    self.current_chat_mut()
-                        .expect("Boot uuid should always be present")
-                        .transition(ChatState::Ready);
-                } else if let Some(chat) = self.find_chat_mut(*uuid) {
-                    chat.transition(ChatState::Ready);
-                }
-            }
-            UIEvent::ActivityUpdate(uuid, activity) => {
-                if *uuid == self.boot_uuid {
-                    self.splash.set_message(activity.to_string());
-                } else if let Some(chat) = self.find_chat_mut(*uuid) {
-                    chat.transition(ChatState::LoadingWithMessage(activity.to_string()));
-                }
+fn new_text_area() -> TextArea<'static> {
+    let mut text_area = TextArea::default();
+
+    text_area.set_placeholder_text("Send a message to an agent ...");
+    text_area.set_placeholder_style(Style::default().fg(Color::Gray));
+    text_area.set_cursor_line_style(Style::reset());
+
+    // Set up for line wrapping: Listen for key inputs and
+    // Manually break lines based on the width of the TextArea
+    text_area.set_key_press_handler(|_input_event, text| {
+        let current_width = text.area().width as usize; // Assume a method to get current width
+        let mut lines = text.lines().clone();
+        for line in lines.iter_mut() {
+            *line = line.chars().collect::<Vec<_>>().chunks(current_width).map(|c| c.iter().collect::<String>()).collect::<Vec<_>>().join("\n");
+        }
+        text.set_lines(lines);
+    });
+
+    text_area
+}
             }
             UIEvent::ChatMessage(uuid, message) => {
                 self.add_chat_message(*uuid, message.clone());
