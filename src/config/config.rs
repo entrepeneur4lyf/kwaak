@@ -165,8 +165,6 @@ impl FromStr for Config {
             self.otel_enabled = otel_enabled == "true";
         }
     }
-        indexing
-    }
 
     #[must_use]
     pub fn embedding_provider(&self) -> &LLMConfiguration {
