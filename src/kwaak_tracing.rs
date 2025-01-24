@@ -32,7 +32,7 @@ pub fn init(repository: &Repository) -> Result<Guard> {
         format!("{}.log", repository.config().project_name),
     );
 
-    let fmt_layer = fmt::layer().with_writer(file_appender);
+    let fmt_layer = fmt::layer().compact().with_writer(file_appender);
 
     // Logs the file layer will capture
     let mut env_filter_layer = EnvFilter::builder()
@@ -59,11 +59,7 @@ pub fn init(repository: &Repository) -> Result<Guard> {
     let tui_layer = tui_logger::tracing_subscriber_layer();
     tui_logger::init_logger(default_level)?;
 
-    let mut layers = vec![
-        // env_filter_layer.boxed(),
-        tui_layer.boxed(),
-        fmt_layer.boxed(),
-    ];
+    let mut layers = vec![tui_layer.boxed(), fmt_layer.boxed()];
 
     let mut provider_for_guard = None;
     if cfg!(feature = "otel") && repository.config().otel_enabled {

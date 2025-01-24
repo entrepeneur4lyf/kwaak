@@ -8,6 +8,7 @@ use crate::{
 
 pub fn on_key(app: &mut App, key: &KeyEvent) {
     let current_input = app.text_input.lines().join("\n");
+    tracing::debug!(?key, "key event");
 
     // `Ctrl-Enter` or `Shift-Enter` or `Ctrl-s` to send the message in the text input
     if (key.code == KeyCode::Char('s')
