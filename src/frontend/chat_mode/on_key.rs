@@ -1,10 +1,9 @@
-use crossterm::event::{KeyCode, KeyEvent};
-
 use crate::{
     chat_message::ChatMessage,
     commands::Command,
     frontend::{ui_event::UIEvent, ui_input_command::UserInputCommand, App},
 };
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn on_key(app: &mut App, key: &KeyEvent) {
     let mut current_input = app.text_input.lines().join("\n");
