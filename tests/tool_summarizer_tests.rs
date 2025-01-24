@@ -1,22 +1,20 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::agent::ToolSummarizer;
-    use crate::test_utils::test_repository;
+    use anyhow::Error;
     use async_trait::async_trait;
+    use kwaak::agent::ToolSummarizer;
+    use kwaak::test_utils::test_repository;
     use std::sync::Arc;
-    use swiftide::chat_completion::ToolOutput;
-    use swiftide::traits::{SimplePrompt, Tool, ToolSpec};
+    use swiftide::chat_completion::{Tool, ToolOutput};
+    use swiftide::prompt::Prompt;
 
     // Mock implementation of SimplePrompt
+    #[derive(Debug, Clone)]
     struct MockPrompt {}
 
     #[async_trait]
-    impl SimplePrompt for MockPrompt {
-        async fn prompt(
-            &self,
-            _prompt: swiftide::prompt::Prompt,
-        ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    impl swiftide::traits::SimplePrompt for MockPrompt {
+        async fn prompt(&self, _prompt: Prompt) -> Result<String, Error> {
             Ok("mocked summary".into())
         }
     }
@@ -32,8 +30,8 @@ mod tests {
             &self.name
         }
 
-        fn tool_spec(&self) -> ToolSpec {
-            ToolSpec {
+        fn tool_spec(&self) -> swiftide::chat_completion::ToolSpec {
+            swiftide::chat_completion::ToolSpec {
                 description: "A mock tool".into(),
                 ..Default::default()
             }
