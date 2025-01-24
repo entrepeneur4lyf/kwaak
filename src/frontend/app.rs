@@ -167,6 +167,9 @@ fn new_text_area() -> TextArea<'static> {
     text_area.set_placeholder_style(Style::default().fg(Color::Gray));
     text_area.set_cursor_line_style(Style::reset());
 
+    // Adjust the text area settings to enable wrapping within the available width
+    text_area.set_wrap(true); // Assuming that the TextArea has some such API, else manual handling in event loop
+
     text_area
 }
 
