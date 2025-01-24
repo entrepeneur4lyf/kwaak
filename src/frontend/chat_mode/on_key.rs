@@ -43,7 +43,7 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
             if current_input.lines().last().unwrap_or("").len() >= input_width {
                 app.text_input
                     .input(KeyEvent::new(KeyCode::Enter, event::KeyModifiers::NONE));
-            }
+.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         }
     }
 }
