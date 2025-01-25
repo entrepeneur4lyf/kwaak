@@ -140,7 +140,10 @@ impl Config {
 
         let config = builder.build()?;
 
-        config.try_deserialize().map_err(Into::into) // Here using serde to deserialize into Self
+        config
+            .try_deserialize()
+            .map_err(Into::into)
+            .and_then(Config::fill_llm_api_keys) // Here using serde to deserialize into Self
     }
 
     // Seeds the api keys into the LLM configurations
