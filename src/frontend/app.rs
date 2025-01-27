@@ -160,7 +160,7 @@ impl<'a> App<'a> {
             .find(|chat| chat.uuid == self.current_chat_uuid)
     }
 
-    pub fn draw_base_ui(&self, f: &mut Frame) -> Rect {
+  let base_area = f.area();
         let base_area = f.size();
         // Draw other UI components
         base_area
