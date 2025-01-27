@@ -56,7 +56,10 @@ impl ChatMessagesWidget {
 
         // Max scroll to halfway view-height of last content
         if current_chat.vertical_scroll >= current_chat.num_lines.saturating_sub(1) {
+        // Auto-scroll to the bottom if tailing is enabled
+        if current_chat.is_tail_enabled {
             current_chat.vertical_scroll = current_chat.num_lines.saturating_sub(1);
+        }
         }
 
         #[allow(clippy::cast_possible_truncation)]
