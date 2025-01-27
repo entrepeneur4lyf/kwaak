@@ -388,15 +388,17 @@ impl App<'_> {
                     self.send_ui_event(event);
                 } else if let Some(current_chat) = self.current_chat_mut() {
                     current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
-                    current_chat.vertical_scroll_state =
-                        current_chat.vertical_scroll_state.position(current_chat.vertical_scroll);
+                    current_chat.vertical_scroll_state = current_chat
+                        .vertical_scroll_state
+                        .position(current_chat.vertical_scroll);
                     if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
                         current_chat.auto_tail_enabled = false;
                     }
                 } else if let Some(current_chat) = self.current_chat_mut() {
                     current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
-                    current_chat.vertical_scroll_state =
-                        current_chat.vertical_scroll_state.position(current_chat.vertical_scroll);
+                    current_chat.vertical_scroll_state = current_chat
+                        .vertical_scroll_state
+                        .position(current_chat.vertical_scroll);
                     if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
                         current_chat.auto_tail_enabled = false;
                     }
@@ -413,10 +415,8 @@ impl App<'_> {
         }
     }
 }
-}
-    }
-}
 
+#[allow(clippy::unused_async)]
 #[allow(clippy::unused_async)]
 async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
     loop {
