@@ -394,7 +394,6 @@ impl App<'_> {
                     return;
                 };
                 current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
-                current_chat.vertical_scroll_state = current_chat
                 current_chat.vertical_scroll_state = current_chat.vertical_scroll_state.clone();
             }
             UIEvent::ScrollDown => {
