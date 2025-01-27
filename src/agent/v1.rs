@@ -51,7 +51,9 @@ pub fn available_tools(
     ];
 
     if let Some(github_session) = github_session {
-        tools.push(tools::CreateOrUpdatePullRequest::new(github_session).boxed());
+        if !repository.config().disabled_tools.pull_request {
+            tools.push(tools::CreateOrUpdatePullRequest::new(github_session).boxed());
+        }
         tools.push(tools::GithubSearchCode::new(github_session).boxed());
     }
 
@@ -162,6 +164,9 @@ pub async fn start(
         ConversationSummarizer::new(query_provider.clone(), &tools, &agent_env.start_ref);
     let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
+    let push_to_remote_enabled =
+        agent_env.remote_enabled && repository.config().git.auto_push_remote;
+
     let context = Arc::new(context);
     let agent = Agent::builder()
         .context(Arc::clone(&context) as Arc<dyn AgentContext>)
@@ -242,7 +247,7 @@ pub async fn start(
                 )
                 .context("Could not commit files to git")?;
 
-                if agent_env.remote_enabled {
+                if  push_to_remote_enabled {
                     accept_non_zero_exit(context.exec_cmd(&Command::shell("git push")).await)
                         .context("Could not push changes to git")?;
                 }
