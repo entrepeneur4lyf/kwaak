@@ -386,8 +386,6 @@ impl App<'_> {
                     self.dispatch_command(*uuid, cmd);
                 } else if let Some(event) = cmd.to_ui_event() {
                     self.send_ui_event(event);
-                        }
-                    }
                 } else if let Some(current_chat) = self.current_chat_mut() {
                     current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
                     current_chat.vertical_scroll_state =
@@ -414,6 +412,7 @@ impl App<'_> {
             }
         }
     }
+}
 }
     }
 }
