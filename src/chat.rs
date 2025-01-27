@@ -2,7 +2,8 @@ use std::collections::HashSet;
 
 use ratatui::widgets::ScrollbarState;
 
-use crate::chat::{Chat, ChatState};
+use crate::chat::{Chat as OtherChat, ChatState as OtherChatState};
+use crate::chat_message::ChatMessage;
 
 pub struct Chat {
     /// Display name of the chat
