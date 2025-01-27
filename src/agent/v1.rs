@@ -38,7 +38,8 @@ pub fn available_tools(
     let query_pipeline = indexing::build_query_pipeline(repository)?;
 
     let mut tools = vec![
-        tools::read_file(),
+        // Only allow this agent to read with line numbers to avoid accidental guessing
+        // tools::read_file(),
         tools::read_file_with_line_numbers(),
         tools::write_file(),
         tools::search_file(),
