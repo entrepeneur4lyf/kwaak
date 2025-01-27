@@ -442,8 +442,9 @@ if current_chat.vertical_scroll < current_chat.messages.len().saturating_sub(10)
                         current_chat.auto_tail_enabled = false;
                     }
                 } else if let Some(current_chat) = self.current_chat_mut() {
-                    let scroll_position = current_chat.num_lines.saturating_sub(10);
-
+if current_chat.vertical_scroll < current_chat.messages.len().saturating_sub(10) {
+    current_chat.auto_tail_enabled = false;
+}
                     current_chat.vertical_scroll = scroll_position;
                     current_chat.vertical_scroll_state =
                         current_chat.vertical_scroll_state.position(scroll_position);
