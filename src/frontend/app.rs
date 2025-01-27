@@ -129,7 +129,9 @@ impl AppMode {
 
 impl<'a> App<'a> {
     pub fn current_chat_mut(&mut self) -> Option<&mut Chat> {
-        self.chats.iter_mut().find(|chat| chat.uuid == self.current_chat_uuid)
+        self.chats
+            .iter_mut()
+            .find(|chat| chat.uuid == self.current_chat_uuid)
     }
 
     pub fn find_chat_mut(&mut self, uuid: Uuid) -> Option<&mut Chat> {
@@ -156,7 +158,9 @@ impl<'a> App<'a> {
     }
 
     pub fn current_chat(&self) -> Option<&Chat> {
-        self.chats.iter().find(|chat| chat.uuid == self.current_chat_uuid)
+        self.chats
+            .iter()
+            .find(|chat| chat.uuid == self.current_chat_uuid)
     }
 
     pub fn draw_base_ui(&self, f: &mut Frame) -> Rect {
@@ -201,7 +205,6 @@ impl Default for App<'_> {
             input_width: None,
         }
     }
-}
 }
 
 fn new_text_area() -> TextArea<'static> {
