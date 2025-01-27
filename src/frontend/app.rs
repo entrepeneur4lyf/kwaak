@@ -538,7 +538,6 @@ impl App<'_> {
             self.selected_tab = tab_index;
         }
     }
-}
 
 #[allow(clippy::unused_async)]
 async fn poll_ui_events(ui_tx: mpsc::UnboundedSender<UIEvent>) -> Result<()> {
