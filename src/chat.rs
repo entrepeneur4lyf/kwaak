@@ -4,7 +4,6 @@ use ratatui::widgets::ScrollbarState;
 
 use crate::chat_message::ChatMessage;
 
-#[derive(Debug, Clone)]
 pub struct Chat {
     /// Display name of the chat
     pub name: String,
@@ -21,6 +20,7 @@ pub struct Chat {
     pub vertical_scroll_state: ScrollbarState,
     pub vertical_scroll: usize,
     pub auto_tailing_enabled: bool,
+    pub num_lines: usize,  // Added `num_lines` here to resolve issue
 }
 
 impl Chat {
@@ -87,11 +87,10 @@ impl Default for Chat {
             vertical_scroll_state: ScrollbarState::default(),
             vertical_scroll: 0,
             num_lines: 0,
+            auto_tailing_enabled: false,
         }
     }
 }
-
-#[cfg(test)]
 mod tests {
     use swiftide::chat_completion;
 
