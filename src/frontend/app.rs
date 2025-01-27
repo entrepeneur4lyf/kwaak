@@ -407,20 +407,18 @@ impl App<'_> {
                     .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
             }
-                // Assume messages.len() is used to determine the total number of lines
-                let Some(current_chat) = self.current_chat_mut() else {
-                    return;
-                };
-                
-                // Allow for space to display the last 10 messages entirely
-                let scroll_position = current_chat.messages.len().saturating_sub(10);
+// Updated ScrollEnd logic
+UIEvent::ScrollEnd => {
+    let Some(current_chat) = self.current_chat_mut() else {
+        return;
+    };
 
-                current_chat.vertical_scroll = scroll_position;
-                // Re-enable tailing when the user manually scrolls to the end
-                current_chat.is_tail_enabled = true;
-                current_chat.vertical_scroll = scroll_position;
-                // Re-enable tailing when the user scrolls to the end
-                current_chat.is_tail_enabled = true;
+    // Adjust scroll position to reflect being at the end
+    let scroll_position = current_chat.messages.len().saturating_sub(10);
+
+    current_chat.vertical_scroll = scroll_position;
+    current_chat.is_tail_enabled = true;
+}
             }
             UIEvent::Help => actions::help(self),
         }
