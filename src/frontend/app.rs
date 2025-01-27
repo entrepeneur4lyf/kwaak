@@ -567,8 +567,7 @@ mod tests {
         assert!(app.find_chat(Uuid::new_v4()).is_none());
     }
 
-    #[tokio::test]
-    async fn test_find_chat_mut() {
+if let Some(chat) = self.find_chat_mut(uuid) {
         let mut app = App::default();
         let chat = Chat::default();
         let uuid = chat.uuid;
