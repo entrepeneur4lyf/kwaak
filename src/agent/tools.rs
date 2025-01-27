@@ -477,11 +477,15 @@ You can use this tool to do the following:
 
 ## Constraints
 
+**You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace.
+Line numbers start at 1 and ranges are inclusive.**
+
+After editing, you MUST read the file again to get the new line numbers.
+
+If you intend to make multiple changes to a single file, you must read -> edit -> read -> edit -> read -> edit, etc.
+
 Prefer this over writing the full file content if you only need to change a small part of the file.
 This avoids unnecessary conflicts.
-
-You MUST read the file with line numbers first to know the start and end line numbers of the block you want to replace.
-Line numbers start at 1 and ranges are inclusive.
 
 You MUST respect the exact indentation and formatting of the file you are editing. For instance, Python code breaks if not indenting correctly.
 
@@ -557,5 +561,5 @@ pub async fn edit_file(
     let write_cmd = Command::WriteFile(file_name.into(), lines.join("\n"));
     context.exec_cmd(&write_cmd).await?;
 
-    Ok(format!("Successfully replaced block in {file_name}").into())
+    Ok(format!("Successfully replaced content in {file_name}. Before making new edits, you MUST read the file again, as the line numbers WILL have changed.").into())
 }
