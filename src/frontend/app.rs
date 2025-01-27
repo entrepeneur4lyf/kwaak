@@ -416,7 +416,7 @@ impl App<'_> {
 
                 current_chat.vertical_scroll = scroll_position;
                 current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(scroll_position);
+                current_chat.auto_tailing_enabled = true;
             }
             UIEvent::Help => actions::help(self),
         }
