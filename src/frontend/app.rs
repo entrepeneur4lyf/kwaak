@@ -316,56 +316,32 @@ impl App<'_> {
         self.dispatch_command_event(event);
     }
 
-        #[tracing::instrument(skip(self))]
-        pub fn dispatch_command(&mut self, uuid: Uuid, cmd: Command) {
-            if let Some(chat) = self.current_chat_mut() {
-                chat.transition(ChatState::Loading);
-            }
+    pub fn dispatch_command_event(&mut self, event: CommandEvent) {
+        self.command_tx
+            .as_ref()
+            .expect("Command tx not set")
+            .send(event)
+            .expect("Failed to dispatch command");
+    }
 
-            let event = CommandEvent::builder()
-                .command(cmd)
-                .uuid(uuid)
-                .responder(self.command_responder.for_chat_id(uuid))
-                .build()
-                .expect("Infallible; Failed to build command event");
-
-            self.dispatch_command_event(event);
+    pub fn add_chat_message(&mut self, chat_id: Uuid, message: impl Into<ChatMessage>) {
+        let message = message.into();
+        if chat_id == self.boot_uuid {
+            return;
         }
-
-        /// Dispatch a command event to the backend
-        ///
-        /// # Panics
-        ///
-        /// If the command dispatcher is not set or the handler is disconnected
-        pub fn dispatch_command_event(&mut self, event: CommandEvent) {
-            self.command_tx
-                .as_ref()
-                .expect("Command tx not set")
-                .send(event)
-                .expect("Failed to dispatch command");
-        }
-
-        pub fn add_chat_message(&mut self, chat_id: Uuid, message: impl Into<ChatMessage>) {
-            let message = message.into();
-            if chat_id == self.boot_uuid {
-                return;
-            }
-            if let Some(chat) = self.find_chat_mut(chat_id) {
-                chat.add_message(message);
-            } else {
-                tracing::error!("Could not find chat with id {chat_id}");
-            }
-        }
-
-        #[must_use]
-        /// Overrides the working directory
-        ///
-        /// Any actions that use ie system commands use this directory
-        pub fn with_workdir(mut self, workdir: impl Into<PathBuf>) -> Self {
-            self.workdir = workdir.into();
-            self
+        if let Some(chat) = self.find_chat_mut(chat_id) {
+            chat.add_message(message);
+        } else {
+            tracing::error!("Could not find chat with id {chat_id}");
         }
     }
+
+    pub fn with_workdir(mut self, workdir: impl Into<PathBuf>) -> Self {
+        self.workdir = workdir.into();
+        self
+    }
+
+}
 }
 
 /// Polls for UI events
