@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use ratatui::widgets::ScrollbarState;
 
 use crate::chat_message::ChatMessage;
-use crate::chat::{ChatState, ToolCall};
+use uuid as name;
 pub struct Chat {
     /// Display name of the chat
     pub name: String,
@@ -20,7 +20,8 @@ pub struct Chat {
     pub vertical_scroll_state: ScrollbarState,
     pub vertical_scroll: usize,
     pub auto_tailing_enabled: bool,
-    pub num_lines: usize,  // Added `num_lines` here to resolve issue
+    pub num_lines: usize,  // Added num_lines here to resolve issue
+}
 }
 
 impl Chat {
