@@ -348,6 +348,13 @@ impl App<'_> {
             }
             UIEvent::ChatMessage(uuid, message) => {
                 self.add_chat_message(*uuid, message.clone());
+                if let Some(chat) = self.find_chat_mut(*uuid) {
+                    if chat.auto_tail_enabled {
+                        chat.vertical_scroll = chat.num_lines.saturating_sub(10);
+                        chat.vertical_scroll_state =
+                            chat.vertical_scroll_state.position(chat.vertical_scroll);
+                    }
+                }
             }
             UIEvent::NewChat => {
                 self.add_chat(Chat::default());
