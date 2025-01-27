@@ -58,7 +58,7 @@ pub async fn read_file(
 
 // TODO: Better to have a single read_file tool with an optional line number flag
 #[tool(
-    description = "Reads file content, including line numbers. You MUST use this tool to retrieve line numbers before making a block edit with replace_block",
+    description = "Reads file content, including line numbers. You MUST use this tool to retrieve line numbers before making aedit with edit_file",
     param(name = "file_name", description = "Full path of the file")
 )]
 pub async fn read_file_with_line_numbers(
@@ -74,7 +74,7 @@ pub async fn read_file_with_line_numbers(
         .output
         .lines()
         .enumerate()
-        .map(|(i, l)| format!("{line_num}: {l}", line_num = i + 1));
+        .map(|(i, l)| format!("{line_num}|{l}", line_num = i + 1));
 
     Ok(lines.collect::<Vec<_>>().join("\n").into())
 }
