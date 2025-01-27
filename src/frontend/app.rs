@@ -323,103 +323,114 @@ impl App<'_> {
             tracing::debug!("Received ui event: {:?}", event);
         }
         match event {
-            UIEvent::Input(key) => {
-                self.on_key(key);
-            }
-            UIEvent::Tick => {
-                // Handle periodic tasks if necessary
-            }
-            UIEvent::CommandDone(uuid) => {
-                if *uuid == self.boot_uuid {
-                    self.has_indexed_on_boot = true;
-                    self.current_chat_mut()
-                        .expect("Boot uuid should always be present")
-                        .transition(ChatState::Ready);
-                } else if let Some(chat) = self.find_chat_mut(*uuid) {
-                    chat.transition(ChatState::Ready);
-                }
-            }
-            UIEvent::ActivityUpdate(uuid, activity) => {
-                if *uuid == self.boot_uuid {
-                    self.splash.set_message(activity.to_string());
-                } else if let Some(chat) = self.find_chat_mut(*uuid) {
-                    chat.transition(ChatState::LoadingWithMessage(activity.to_string()));
-                }
-            }
-            UIEvent::ChatMessage(uuid, message) => {
-                self.add_chat_message(*uuid, message.clone());
-            }
-            UIEvent::NewChat => {
-                self.add_chat(Chat::default());
-            }
-            UIEvent::RenameChat(uuid, name) => {
-                if let Some(chat) = self.find_chat_mut(*uuid) {
-                    chat.name = name.to_string();
-                };
-            }
-            UIEvent::RenameBranch(uuid, branch_name) => {
-                if let Some(chat) = self.find_chat_mut(*uuid) {
-                    chat.branch_name = Some(branch_name.to_string());
-                };
-            }
-            UIEvent::NextChat => self.next_chat(),
-            UIEvent::ChangeMode(mode) => self.change_mode(*mode),
-            UIEvent::Quit => {
-                tracing::warn!("UI received quit event, quitting");
-
-                self.dispatch_command(self.current_chat_uuid, Command::Quit);
-                self.change_mode(AppMode::Quit);
-            }
-            UIEvent::DeleteChat => actions::delete_chat(self),
-            UIEvent::CopyLastMessage => actions::copy_last_message(self),
-            UIEvent::DiffPull => actions::diff_pull(self).await,
-            UIEvent::DiffShow => actions::diff_show(self).await,
-            UIEvent::UserInputCommand(uuid, cmd) => {
-                if let Some(cmd) = cmd.to_command() {
-                    self.dispatch_command(*uuid, cmd);
-                } else if let Some(event) = cmd.to_ui_event() {
-                    self.send_ui_event(event);
-                } else {
-                    tracing::error!(
-                        "Could not convert ui command to backend command nor ui event {cmd}"
-                    );
-                    self.add_chat_message(
-                        self.current_chat_uuid,
-                        ChatMessage::new_system("Unknown command"),
-                    );
-                }
-            }
-            UIEvent::ScrollUp => {
-                let Some(current_chat) = self.current_chat_mut() else {
-                    return;
-                };
-                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
-                current_chat.vertical_scroll_state = current_chat
-                    .vertical_scroll_state
-                    .position(current_chat.vertical_scroll);
-            }
-            UIEvent::ScrollDown => {
-                let Some(current_chat) = self.current_chat_mut() else {
-                    return;
-                };
-                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
-                current_chat.vertical_scroll_state = current_chat
-                    .vertical_scroll_state
-                    .position(current_chat.vertical_scroll);
-            }
-            UIEvent::ScrollEnd => {
-                let Some(current_chat) = self.current_chat_mut() else {
-                    return;
-                };
-                // Keep the last 10 lines in view
-                let scroll_position = current_chat.num_lines.saturating_sub(10);
-
-                current_chat.vertical_scroll = scroll_position;
-                current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(scroll_position);
-            }
-            UIEvent::Help => actions::help(self),
+match event {
+    UIEvent::Input(key) => {
+        self.on_key(key);
+    }
+    UIEvent::Tick => {
+        // Handle periodic tasks if necessary
+    }
+    UIEvent::CommandDone(uuid) => {
+        if *uuid == self.boot_uuid {
+            self.has_indexed_on_boot = true;
+            self.current_chat_mut()
+                .expect("Boot uuid should always be present")
+                .transition(ChatState::Ready);
+        } else if let Some(chat) = self.find_chat_mut(*uuid) {
+            chat.transition(ChatState::Ready);
         }
+    }
+    UIEvent::ActivityUpdate(uuid, activity) => {
+        if *uuid == self.boot_uuid {
+            self.splash.set_message(activity.to_string());
+        } else if let Some(chat) = self.find_chat_mut(*uuid) {
+            chat.transition(ChatState::LoadingWithMessage(activity.to_string()));
+        }
+    }
+    UIEvent::ChatMessage(uuid, message) => {
+        self.add_chat_message(*uuid, message.clone());
+        // Ensure auto-scroll if auto-tailing is enabled
+        if let Some(chat) = self.find_chat_mut(*uuid) {
+            if chat.auto_tailing {
+                chat.vertical_scroll = chat.num_lines.saturating_sub(10);
+            }
+        }
+    }
+    UIEvent::NewChat => {
+        self.add_chat(Chat::default());
+    }
+    UIEvent::RenameChat(uuid, name) => {
+        if let Some(chat) = self.find_chat_mut(*uuid) {
+            chat.name = name.to_string();
+        };
+    }
+    UIEvent::RenameBranch(uuid, branch_name) => {
+        if let Some(chat) = self.find_chat_mut(*uuid) {
+            chat.branch_name = Some(branch_name.to_string());
+        };
+    }
+    UIEvent::NextChat => self.next_chat(),
+    UIEvent::ChangeMode(mode) => self.change_mode(*mode),
+    UIEvent::Quit => {
+        tracing::warn!("UI received quit event, quitting");
+
+        self.dispatch_command(self.current_chat_uuid, Command::Quit);
+        self.change_mode(AppMode::Quit);
+    }
+    UIEvent::DeleteChat => actions::delete_chat(self),
+    UIEvent::CopyLastMessage => actions::copy_last_message(self),
+    UIEvent::DiffPull => actions::diff_pull(self).await,
+    UIEvent::DiffShow => actions::diff_show(self).await,
+    UIEvent::UserInputCommand(uuid, cmd) => {
+        if let Some(cmd) = cmd.to_command() {
+            self.dispatch_command(*uuid, cmd);
+        } else if let Some(event) = cmd.to_ui_event() {
+            self.send_ui_event(event);
+        } else {
+            tracing::error!(
+                "Could not convert ui command to backend command nor ui event {cmd}"
+            );
+            self.add_chat_message(
+                self.current_chat_uuid,
+                ChatMessage::new_system("Unknown command"),
+            );
+        }
+    }
+    UIEvent::ScrollUp => {
+        let Some(current_chat) = self.current_chat_mut() else {
+            return;
+        };
+        current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
+        current_chat.vertical_scroll_state = current_chat
+            .vertical_scroll_state
+            .position(current_chat.vertical_scroll);
+        // Disable auto-tailing upon manual scroll up
+        current_chat.auto_tailing = false;
+    }
+    UIEvent::ScrollDown => {
+        let Some(current_chat) = self.current_chat_mut() else {
+            return;
+        };
+        current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
+        current_chat.vertical_scroll_state = current_chat
+            .vertical_scroll_state
+            .position(current_chat.vertical_scroll);
+    }
+    UIEvent::ScrollEnd => {
+        let Some(current_chat) = self.current_chat_mut() else {
+            return;
+        };
+        // Keep the last 10 lines in view
+        let scroll_position = current_chat.num_lines.saturating_sub(10);
+
+        current_chat.vertical_scroll = scroll_position;
+        current_chat.vertical_scroll_state =
+            current_chat.vertical_scroll_state.position(scroll_position);
+        // Re-enable auto-tailing when manually reaching the end
+        current_chat.auto_tailing = true;
+    }
+    UIEvent::Help => actions::help(self),
+}
     }
 
     #[cfg(debug_assertions)]
