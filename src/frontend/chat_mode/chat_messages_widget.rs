@@ -59,8 +59,9 @@ impl ChatMessagesWidget {
             if current_chat.is_tail_enabled {
                 current_chat.vertical_scroll = message_count.saturating_sub(1);
             }
-        }
-        }
+        // Ensure proper closure of all code blocks within the render function
+        // Review indentation and assure all bracketing is balanced
+    }
 
         #[allow(clippy::cast_possible_truncation)]
         let chat_messages = chat_messages.scroll((current_chat.vertical_scroll as u16, 0));
