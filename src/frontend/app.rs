@@ -421,7 +421,7 @@ impl App<'_> {
         }
     }
     }
-}
+    }
 
     #[cfg(debug_assertions)]
     /// Used for testing so we can do something and wait for it to complete
