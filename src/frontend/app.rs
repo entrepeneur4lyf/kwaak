@@ -415,8 +415,8 @@ impl App<'_> {
                 let scroll_position = current_chat.num_lines.saturating_sub(10);
 
                 current_chat.vertical_scroll = scroll_position;
-                current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(scroll_position);
+                // Re-enable tailing when the user scrolls to the end
+                current_chat.is_tail_enabled = true;
             }
             UIEvent::Help => actions::help(self),
         }
