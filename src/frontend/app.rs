@@ -419,7 +419,7 @@ impl App<'_> {
                 current_chat.is_tail_enabled = true;
             }
         }
-            UIEvent::Help => actions::help(self),
+    }
         }
     }
 
