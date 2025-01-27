@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use ratatui::widgets::ScrollbarState;
 
-use crate::chat_message::ChatMessage;
+use crate::chat::{Chat, ChatState};
 
 pub struct Chat {
     /// Display name of the chat
