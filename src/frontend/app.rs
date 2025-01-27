@@ -230,130 +230,72 @@ impl App<'_> {
         self.text_input = new_text_area();
     }
 
-    fn on_key(&mut self, key: &KeyEvent) {
-        if key.modifiers == crossterm::event::KeyModifiers::CONTROL
-            && key.code == KeyCode::Char('q')
-        {
-            tracing::warn!("Ctrl-Q pressed, quitting");
-            return self.send_ui_event(UIEvent::Quit);
-        }
-
-        if let KeyCode::F(index) = key.code {
-            let index = index - 1;
-            if let Some(mode) = AppMode::from_index(index as usize) {
-                return self.change_mode(mode);
+                return self.send_ui_event(UIEvent::Quit);
             }
-        }
 
-        self.mode.on_key(self, key);
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub fn dispatch_command(&mut self, uuid: Uuid, cmd: Command) {
-        if let Some(chat) = self.current_chat_mut() {
-            chat.transition(ChatState::Loading);
-        }
-
-        let event = CommandEvent::builder()
-            .command(cmd)
-            .uuid(uuid)
-            .responder(self.command_responder.for_chat_id(uuid))
-            .build()
-            .expect("Infallible; Failed to build command event");
-
-        self.dispatch_command_event(event);
-    }
-
-    /// Dispatch a command event to the backend
-    ///
-    /// # Panics
-    ///
-    /// If the command dispatcher is not set or the handler is disconnected
-    pub fn dispatch_command_event(&mut self, event: CommandEvent) {
-        self.command_tx
-            .as_ref()
-            .expect("Command tx not set")
-            .send(event)
-            .expect("Failed to dispatch command");
-    }
-
-    pub fn add_chat_message(&mut self, chat_id: Uuid, message: impl Into<ChatMessage>) {
-        let message = message.into();
-        if chat_id == self.boot_uuid {
-            return;
-        }
-        if let Some(chat) = self.find_chat_mut(chat_id) {
-            chat.add_message(message);
-        } else {
-            tracing::error!("Could not find chat with id {chat_id}");
-        }
-    }
-
-    #[must_use]
-    /// Overrides the working directory
-    ///
-    /// Any actions that use ie system commands use this directory
-    pub fn with_workdir(mut self, workdir: impl Into<PathBuf>) -> Self {
-        self.workdir = workdir.into();
-        self
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub async fn run<B: ratatui::backend::Backend>(
-        &mut self,
-        terminal: &mut Terminal<B>,
-    ) -> Result<()> {
-        let handle = task::spawn(poll_ui_events(self.ui_tx.clone()));
-
-        if self.skip_indexing {
-            self.has_indexed_on_boot = true;
-        } else {
-            self.dispatch_command(self.boot_uuid, Command::IndexRepository);
-        }
-
-        loop {
-            // Draw the UI
-            terminal.draw(|f| {
-                if self.has_indexed_on_boot && self.splash.is_rendered() {
-                    self.render_tui(f);
-                } else {
-                    self.splash.render(f);
+            if let KeyCode::F(index) = key.code {
+                let index = index - 1;
+                if let Some(mode) = AppMode::from_index(index as usize) {
+                    return self.change_mode(mode);
                 }
-            })?;
-
-            if let Some(event) = self.recv_messages().await {
-                self.handle_single_event(&event).await;
-            }
-            if !self.splash.is_rendered() {
-                tokio::time::sleep(Duration::from_millis(100)).await;
             }
 
-            if self.mode == AppMode::Quit {
-                break;
-            }
-
-            // Handle events
+            self.mode.on_key(self, key);
         }
 
-        tracing::warn!("Quitting frontend");
+        #[tracing::instrument(skip(self))]
+        pub fn dispatch_command(&mut self, uuid: Uuid, cmd: Command) {
+            if let Some(chat) = self.current_chat_mut() {
+                chat.transition(ChatState::Loading);
+            }
 
-        handle.abort();
+            let event = CommandEvent::builder()
+                .command(cmd)
+                .uuid(uuid)
+                .responder(self.command_responder.for_chat_id(uuid))
+                .build()
+                .expect("Infallible; Failed to build command event");
 
-        Ok(())
+            self.dispatch_command_event(event);
+        }
+
+        /// Dispatch a command event to the backend
+        ///
+        /// # Panics
+        ///
+        /// If the command dispatcher is not set or the handler is disconnected
+        pub fn dispatch_command_event(&mut self, event: CommandEvent) {
+            self.command_tx
+                .as_ref()
+                .expect("Command tx not set")
+                .send(event)
+                .expect("Failed to dispatch command");
+        }
+
+        pub fn add_chat_message(&mut self, chat_id: Uuid, message: impl Into<ChatMessage>) {
+            let message = message.into();
+            if chat_id == self.boot_uuid {
+                return;
+            }
+            if let Some(chat) = self.find_chat_mut(chat_id) {
+                chat.add_message(message);
+            } else {
+                tracing::error!("Could not find chat with id {chat_id}");
+            }
+        }
+
+        #[must_use]
+        /// Overrides the working directory
+        ///
+        /// Any actions that use ie system commands use this directory
+        pub fn with_workdir(mut self, workdir: impl Into<PathBuf>) -> Self {
+            self.workdir = workdir.into();
+            self
+        }
     }
+}
 
-    pub fn render_tui(&mut self, f: &mut Frame) {
-        let base_area = self.draw_base_ui(f);
-
-        self.mode.ui(f, base_area, self);
-    }
-
-    /// Wait for and handle a single ui event
-    ///
-    /// # Panics
-    ///
-    /// Panics if after boot completed, it cannot find the initial chat
-    pub async fn handle_single_event(&mut self, event: &UIEvent) {
+/// Polls for UI events
         if !matches!(event, UIEvent::Tick | UIEvent::Input(_)) {
             tracing::debug!("Received ui event: {:?}", event);
         }
