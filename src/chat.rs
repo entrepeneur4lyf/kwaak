@@ -20,7 +20,7 @@ pub struct Chat {
     // but handled in the ui
     pub vertical_scroll_state: ScrollbarState,
     pub vertical_scroll: usize,
-    pub num_lines: usize,
+    pub is_tail_enabled: bool,
 }
 
 impl Chat {
