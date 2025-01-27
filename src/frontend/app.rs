@@ -127,8 +127,44 @@ impl AppMode {
     }
 }
 
-impl Default for App<'_> {
-    fn default() -> Self {
+impl<'a> App<'a> {
+    pub fn current_chat_mut(&mut self) -> Option<&mut Chat> {
+        self.chats.iter_mut().find(|chat| chat.uuid == self.current_chat_uuid)
+    }
+
+    pub fn find_chat_mut(&mut self, uuid: Uuid) -> Option<&mut Chat> {
+        self.chats.iter_mut().find(|chat| chat.uuid == uuid)
+    }
+
+    pub fn add_chat(&mut self, chat: Chat) {
+        self.chats.push(chat);
+    }
+
+    pub fn next_chat(&mut self) {
+        let current_index = self
+            .chats
+            .iter()
+            .position(|chat| chat.uuid == self.current_chat_uuid)
+            .expect("Current chat must exist");
+        let next_index = (current_index + 1) % self.chats.len();
+        self.current_chat_uuid = self.chats[next_index].uuid;
+    }
+
+    pub fn change_mode(&mut self, mode: AppMode) {
+        self.mode = mode;
+        self.selected_tab = mode.tab_index().unwrap_or(self.selected_tab);
+    }
+
+    pub fn current_chat(&self) -> Option<&Chat> {
+        self.chats.iter().find(|chat| chat.uuid == self.current_chat_uuid)
+    }
+
+    pub fn draw_base_ui(&self, f: &mut Frame) -> Rect {
+        let base_area = f.size();
+        // Draw other UI components
+        base_area
+    }
+}
         let (ui_tx, ui_rx) = mpsc::unbounded_channel();
 
         let chat = Chat {
