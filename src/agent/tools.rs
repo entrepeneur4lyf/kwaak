@@ -475,10 +475,9 @@ You can use this tool to do the following:
 * Remove lines by replacing them with an empty string
 * Append to an existing file
 
-## Constraints
+You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace.
 
-**You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace.
-Line numbers start at 1 and ranges are inclusive.**
+Line numbers start at 1 and ranges are inclusive.
 
 After editing, you MUST read the file again to get the new line numbers.
 
@@ -488,8 +487,6 @@ Prefer this over writing the full file content if you only need to change a smal
 This avoids unnecessary conflicts.
 
 You MUST respect the exact indentation and formatting of the file you are editing. For instance, Python code breaks if not indenting correctly.
-
-You cannot call this tool more than once on a file, without reading the line numbers again.
 
 To add text without replacing, set the `end_line` to 0. The content will be added **after** that line.
 ";
