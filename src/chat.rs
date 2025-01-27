@@ -5,15 +5,6 @@ use ratatui::widgets::ScrollbarState;
 use crate::chat::{ChatState};
 use crate::chat_message::ChatMessage;
 use swiftide::chat_completion::ToolCall;
-
-use std::collections::HashSet;
-
-use ratatui::widgets::ScrollbarState;
-
-use crate::chat::{ChatState};
-use crate::chat_message::ChatMessage;
-use swiftide::chat_completion::ToolCall;
-
 pub struct Chat {
     /// Display name of the chat
     pub name: String,
