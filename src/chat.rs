@@ -92,10 +92,6 @@ impl Default for Chat {
     }
 }
 mod tests {
-    use swiftide::chat_completion;
-
-    use super::*;
-    use crate::chat_message::ChatMessage;
 
     #[test]
     fn test_add_message_increases_new_message_count() {
