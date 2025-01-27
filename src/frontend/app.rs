@@ -5,10 +5,7 @@ use tui_logger::TuiWidgetState;
 use tui_textarea::TextArea;
 use uuid::Uuid;
 
-use ratatui::{
-    prelude::*,
-    widgets::{Block, Borders, ListState, Padding, Paragraph, Tabs},
-};
+use ratatui::prelude::*;
 
 use crossterm::event::{self, KeyCode, KeyEvent};
 
