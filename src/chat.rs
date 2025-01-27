@@ -4,7 +4,7 @@ use ratatui::widgets::ScrollbarState;
 
 use crate::chat_message::ChatMessage;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Chat {
     /// Display name of the chat
     pub name: String,
