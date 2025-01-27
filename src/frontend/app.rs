@@ -396,8 +396,8 @@ impl App<'_> {
                 current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
                 current_chat.vertical_scroll_state = current_chat
                     .vertical_scroll_state
-                    .position(current_chat.vertical_scroll);
-            }
+                // Disable tailing when the user scrolls up
+                current_chat.is_tail_enabled = false;
             UIEvent::ScrollDown => {
                 let Some(current_chat) = self.current_chat_mut() else {
                     return;
