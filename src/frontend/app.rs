@@ -407,17 +407,16 @@ impl App<'_> {
                     .position(current_chat.vertical_scroll);
                 if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
                     current_chat.auto_tail_enabled = false;
-                }
-            UIEvent::ScrollDown => {
                 let Some(current_chat) = self.current_chat_mut() else {
                     return;
                 };
-                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
-                current_chat.vertical_scroll_state = current_chat
-                    .vertical_scroll_state
-                    .position(current_chat.vertical_scroll);
-            }
-            UIEvent::ScrollEnd => {
+                // Keep the last 10 lines in view
+                let scroll_position = current_chat.num_lines.saturating_sub(10);
+
+                current_chat.vertical_scroll = scroll_position;
+                current_chat.vertical_scroll_state =
+                    current_chat.vertical_scroll_state.position(scroll_position);
+                current_chat.auto_tail_enabled = true;
                 let Some(current_chat) = self.current_chat_mut() else {
                     return;
                 };
