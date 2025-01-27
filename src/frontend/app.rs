@@ -389,15 +389,16 @@ impl App<'_> {
                 } else {
                     tracing::error!(
                         "Could not convert ui command to backend command nor ui event {cmd}"
-                    );
-                    self.add_chat_message(
-                        self.current_chat_uuid,
-                        ChatMessage::new_system("Unknown command"),
-                    );
-                }
-            }
-            UIEvent::ScrollUp => {
                 let Some(current_chat) = self.current_chat_mut() else {
+                    return;
+                };
+                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
+                current_chat.vertical_scroll_state = current_chat
+                    .vertical_scroll_state
+                    .position(current_chat.vertical_scroll);
+                if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
+                    current_chat.auto_tail_enabled = false;
+                }
                     return;
                 };
                 current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
