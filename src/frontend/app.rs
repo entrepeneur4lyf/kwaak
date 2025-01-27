@@ -387,46 +387,44 @@ impl App<'_> {
                 } else if let Some(event) = cmd.to_ui_event() {
                     self.send_ui_event(event);
                 } else {
-                    tracing::error!(
-                        "Could not convert ui command to backend command nor ui event {cmd}"
-                }
-            } else if let Some(current_chat) = self.current_chat_mut() {
-                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
-                current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(current_chat.vertical_scroll);
-                if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
-                    current_chat.auto_tail_enabled = false;
-                }
-            } else if let Some(current_chat) = self.current_chat_mut() {
-                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
-                current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(current_chat.vertical_scroll);
-                if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
-                    current_chat.auto_tail_enabled = false;
-                }
-            } else if let Some(current_chat) = self.current_chat_mut() {
-                // Keep the last 10 lines in view
-                let scroll_position = current_chat.num_lines.saturating_sub(10);
+                    let Some(current_chat) = self.current_chat_mut() else {
+                        return;
+                    };
+                    current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
+                    current_chat.vertical_scroll_state = current_chat
+                        .vertical_scroll_state
+                        .position(current_chat.vertical_scroll);
+                    if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
+                        current_chat.auto_tail_enabled = false;
+                    }
+                } else if let Some(current_chat) = self.current_chat_mut() {
+                    current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
+                    current_chat.vertical_scroll_state = current_chat
+                        .vertical_scroll_state
+                        .position(current_chat.vertical_scroll);
+                    if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
+                        current_chat.auto_tail_enabled = false;
+                    }
+                } else if let Some(current_chat) = self.current_chat_mut() {
+                    // Keep the last 10 lines in view
+                    let scroll_position = current_chat.num_lines.saturating_sub(10);
 
-                current_chat.vertical_scroll = scroll_position;
-                current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(scroll_position);
-                current_chat.auto_tail_enabled = true;
-            } else if let Some(current_chat) = self.current_chat_mut() {
-                // Keep the last 10 lines in view
-                let scroll_position = current_chat.num_lines.saturating_sub(10);
+                    current_chat.vertical_scroll = scroll_position;
+                    current_chat.vertical_scroll_state =
+                        current_chat.vertical_scroll_state.position(scroll_position);
+                    current_chat.auto_tail_enabled = true;
+                } else if let Some(current_chat) = self.current_chat_mut() {
+                    // Keep the last 10 lines in view
+                    let scroll_position = current_chat.num_lines.saturating_sub(10);
 
-                current_chat.vertical_scroll = scroll_position;
-                current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(scroll_position);
+                    current_chat.vertical_scroll = scroll_position;
+                    current_chat.vertical_scroll_state =
+                        current_chat.vertical_scroll_state.position(scroll_position);
+                }
             }
-            UIEvent::Help => actions::help(self),
         }
     }
-
-    #[cfg(debug_assertions)]
-    /// Used for testing so we can do something and wait for it to complete
-    ///
+}
     /// *will* hang until event is encountered
     pub async fn handle_events_until(
         &mut self,
