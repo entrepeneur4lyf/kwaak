@@ -387,155 +387,38 @@ impl App<'_> {
                 } else if let Some(event) = cmd.to_ui_event() {
                     self.send_ui_event(event);
                 } else {
-                    let Some(current_chat) = self.current_chat_mut() else {
-                        return;
-                    };
-                    current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
-                    current_chat.vertical_scroll_state = current_chat
-                        .vertical_scroll_state
-                        .position(current_chat.vertical_scroll);
-                    if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
-                        current_chat.auto_tail_enabled = false;
+                            }
+                        }
                     }
-                } else if let Some(current_chat) = self.current_chat_mut() {
-                    current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
-                    current_chat.vertical_scroll_state = current_chat
-                        .vertical_scroll_state
-                        .position(current_chat.vertical_scroll);
-                    if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
-                        current_chat.auto_tail_enabled = false;
-                    }
-                } else if let Some(current_chat) = self.current_chat_mut() {
-                    // Keep the last 10 lines in view
-                    let scroll_position = current_chat.num_lines.saturating_sub(10);
-
-                    current_chat.vertical_scroll = scroll_position;
-                    current_chat.vertical_scroll_state =
-                        current_chat.vertical_scroll_state.position(scroll_position);
-                    current_chat.auto_tail_enabled = true;
-                } else if let Some(current_chat) = self.current_chat_mut() {
-                    // Keep the last 10 lines in view
-                    let scroll_position = current_chat.num_lines.saturating_sub(10);
-
-                    current_chat.vertical_scroll = scroll_position;
-                    current_chat.vertical_scroll_state =
-                        current_chat.vertical_scroll_state.position(scroll_position);
                 }
             }
-        }
-    }
-}
-    /// *will* hang until event is encountered
-    pub async fn handle_events_until(
-        &mut self,
-        stop_fn: impl Fn(&UIEvent) -> bool,
-    ) -> Option<UIEvent> {
-        while let Some(event) = self.recv_messages().await {
-            self.handle_single_event(&event).await;
-            if stop_fn(&event) {
-                return Some(event);
+            else if let Some(current_chat) = self.current_chat_mut() {
+                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
+                current_chat.vertical_scroll_state = current_chat
+                    .vertical_scroll_state
+                    .position(current_chat.vertical_scroll);
+                if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
+                    current_chat.auto_tail_enabled = false;
+                }
             }
-            if self.mode == AppMode::Quit {
-                return Some(event);
+            else if let Some(current_chat) = self.current_chat_mut() {
+                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
+                current_chat.vertical_scroll_state = current_chat
+                    .vertical_scroll_state
+                    .position(current_chat.vertical_scroll);
+                if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10) {
+                    current_chat.auto_tail_enabled = false;
+                }
             }
-        }
-        None
-    }
+            else if let Some(current_chat) = self.current_chat_mut() {
+                let scroll_position = current_chat.num_lines.saturating_sub(10);
 
-    pub fn find_chat_mut(&mut self, uuid: Uuid) -> Option<&mut Chat> {
-        self.chats.iter_mut().find(|chat| chat.uuid == uuid)
-    }
+                current_chat.vertical_scroll = scroll_position;
+                current_chat.vertical_scroll_state =
+                    current_chat.vertical_scroll_state.position(scroll_position);
 
-    pub fn find_chat(&self, uuid: Uuid) -> Option<&Chat> {
-        self.chats.iter().find(|chat| chat.uuid == uuid)
-    }
-
-    pub fn current_chat(&self) -> Option<&Chat> {
-        self.find_chat(self.current_chat_uuid)
-    }
-
-    pub fn current_chat_mut(&mut self) -> Option<&mut Chat> {
-        self.find_chat_mut(self.current_chat_uuid)
-    }
-
-    pub fn add_chat(&mut self, mut new_chat: Chat) {
-        new_chat.name = format!("Chat #{}", self.chats.len() + 1);
-
-        self.current_chat_uuid = new_chat.uuid;
-        self.chats.push(new_chat);
-        self.chats_state.select_last();
-    }
-
-    pub fn next_chat(&mut self) {
-        #[allow(clippy::skip_while_next)]
-        let Some(next_idx) = self
-            .chats
-            .iter()
-            .position(|chat| chat.uuid == self.current_chat_uuid)
-            .map(|idx| idx + 1)
-        else {
-            let Some(chat) = self.chats.first() else {
-                debug_assert!(
-                    false,
-                    "No chats in app found when selecting next app, this should never happen"
-                );
-                tracing::error!(
-                    "No chats in app found when selecting next app, this should never happen"
-                );
-
-                self.add_chat(Chat::default());
-                return;
-            };
-
-            let uuid = chat.uuid;
-            self.current_chat_uuid = uuid;
-            self.chats_state.select(Some(0));
-            return;
-        };
-
-        let chat = if let Some(chat) = self.chats.get(next_idx) {
-            self.chats_state.select(Some(next_idx));
-            chat
-        } else {
-            self.chats_state.select(Some(0));
-            &self.chats[0]
-        };
-        self.current_chat_uuid = chat.uuid;
-    }
-
-    fn draw_base_ui(&self, f: &mut Frame) -> Rect {
-        let [top_area, main_area] =
-            Layout::vertical([Constraint::Length(6), Constraint::Min(0)]).areas(f.area());
-
-        // Hardcoded tabs length for now to right align
-        let [header_area, tabs_area] =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Length(24)]).areas(top_area);
-
-        Tabs::new(self.tab_names.iter().copied())
-            .block(
-                Block::default()
-                    .borders(Borders::BOTTOM)
-                    .padding(Padding::top(top_area.height - 2)),
-            )
-            .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
-            .select(self.selected_tab)
-            .render(tabs_area, f.buffer_mut());
-
-        Paragraph::new(HEADER)
-            .block(
-                Block::default()
-                    .borders(Borders::BOTTOM)
-                    .padding(Padding::new(1, 0, 1, 0)),
-            )
-            .render(header_area, f.buffer_mut());
-
-        main_area
-    }
-
-    fn change_mode(&mut self, mode: AppMode) {
-        self.mode = mode;
-        if let Some(tab_index) = mode.tab_index() {
-            self.selected_tab = tab_index;
+                current_chat.auto_tail_enabled = true;
+            }
         }
     }
 }
