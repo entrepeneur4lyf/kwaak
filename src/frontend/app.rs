@@ -165,6 +165,9 @@ impl<'a> App<'a> {
         base_area
     }
 }
+
+impl Default for App<'_> {
+    fn default() -> Self {
         let (ui_tx, ui_rx) = mpsc::unbounded_channel();
 
         let chat = Chat {
@@ -198,6 +201,7 @@ impl<'a> App<'a> {
             input_width: None,
         }
     }
+}
 }
 
 fn new_text_area() -> TextArea<'static> {
