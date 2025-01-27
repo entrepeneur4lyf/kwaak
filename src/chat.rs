@@ -75,7 +75,7 @@ pub enum ChatState {
 }
 
 impl Default for Chat {
-    fn default() -> Self {
+        Self {
             is_tail_enabled: true,
             name: "Chat".to_string(),
             uuid: uuid::Uuid::new_v4(),
@@ -87,7 +87,6 @@ impl Default for Chat {
             vertical_scroll_state: ScrollbarState::default(),
             vertical_scroll: 0,
         }
-    }
 }
 
 #[cfg(test)]
