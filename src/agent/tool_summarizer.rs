@@ -102,7 +102,18 @@ fn prompt(
 ) -> Prompt {
     let formatted_tools = available_tools
         .iter()
-        .map(|tool| format!("- **{}**: {}", tool.name(), tool.tool_spec().description))
+        .map(|tool| {
+            format!(
+                "- **{}**: {}",
+                tool.name(),
+                // Some tools have large descriptions, only take the first line
+                tool.tool_spec()
+                    .description
+                    .lines()
+                    .take(1)
+                    .collect::<String>()
+            )
+        })
         .collect::<Vec<String>>()
         .join("\n");
 

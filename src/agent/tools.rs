@@ -470,14 +470,12 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
 const EDIT_FILE_DESCRIPTION: &str = "Edit a file in plain-text format.
 You can use this tool to do the following:
 
-* Replace a block of text with new content
+* Replace lines between a start and end line number (inclusive!)
 * Insert a new line AFTER a specific line number
 * Remove lines by replacing them with an empty string
 * Append to an existing file
 
 You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace.
-
-Line numbers start at 1 and ranges are inclusive.
 
 After editing, you MUST read the file again to get the new line numbers.
 
@@ -499,7 +497,7 @@ To add text without replacing, set the `end_line` to 0. The content will be adde
     ),
     param(
         name = "end_line",
-        description = "End line number of the block to replace. This is inclusive! End line will be replaced as well."
+        description = "End line number of the block to replace. Inclusive! End line will be replaced as well. Leave as 0 to append after the start line."
     ),
     param(name = "content", description = "Replacement content")
 )]
