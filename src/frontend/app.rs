@@ -396,7 +396,15 @@ impl App<'_> {
                 current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
                 current_chat.vertical_scroll_state = current_chat
                     .vertical_scroll_state
-};
+                       .position(current_chat.vertical_scroll_state);
+            }
+            UIEvent::ScrollDown => {
+                let Some(current_chat) = self.current_chat_mut() else {
+                    return;
+                };
+                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
+                current_chat.vertical_scroll_state = current_chat
+                    .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
             }
             UIEvent::ScrollEnd => {
