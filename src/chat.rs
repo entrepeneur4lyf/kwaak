@@ -74,6 +74,7 @@ pub enum ChatState {
     Ready,
 }
 
+impl Default for Chat {
     fn default() -> Self {
         Self {
             is_tail_enabled: true,
@@ -88,7 +89,7 @@ pub enum ChatState {
             vertical_scroll: 0,
         }
     }
-
+}
 #[cfg(test)]
 mod tests {
     use swiftide::chat_completion;
