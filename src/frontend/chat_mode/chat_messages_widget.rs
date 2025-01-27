@@ -47,18 +47,18 @@ impl ChatMessagesWidget {
         //
         // Because the paragraph waps the text, we need to calculate the number of lines
         // from the paragraph directly.
-        current_chat.num_lines = chat_messages.line_count(area.width);
-
-        // Record the number of lines in the chat for multi line scrolling
+        // Calculate number of lines based on messages (or equivalent content)
+        let message_count = messages.len();
         current_chat.vertical_scroll_state = current_chat
             .vertical_scroll_state
-            .content_length(current_chat.num_lines);
+            .content_length(message_count);
 
         // Max scroll to halfway view-height of last content
-        if current_chat.vertical_scroll >= current_chat.num_lines.saturating_sub(1) {
-        // Auto-scroll to the bottom if tailing is enabled
-        if current_chat.is_tail_enabled {
-            current_chat.vertical_scroll = current_chat.num_lines.saturating_sub(1);
+        if current_chat.vertical_scroll >= message_count.saturating_sub(1) {
+            // Auto-scroll to the bottom if tailing is enabled
+            if current_chat.is_tail_enabled {
+                current_chat.vertical_scroll = message_count.saturating_sub(1);
+            }
         }
         }
 
