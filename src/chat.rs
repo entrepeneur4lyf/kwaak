@@ -86,9 +86,9 @@ impl Default for Chat {
             completed_tool_call_ids: HashSet::new(),
             vertical_scroll_state: ScrollbarState::default(),
             vertical_scroll: 0,
-            num_lines: 0,
-            is_tail_enabled: true,
+        }
     }
+}
 }
 
 #[cfg(test)]
