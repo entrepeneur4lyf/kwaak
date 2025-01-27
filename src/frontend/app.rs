@@ -407,18 +407,17 @@ impl App<'_> {
                     .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
             }
-// Updated ScrollEnd logic
-UIEvent::ScrollEnd => {
-    let Some(current_chat) = self.current_chat_mut() else {
-        return;
-    };
+            UIEvent::ScrollEnd => {
+                let Some(current_chat) = self.current_chat_mut() else {
+                    return;
+                };
 
-    // Adjust scroll position to reflect being at the end
-    let scroll_position = current_chat.messages.len().saturating_sub(10);
+                // Adjust scroll position to reflect being at the end
+                let scroll_position = current_chat.messages.len().saturating_sub(10);
 
-    current_chat.vertical_scroll = scroll_position;
-    current_chat.is_tail_enabled = true;
-}
+                current_chat.vertical_scroll = scroll_position;
+                current_chat.is_tail_enabled = true;
+            }
             }
             UIEvent::Help => actions::help(self),
         }
