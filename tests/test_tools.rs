@@ -85,8 +85,8 @@ async fn test_search_code() {
 }
 
 #[test_log::test(tokio::test)]
-async fn test_replace_block() {
-    let tool = tools::replace_block();
+async fn test_edit_file() {
+    let tool = tools::edit_file();
     let context = setup_context();
 
     let tempdir = tempdir().unwrap();
@@ -103,7 +103,7 @@ async fn test_replace_block() {
             "file_name": tempdir.path().join("test.txt").to_str().unwrap(),
             "start_line": "2",
             "end_line": "4",
-            "replacement": "one line"
+            "content": "one line"
         })
     );
 
@@ -125,7 +125,7 @@ async fn test_replace_block() {
             "file_name": tempdir.path().join("test.txt").to_str().unwrap(),
             "start_line": "2",
             "end_line": "4",
-            "replacement": "one\nline"
+            "content": "one\nline"
         })
     );
 
@@ -142,7 +142,7 @@ async fn test_replace_block() {
             "file_name": tempdir.path().join("test.txt").to_str().unwrap(),
             "start_line": "2",
             "end_line": "10",
-            "replacement": "one\nline"
+            "content": "one\nline"
         })
     );
 
@@ -156,7 +156,7 @@ async fn test_replace_block() {
         "file_name": tempdir.path().join("test2.txt").to_str().unwrap(),
         "start_line": "2",
         "end_line": "4",
-        "replacement": "one\nline"
+        "content": "one\nline"
     });
 
     let tool_response = tool
@@ -186,7 +186,7 @@ async fn test_replace_block() {
             "file_name": tempdir.path().join("test-add.txt").to_str().unwrap(),
             "start_line": "2",
             "end_line": "0",
-            "replacement": "added\nblock"
+            "content": "added\nblock"
         })
     );
 
@@ -198,7 +198,7 @@ async fn test_replace_block() {
 
     assert_eq!(
         std::fs::read_to_string(tempdir.path().join("test-add.txt")).unwrap(),
-        "line1\nadded\nblock\nline2\nline3\nline4\nline5"
+        "line1\nline2\nadded\nblock\nline3\nline4\nline5"
     );
 }
 
@@ -222,7 +222,7 @@ async fn test_read_file_with_line_numbers() {
         })
     );
 
-    let expected = "1: line1\n2: line2\n3: line3\n4: line4\n5: line5";
+    let expected = "1|line1\n2|line2\n3|line3\n4|line4\n5|line5";
     assert_eq!(file_content, expected);
 }
 

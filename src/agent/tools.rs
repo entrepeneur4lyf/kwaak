@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use std::sync::Arc;
+use swiftide::traits::CommandError;
 
 use anyhow::{Context as _, Result};
 use swiftide::{
@@ -7,7 +8,6 @@ use swiftide::{
     query::{search_strategies, states},
     traits::{AgentContext, Command},
 };
-use swiftide_core::CommandError;
 use swiftide_macros::{tool, Tool};
 use tavily::Tavily;
 use tokio::sync::Mutex;
@@ -58,7 +58,7 @@ pub async fn read_file(
 
 // TODO: Better to have a single read_file tool with an optional line number flag
 #[tool(
-    description = "Reads file content, including line numbers. You MUST use this tool to retrieve line numbers before making aedit with edit_file",
+    description = "Reads file content, including line numbers. You MUST use this tool to retrieve line numbers before making an edit with edit_file",
     param(name = "file_name", description = "Full path of the file")
 )]
 pub async fn read_file_with_line_numbers(
@@ -467,8 +467,30 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
         .map(Into::into)
 }
 
+const EDIT_FILE_DESCRIPTION: &str = "Edit a file in plain-text format.
+You can use this tool to do the following:
+
+* Replace a block of text with new content
+* Insert a new line AFTER a specific line number
+* Remove lines by replacing them with an empty string
+* Append to an existing file
+
+## Constraints
+
+Prefer this over writing the full file content if you only need to change a small part of the file.
+This avoids unnecessary conflicts.
+
+You MUST read the file with line numbers first to know the start and end line numbers of the block you want to replace.
+Line numbers start at 1 and ranges are inclusive.
+
+You MUST respect the exact indentation and formatting of the file you are editing. For instance, Python code breaks if not indenting correctly.
+
+You cannot call this tool more than once on a file, without reading the line numbers again.
+
+To add text without replacing, set the `end_line` to 0. The content will be added **after** that line.
+";
 #[tool(
-    description = "Replace a block of text in a file, starting at start_line up to and including end_line. Prefer this over writing the full file content if you only need to change a small part of the file. This avoids unnecessary conflicts. You MUST read the file with line numbers first to know the start and end line numbers of the block you want to replace. Line numbers start at 1. You cannot call this tool more than once on a file, without reading the line numbers again. To add text without replacing, set the `end_line` to 0. The content will be added **before** that line.",
+    description = EDIT_FILE_DESCRIPTION,
     param(name = "file_name", description = "Full path of the file"),
     param(
         name = "start_line",
@@ -478,14 +500,14 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
         name = "end_line",
         description = "End line number of the block to replace. This is inclusive! End line will be replaced as well."
     ),
-    param(name = "replacement", description = "Replacement content")
+    param(name = "content", description = "Replacement content")
 )]
-pub async fn replace_block(
+pub async fn edit_file(
     context: &dyn AgentContext,
     file_name: &str,
     start_line: &str,
     end_line: &str,
-    replacement: &str,
+    content: &str,
 ) -> Result<ToolOutput, ToolError> {
     // Read the file content
     let cmd = Command::ReadFile(file_name.into());
@@ -524,11 +546,11 @@ pub async fn replace_block(
 
     // Input is 1 indexed, lines are 0 indexed
     if end_line == 0 {
-        lines.insert(start_line.saturating_sub(1), replacement);
+        lines.insert(start_line, content);
     } else {
         lines.splice(
             start_line.saturating_sub(1)..=end_line.saturating_sub(1),
-            replacement.lines(),
+            content.lines(),
         );
     }
 
