@@ -300,17 +300,21 @@ impl App<'_> {
         self
     }
 
-    #[tracing::instrument(skip_all)]
-
-            if let KeyCode::F(index) = key.code {
-                let index = index - 1;
-                if let Some(mode) = AppMode::from_index(index as usize) {
-                    return self.change_mode(mode);
-                }
-            }
-
-            self.mode.on_key(self, key);
+    #[tracing::instrument(skip(self))]
+    pub fn dispatch_command(&mut self, uuid: Uuid, cmd: Command) {
+        if let Some(chat) = self.current_chat_mut() {
+            chat.transition(ChatState::Loading);
         }
+
+        let event = CommandEvent::builder()
+            .command(cmd)
+            .uuid(uuid)
+            .responder(self.command_responder.for_chat_id(uuid))
+            .build()
+            .expect("Infallible; Failed to build command event");
+
+        self.dispatch_command_event(event);
+    }
 
         #[tracing::instrument(skip(self))]
         pub fn dispatch_command(&mut self, uuid: Uuid, cmd: Command) {
