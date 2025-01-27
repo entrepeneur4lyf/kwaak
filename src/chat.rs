@@ -21,6 +21,9 @@ pub struct Chat {
     pub vertical_scroll_state: ScrollbarState,
     pub vertical_scroll: usize,
     pub num_lines: usize,
+
+    // Auto-tailing flag indicating if new messages should auto-scroll
+    pub auto_tailing: bool,
 }
 
 impl Chat {
