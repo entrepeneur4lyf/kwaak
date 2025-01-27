@@ -74,9 +74,6 @@ pub enum ChatState {
     Loading,
     LoadingWithMessage(String),
     #[default]
-    Ready,
-}
-
 impl Default for Chat {
     fn default() -> Self {
         Self {
@@ -90,6 +87,10 @@ impl Default for Chat {
             vertical_scroll_state: ScrollbarState::default(),
             vertical_scroll: 0,
             num_lines: 0,
+            auto_tailing: true, // Enable auto-tailing by default
+        }
+    }
+}
         }
     }
 }
