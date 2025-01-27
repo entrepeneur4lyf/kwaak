@@ -230,18 +230,24 @@ impl App<'_> {
         self.text_input = new_text_area();
     }
 
-            tracing::warn!("Ctrl-Q pressed, quitting");
-            return self.send_ui_event(UIEvent::Quit);
-        }
+    }
 
-        if let KeyCode::F(index) = key.code {
-            let index = index - 1;
-            if let Some(mode) = AppMode::from_index(index as usize) {
-                return self.change_mode(mode);
+    pub fn on_key(&mut self, key: KeyEvent) -> UIEvent {
+        match key.code {
+            KeyCode::Char('q') => {
+                tracing::warn!("Ctrl-Q pressed, quitting");
+                return self.send_ui_event(UIEvent::Quit);
             }
-        }
 
-        self.mode.on_key(self, key);
+            KeyCode::F(index) => {
+                let index = index - 1;
+                if let Some(mode) = AppMode::from_index(index as usize) {
+                    self.change_mode(mode);
+                }
+            }
+
+            _ => self.mode.on_key(self, &key),
+        }
     }
 
     #[tracing::instrument(skip(self))]
