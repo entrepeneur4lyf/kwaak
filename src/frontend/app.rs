@@ -160,11 +160,6 @@ impl<'a> App<'a> {
             .find(|chat| chat.uuid == self.current_chat_uuid)
     }
 
-  let base_area = f.area();
-        let base_area = f.size();
-        // Draw other UI components
-        base_area
-    }
 }
 
 impl Default for App<'_> {
