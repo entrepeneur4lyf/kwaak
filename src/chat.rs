@@ -87,7 +87,7 @@ impl Default for Chat {
             vertical_scroll_state: ScrollbarState::default(),
             vertical_scroll: 0,
             num_lines: 0,
-        }
+            is_tail_enabled: true,
     }
 }
 
