@@ -407,16 +407,17 @@ UIEvent::ScrollDown => {
     current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
     current_chat.vertical_scroll_state = current_chat.vertical_scroll_state.position(current_chat.vertical_scroll);
 }
-            UIEvent::ScrollEnd => {
-                let Some(current_chat) = self.current_chat_mut() else {
-                    return;
-                };
-                // Keep the last 10 lines in view
-                let scroll_position = current_chat.num_lines.saturating_sub(10);
+UIEvent::ScrollEnd => {
+    let Some(current_chat) = self.current_chat_mut() else {
+        return;
+    };
+    // Keep the last 10 lines in view
+    let scroll_position = current_chat.num_lines.saturating_sub(10);
 
-                current_chat.vertical_scroll = scroll_position;
-                current_chat.vertical_scroll_state =
-                    current_chat.vertical_scroll_state.position(scroll_position);
+    current_chat.vertical_scroll = scroll_position;
+    current_chat.vertical_scroll_state = current_chat.vertical_scroll_state.position(scroll_position);
+    current_chat.auto_tail = true; // Enable auto-tail when scrolled to the end
+}
             }
             UIEvent::Help => actions::help(self),
         }
