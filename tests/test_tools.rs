@@ -86,7 +86,7 @@ async fn test_search_code() {
 
 #[test_log::test(tokio::test)]
 async fn test_edit_file() {
-    let tool = tools::edit_file();
+    let tool = tools::replace_lines();
     let context = setup_context();
 
     let tempdir = tempdir().unwrap();

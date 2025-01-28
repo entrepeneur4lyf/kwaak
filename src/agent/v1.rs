@@ -47,7 +47,8 @@ pub fn available_tools(
         tools::shell_command(),
         tools::search_code(),
         tools::fetch_url(),
-        tools::edit_file(),
+        tools::replace_lines(),
+        tools::add_lines(),
         tools::ExplainCode::new(query_pipeline).boxed(),
     ];
 
@@ -285,9 +286,8 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
 
         // Tool usage
         "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file. Do not make changes other than the ones requested.",
-        "Prefer using `edit_file` over `write_file`, if possible. This is faster and less error prone. You can only make ONE `edit_file` call at the time. After each `edit_file` you MUST call `read_file_with_line_numbers` again, as the linenumbers WILL have changed..",
+        "Prefer editing files with `replace_lines` and `add_lines` over `write_file`, if possible. This is faster and less error prone. You can only make ONE `replace_lines` or `add_lines` call at the time. After each you MUST call `read_file_with_line_numbers` again, as the linenumbers WILL have changed.",
         "Before every call to `edit_file`, you MUST read the file content with the line numbers. You are not allowed to count lines yourself.",
-        "If you want to insert content with `edit_file`, it will be added AFTER start_line. Set end_line to 0, otherwise it will replace",
         "If you intend to edit multiple files or multiple edits in a single file, outline your plan first, then call the first tool immediately. Every single edit MUST be preceded by a `read_file_with_line_numbers`",
         "If you create a pull request, you must ensure the tests pass",
         "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
@@ -295,6 +295,7 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
 
         // Code writing
         "When writing code or tests, make sure this is idiomatic for the language",
+        "When writing code, make sure you account for edge cases",
         "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
         "When writing tests, make sure you cover all edge cases",
         "When writing tests, if a specific test continues to be troublesome, think out of the box and try to solve the problem in a different way, or reset and focus on other tests first",

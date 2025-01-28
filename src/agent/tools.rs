@@ -467,26 +467,8 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
         .map(Into::into)
 }
 
-const EDIT_FILE_DESCRIPTION: &str = "Edit a file in plain-text format.
-You can use this tool to do the following:
-
-* Replace lines between a start and end line number (inclusive!)
-* Insert a new line AFTER a specific line number (set end_line to 0)
-* Remove lines by replacing them with an empty string
-* Append to an existing file (start_line to last line, end_line to 0)
-
-You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace.
-
-After editing, you MUST read the file again to get the new line numbers.
-
-If you intend to make multiple changes to a single file, you must read -> edit -> read -> edit -> read -> edit, etc.
-
-You MUST respect the exact indentation and formatting of the file you are editing. For instance, Python code breaks if not indenting correctly.
-
-To add text without replacing, set the `end_line` to 0. The content will be added **after** that line.
-";
 #[tool(
-    description = EDIT_FILE_DESCRIPTION,
+    description = "Replace lines in a file. You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace. After editing, you MUST read the file again to get the new line numbers.",
     param(name = "file_name", description = "Full path of the file"),
     param(
         name = "start_line",
@@ -494,11 +476,11 @@ To add text without replacing, set the `end_line` to 0. The content will be adde
     ),
     param(
         name = "end_line",
-        description = "End line number of the block to replace. Inclusive! End line will be replaced as well. Set to 0 to insert new content after the start line."
+        description = "End line number of the block to replace. Inclusive! End line will be replaced as well."
     ),
     param(name = "content", description = "Replacement content")
 )]
-pub async fn edit_file(
+pub async fn replace_lines(
     context: &dyn AgentContext,
     file_name: &str,
     start_line: &str,
@@ -554,4 +536,55 @@ pub async fn edit_file(
     context.exec_cmd(&write_cmd).await?;
 
     Ok(format!("Successfully replaced content in {file_name}. Before making new edits, you MUST read the file again, as the line numbers WILL have changed.").into())
+}
+
+#[tool(
+    description = "Insert new lines after a specific line number. You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace. After editing, you MUST read the file again to get the new line numbers.",
+    param(name = "file_name", description = "Full path of the file"),
+    param(
+        name = "start_line",
+        description = "The line number to insert the content after"
+    ),
+    param(name = "content", description = "Replacement content")
+)]
+pub async fn add_lines(
+    context: &dyn AgentContext,
+    file_name: &str,
+    start_line: &str,
+    content: &str,
+) -> Result<ToolOutput, ToolError> {
+    // Read the file content
+    let cmd = Command::ReadFile(file_name.into());
+
+    let file_content = match context.exec_cmd(&cmd).await {
+        Ok(output) => output.output,
+        Err(CommandError::NonZeroExit(output, ..)) => {
+            return Ok(output.into());
+        }
+        Err(e) => return Err(e.into()),
+    };
+
+    let mut lines = file_content.lines().collect::<Vec<_>>();
+
+    let Ok(start_line) = start_line.parse::<usize>() else {
+        return Ok("Invalid start line number, must be a valid number greater than 0".into());
+    };
+
+    let lines_len = lines.len();
+
+    if start_line > lines_len {
+        return Ok("Start or end line number is out of bounds".into());
+    }
+
+    if start_line == 0 {
+        return Ok("Start line number must be greater than 0".into());
+    }
+
+    // Input is 1 indexed, lines are 0 indexed
+    lines.insert(start_line, content);
+
+    let write_cmd = Command::WriteFile(file_name.into(), lines.join("\n"));
+    context.exec_cmd(&write_cmd).await?;
+
+    Ok(format!("Successfully addded content to {file_name} at line {start_line}. Before making new edits, you MUST read the file again, as the line numbers WILL have changed.").into())
 }
