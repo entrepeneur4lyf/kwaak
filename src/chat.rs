@@ -81,7 +81,7 @@ pub enum ChatState {
 }
 
 impl Default for Chat {
-    fn default() -> Self {
+fn default() -> Self {
         Self {
             name: "Chat".to_string(),
             uuid: uuid::Uuid::new_v4(),
@@ -93,7 +93,9 @@ impl Default for Chat {
             vertical_scroll_state: ScrollbarState::default(),
             vertical_scroll: 0,
             num_lines: 0,
+            auto_tail_enabled: false, // Initialize the auto_tail_enabled field
         }
+    }
     }
 }
 
