@@ -1,11 +1,1 @@
-use crate::chat_message::ChatMessage;
-
-// Ensure you define or include necessary structures for Chat and other modules
-
-pub struct Chat {
-    pub messages: Vec<ChatMessage>,
-    pub auto_tailing_enabled: bool,
-    pub message_scroll_offset: usize,
-}
-
-// You'd need other implementations and imports such as ChatState based on your project
+use uuid;\nuse crate::ScrollBarState;\nuse std::collections::HashSet;\n\n#[derive(Clone, Default, PartialEq)]\npub enum ChatState {\n    Loading,\n    LoadingWithMessage(String),\n    Ready,\n}\n\n#[derive(Clone, Default, PartialEq)]\npub struct Chat {\n    pub name: String,\n    pub uuid: uuid::Uuid,\n    pub branch_name: Option<String>,\n    pub messages: Vec<ChatMessage>,\n    pub state: ChatState,\n    pub new_message_count: usize,\n    pub completed_tool_call_ids: HashSet<String>,\n    pub vertical_scroll_state: ScrollBarState,\n    pub vertical_scroll: usize,\n    pub num_lines: usize,\n}\n\nimpl Chat {\n    #[must_use]\n    pub fn is_loading(&self) -> bool {\n        matches!(\n            self.state,\n            ChatState::Loading | ChatState::LoadingWithMessage(_)\n        )\n    }\n\n    pub fn add_message(&mut self, message: ChatMessage) {\n        self.messages.push(message);\n        self.new_message_count += 1;\n    }\n}\n\nimpl Default for Chat {\n    fn default() -> Self {\n        Self {\n            name: "Chat".to_string(),\n            uuid: uuid::Uuid::new_v4(),\n            branch_name: None,\n            messages: Vec::new(),\n            state: ChatState::Ready,\n            new_message_count: 0,\n            completed_tool_call_ids: HashSet::new(),\n            vertical_scroll_state: ScrollBarState::default(),\n            vertical_scroll: 0,\n            num_lines: 0,\n        }\n    }\n}\n
