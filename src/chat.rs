@@ -25,28 +25,34 @@ pub struct Chat {
 }
 
 impl Chat {
-    pub fn add_message(&mut self, message: ChatMessage) {
-        if !message.role().is_user() {
-            self.new_message_count += 1;
-        }
+pub fn add_message(&mut self, message: ChatMessage) {
+    if !message.role().is_user() {
+        self.new_message_count += 1;
+    }
 
-        // If it's a completed tool call, just register it is done and do not add the message
-        // The state is updated when rendering on the initial tool call
-        if message.role().is_tool() {
-            let Some(tool_call) = message.maybe_completed_tool_call() else {
-                tracing::error!(
-                    "Received a tool message without a tool call ID: {:?}",
-                    message
-                );
-                return;
-            };
-
-            self.completed_tool_call_ids
-                .insert(tool_call.id().to_string());
-
+    if message.role().is_tool() {
+        let Some(tool_call) = message.maybe_completed_tool_call() else {
+            tracing::error!(
+                "Received a tool message without a tool call ID: {:?}",
+                message
+            );
             return;
-        }
-        self.messages.push(message);
+        };
+
+        self.completed_tool_call_ids
+            .insert(tool_call.id().to_string());
+
+        return;
+    }
+    self.messages.push(message);
+
+    // Automatically scroll to the bottom if tailing is active
+    if self.is_tailing {
+        self.vertical_scroll = self.num_lines.saturating_sub(10);
+        self.vertical_scroll_state =
+            self.vertical_scroll_state.position(self.vertical_scroll);
+    }
+}
     }
 
     pub fn transition(&mut self, state: ChatState) {
