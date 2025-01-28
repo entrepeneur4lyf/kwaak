@@ -97,7 +97,6 @@ impl Default for Chat {
         }
     }
 }
-}
 
 #[cfg(test)]
 mod tests {
