@@ -53,7 +53,7 @@ pub fn add_message(&mut self, message: ChatMessage) {
             self.vertical_scroll_state.position(self.vertical_scroll);
     }
 }
-    }
+// Removed misplaced closing brace
 
     pub fn transition(&mut self, state: ChatState) {
         self.state = state;
