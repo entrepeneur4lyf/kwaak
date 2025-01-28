@@ -467,8 +467,45 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
         .map(Into::into)
 }
 
+const REPLACE_LINES_DESCRIPTION: &str = "Replace lines in a file.
+
+You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace.
+After editing, you MUST read the file again to get the new line numbers.
+
+If you want to add lines, use `add_lines` instead
+
+Example:
+
+Given a file `test.txt`:
+```
+1|Line 1
+2|Line 2
+3|Line 3
+4|Line 4
+```
+
+To replace line 2 and 3 with:
+```
+New line 2
+New line 3
+New line 4
+```
+
+Call the tool with:
+
+start_line=2,end_line=3,content=New line 2\nNew line 3\nNew line 4
+
+Then the result will be:
+```
+1|Line 1
+2|New Line 2
+3|New Line 3
+4|New Line 4
+5|Line 4
+```
+";
 #[tool(
-    description = "Replace lines in a file. You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace. After editing, you MUST read the file again to get the new line numbers. If you want to add lines, use `add_lines` instead",
+    description = REPLACE_LINES_DESCRIPTION,
     param(name = "file_name", description = "Full path of the file"),
     param(
         name = "start_line",
