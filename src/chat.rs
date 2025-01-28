@@ -21,6 +21,7 @@ pub struct Chat {
     pub vertical_scroll_state: ScrollbarState,
     pub vertical_scroll: usize,
     pub num_lines: usize,
+pub is_tail_enabled: bool, // To manage whether automatic tailing is enabled
 }
 
 impl Chat {
