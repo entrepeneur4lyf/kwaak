@@ -1,6 +1,6 @@
 use crossterm::event::KeyEvent;
 use uuid::Uuid;
-
+use crate::frontend::App;
 use crate::chat_message::ChatMessage;
 
 use super::{app::AppMode, ui_input_command::UserInputCommand};
