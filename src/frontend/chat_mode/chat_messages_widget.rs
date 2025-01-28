@@ -8,7 +8,7 @@ use super::message_formatting::format_chat_message;
 pub struct ChatMessagesWidget;
 
 impl ChatMessagesWidget {
-    pub fn render(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
+pub fn render(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         let num_chats = app.chats.len();
         let Some(current_chat) = app.current_chat_mut() else {
             return;
@@ -45,7 +45,7 @@ impl ChatMessagesWidget {
 
         // We need to consider the available area height to calculate how much can be shown
         //
-        // Because the paragraph waps the text, we need to calculate the number of lines
+        // Because the paragraph wraps the text, we need to calculate the number of lines
         // from the paragraph directly.
         current_chat.num_lines = chat_messages.line_count(area.width);
 
@@ -54,9 +54,13 @@ impl ChatMessagesWidget {
             .vertical_scroll_state
             .content_length(current_chat.num_lines);
 
-        // Max scroll to halfway view-height of last content
+        // If the scroll is already at the end, re-enable auto-tailing
         if current_chat.vertical_scroll >= current_chat.num_lines.saturating_sub(1) {
+            current_chat.auto_tail_enabled = true;
             current_chat.vertical_scroll = current_chat.num_lines.saturating_sub(1);
+        } else {
+            // If user scrolls up, disable auto-tailing
+            current_chat.auto_tail_enabled = false;
         }
 
         #[allow(clippy::cast_possible_truncation)]
@@ -67,8 +71,7 @@ impl ChatMessagesWidget {
         // Render scrollbar
         f.render_stateful_widget(
             Scrollbar::new(ScrollbarOrientation::VerticalRight)
-                .begin_symbol(Some("↑")) // Fixed the unterminated string
-                .end_symbol(Some("↓")),
+                .begin_symbol(Some("↑")).end_symbol(Some("↓")),
             area,
             &mut current_chat.vertical_scroll_state,
         );
