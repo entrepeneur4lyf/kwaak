@@ -75,7 +75,7 @@ pub enum ChatState {
     LoadingWithMessage(String),
     #[default]
     Ready,
-fn default() -> Self {
+    fn default() -> Self {
         Self {
             name: "Chat".to_string(),
             uuid: uuid::Uuid::new_v4(),
@@ -89,9 +89,7 @@ fn default() -> Self {
             num_lines: 0,
             auto_tail: true, // Auto tail is enabled by default
         }
-            vertical_scroll: 0,
-            num_lines: 0,
-        }
+    }
     }
 }
 
