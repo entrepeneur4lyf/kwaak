@@ -81,7 +81,7 @@ pub enum ChatState {
 }
 
 impl Default for Chat {
-fn default() -> Self {
+    fn default() -> Self {
         Self {
             name: "Chat".to_string(),
             uuid: uuid::Uuid::new_v4(),
