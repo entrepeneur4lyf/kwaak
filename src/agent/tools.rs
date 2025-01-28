@@ -468,11 +468,11 @@ pub async fn fetch_url(_context: &dyn AgentContext, url: &str) -> Result<ToolOut
 }
 
 #[tool(
-    description = "Replace lines in a file. You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace. After editing, you MUST read the file again to get the new line numbers.",
+    description = "Replace lines in a file. You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace. After editing, you MUST read the file again to get the new line numbers. If you want to add lines, use `add_lines` instead",
     param(name = "file_name", description = "Full path of the file"),
     param(
         name = "start_line",
-        description = "Start line number of the block to replace"
+        description = "Start line number of the lines to replace"
     ),
     param(
         name = "end_line",
@@ -539,13 +539,13 @@ pub async fn replace_lines(
 }
 
 #[tool(
-    description = "Insert new lines after a specific line number. You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace. After editing, you MUST read the file again to get the new line numbers.",
+    description = "Add new lines after a specific line number. You MUST read the file with line numbers first BEFORE EVERY EDIT, to know after what line number to add. After adding lines, you MUST read the file again to get the new line numbers.",
     param(name = "file_name", description = "Full path of the file"),
     param(
         name = "start_line",
         description = "The line number to insert the content after"
     ),
-    param(name = "content", description = "Replacement content")
+    param(name = "content", description = "New content")
 )]
 pub async fn add_lines(
     context: &dyn AgentContext,
