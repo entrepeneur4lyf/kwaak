@@ -1,34 +1,11 @@
-use std::collections::HashSet;
+use crate::chat_message::ChatMessage;
 
-#[derive(Debug, Clone)]
+// Ensure you define or include necessary structures for Chat and other modules
+
 pub struct Chat {
-    pub name: String,
-    pub uuid: uuid::Uuid,
-    pub branch_name: Option<String>,
     pub messages: Vec<ChatMessage>,
-    pub state: ChatState,
-    pub new_message_count: usize,
-    pub completed_tool_call_ids: HashSet<String>,
-    pub vertical_scroll_state: ScrollbarState,
-    pub vertical_scroll: usize,
-    pub num_lines: usize,
-    pub auto_tailing_enabled: bool,  // New field for auto-tailing
+    pub auto_tailing_enabled: bool,
+    pub message_scroll_offset: usize,
 }
 
-impl Default for Chat {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            uuid: uuid::Uuid::new_v4(),
-            branch_name: None,
-            messages: Vec::new(),
-            state: ChatState::default(),
-            new_message_count: 0,
-            completed_tool_call_ids: HashSet::new(),
-            vertical_scroll_state: ScrollbarState::default(),
-            vertical_scroll: 0,
-            num_lines: 0,
-            auto_tailing_enabled: true,  // Auto-tailing enabled by default
-        }
-    }
-}
+// You'd need other implementations and imports such as ChatState based on your project

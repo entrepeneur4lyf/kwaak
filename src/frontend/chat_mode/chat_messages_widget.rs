@@ -1,5 +1,6 @@
-use ratatui::{Frame, widgets::{Block, Borders, Paragraph}, layout::Rect};
+use ratatui::{Frame, widgets::{Block, Borders, Paragraph, Scrollbar}, layout::Rect, style::{Color, Style}};
 use super::App;
+use crate::chat_message::ChatMessage;
 
 pub struct ChatMessagesWidget;
 
