@@ -77,18 +77,19 @@ pub enum ChatState {
 
 impl Default for Chat {
     fn default() -> Self {
-        Self {
-            name: "Chat".to_string(),
-            uuid: uuid::Uuid::new_v4(),
-            branch_name: None,
-            messages: Vec::new(),
-            state: ChatState::default(),
-            new_message_count: 0,
-            completed_tool_call_ids: HashSet::new(),
-            vertical_scroll_state: ScrollbarState::default(),
-            vertical_scroll: 0,
-is_tail_enabled: true,
-        }
+Self {
+    name: "Chat".to_string(),
+    uuid: uuid::Uuid::new_v4(),
+    branch_name: None,
+    messages: Vec::new(),
+    state: ChatState::default(),
+    new_message_count: 0,
+    completed_tool_call_ids: HashSet::new(),
+    vertical_scroll_state: ScrollbarState::default(),
+    vertical_scroll: 0,
+    num_lines: 0, // Add back the missing initialization
+    is_tail_enabled: true,
+}
     }
 }
 
