@@ -397,6 +397,7 @@ impl App<'_> {
                 current_chat.vertical_scroll_state = current_chat
                     .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
+                current_chat.auto_tail = false;
             }
             UIEvent::ScrollDown => {
                 let Some(current_chat) = self.current_chat_mut() else {
@@ -406,6 +407,8 @@ impl App<'_> {
                 current_chat.vertical_scroll_state = current_chat
                     .vertical_scroll_state
                     .position(current_chat.vertical_scroll);
+                // Optional: only disable auto_tail when actually scrolling up
+                current_chat.auto_tail = current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(10);
             }
             UIEvent::ScrollEnd => {
                 let Some(current_chat) = self.current_chat_mut() else {
@@ -417,6 +420,7 @@ impl App<'_> {
                 current_chat.vertical_scroll = scroll_position;
                 current_chat.vertical_scroll_state =
                     current_chat.vertical_scroll_state.position(scroll_position);
+                current_chat.auto_tail = true;
             }
             UIEvent::Help => actions::help(self),
         }
