@@ -6,7 +6,12 @@ use crate::{
     frontend::{ui_event::UIEvent, ui_input_command::UserInputCommand, App},
 };
 
-pub fn on_key(app: &mut App, key: &KeyEvent) {
+    // Detect user scrolling actions and set the scrolling state.
+    if matches!(key.code, KeyCode::PageUp | KeyCode::PageDown | KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right) {
+        if let Some(current_chat) = app.current_chat_mut() {
+            current_chat.user_is_scrolling = true;
+        }
+    }
     let current_input = app.text_input.lines().join("\n");
 
     // `Ctrl-Enter` or `Shift-Enter` or `Ctrl-s` to send the message in the text input
