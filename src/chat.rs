@@ -96,7 +96,7 @@ impl Default for Chat {
             auto_tail_enabled: false, // Initialize the auto_tail_enabled field
         }
     }
-    }
+}
 }
 
 #[cfg(test)]
