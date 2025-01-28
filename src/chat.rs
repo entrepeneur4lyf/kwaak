@@ -87,7 +87,7 @@ impl Default for Chat {
             completed_tool_call_ids: HashSet::new(),
             vertical_scroll_state: ScrollbarState::default(),
             vertical_scroll: 0,
-self.is_tail_enabled = true,
+is_tail_enabled: true,
         }
     }
 }
