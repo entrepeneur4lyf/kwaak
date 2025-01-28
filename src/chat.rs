@@ -25,7 +25,7 @@ pub auto_tail_enabled: bool,
 }
 
 impl Chat {
-    pub fn add_message(&mut self, message: ChatMessage) {
+pub fn add_message(&mut self, message: ChatMessage) {
         if !message.role().is_user() {
             self.new_message_count += 1;
         }
@@ -47,6 +47,11 @@ impl Chat {
             return;
         }
         self.messages.push(message);
+
+        // Auto-scroll to the bottom if auto-tailing is enabled
+        if self.auto_tail_enabled {
+            self.vertical_scroll = self.num_lines;
+        }
     }
 
     pub fn transition(&mut self, state: ChatState) {
