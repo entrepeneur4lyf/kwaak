@@ -1,76 +1,50 @@
-use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Padding, Paragraph, Scrollbar, ScrollbarOrientation, Wrap};
-
-use crate::frontend::App;
-
-use super::message_formatting::format_chat_message;
+use ratatui::{Frame, widgets::{Block, Borders, Paragraph}, layout::Rect};
+use super::App;
 
 pub struct ChatMessagesWidget;
 
 impl ChatMessagesWidget {
-    pub fn render(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
-        let num_chats = app.chats.len();
-        let Some(current_chat) = app.current_chat_mut() else {
-            return;
-        };
-        let mut messages = current_chat.messages.clone();
+    pub fn render(f: &mut Frame, app: &mut App, area: Rect) {
+        // Check if there are chat messages
+        if let Some(current_chat) = app.chats.get_mut(&app.current_chat_id) {
+            // Prepare messages for rendering
+            let messages: Vec<String> = current_chat
+                .messages
+                .iter()
+                .map(|message| format_chat_message(message))
+                .collect();
 
-        if messages.is_empty() && num_chats == 1 {
-            messages.push(crate::chat_message::ChatMessage::new_system(
-                "Let's get kwekking. Start chatting with an agent and confirm with ^s to send! At any time you can type `/help` to list keybindings and other slash commands.",
-            ));
+            // Add default system message if no messages exist
+            if messages.is_empty() && app.chats.len() == 1 {
+                messages.push("[System] Start chatting...".to_string());
+            }
+
+            // Format messages into a paragraph
+            let paragraph = Paragraph::new(messages.join("\n")).block(Block::default().borders(Borders::ALL));
+
+            // Calculate scroll offset
+            let scroll_offset = if current_chat.auto_tailing_enabled {
+                messages.len().saturating_sub(area.height as usize)
+            } else {
+                current_chat.message_scroll_offset
+            };
+
+            // Render paragraph with scroll offset
+            f.render_widget(paragraph, area.subarea(0, scroll_offset as u16));
+
+            // Render scrollbar if necessary
+            if messages.len() > area.height as usize {
+                f.render_widget(
+                    Scrollbar::default()
+                        .highlight_symbol("▞")
+                        .highlight_style(Style::default().fg(Color::Cyan)),
+                    area,
+                );
+            }
         }
-        let chat_content: Text = messages
-            .iter()
-            .flat_map(|m| format_chat_message(current_chat, m))
-            .collect();
-
-        // Since we are rendering the chat, we can reset the new message count
-        current_chat.new_message_count = 0;
-
-        // Unify borders
-        let border_set = symbols::border::Set {
-            top_right: symbols::line::NORMAL.horizontal_down,
-            ..symbols::border::PLAIN
-        };
-
-        let message_block = Block::default()
-            .border_set(border_set)
-            .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
-            .padding(Padding::horizontal(1));
-
-        let chat_messages = Paragraph::new(chat_content)
-            .block(message_block)
-            .wrap(Wrap { trim: false });
-
-        // We need to consider the available area height to calculate how much can be shown
-        //
-        // Because the paragraph waps the text, we need to calculate the number of lines
-        // from the paragraph directly.
-        current_chat.num_lines = chat_messages.line_count(area.width);
-
-        // Record the number of lines in the chat for multi line scrolling
-        current_chat.vertical_scroll_state = current_chat
-            .vertical_scroll_state
-            .content_length(current_chat.num_lines);
-
-        // Max scroll to halfway view-height of last content
-        if current_chat.vertical_scroll >= current_chat.num_lines.saturating_sub(1) {
-            current_chat.vertical_scroll = current_chat.num_lines.saturating_sub(1);
-        }
-
-        #[allow(clippy::cast_possible_truncation)]
-        let chat_messages = chat_messages.scroll((current_chat.vertical_scroll as u16, 0));
-
-        f.render_widget(chat_messages, area);
-
-        // Render scrollbar
-        f.render_stateful_widget(
-            Scrollbar::new(ScrollbarOrientation::VerticalRight)
-                .begin_symbol(Some("↑")) // Fixed the unterminated string
-                .end_symbol(Some("↓")),
-            area,
-            &mut current_chat.vertical_scroll_state,
-        );
     }
+}
+
+fn format_chat_message(message: &str) -> String {
+    format!("- {}", message)
 }
