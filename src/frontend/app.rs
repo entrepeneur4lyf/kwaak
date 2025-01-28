@@ -389,15 +389,14 @@ impl App<'_> {
                     );
                 }
             }
-            UIEvent::ScrollUp => {
-                let Some(current_chat) = self.current_chat_mut() else {
-                    return;
-                };
-                current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
-                current_chat.vertical_scroll_state = current_chat
-                    .vertical_scroll_state
-                    .position(current_chat.vertical_scroll);
-            }
+UIEvent::ScrollUp => {
+    let Some(current_chat) = self.current_chat_mut() else {
+        return;
+    };
+    current_chat.auto_tail = false; // Disable auto-tail on manual scroll up
+    current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_sub(2);
+    current_chat.vertical_scroll_state = current_chat.vertical_scroll_state.position(current_chat.vertical_scroll);
+}
             UIEvent::ScrollDown => {
                 let Some(current_chat) = self.current_chat_mut() else {
                     return;
