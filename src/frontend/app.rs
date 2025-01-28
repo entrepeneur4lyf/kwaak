@@ -1,1 +1,58 @@
-// Define AppMode and ensure it is correctly used across the app\nuse tui::layout::Rect;\nuse crate::frontend::app::App;\n\npub enum AppMode {\n    Chat,\n    Logs,\n    Quit,\n}\n\nimpl AppMode {\n    pub fn on_key(self, app: &mut App, key: tui::backend::Backend) {\n        match self {\n            AppMode::Chat => {\n                // Key handling specific to chat mode\n            },\n            AppMode::Logs => {\n                // Key handling specific to logs mode\n            },\n            AppMode::Quit => {\n                // Handle quit\n            },\n        };\n    }\n\n    pub fn tab_index(self) -> Option<usize> {\n        match self {\n            AppMode::Chat => Some(0),\n            AppMode::Logs => Some(1),\n            _ => None,\n        }\n    }\n\n    pub fn from_index(index: usize) -> Option<Self> {\n        match index {\n            0 => Some(AppMode::Chat),\n            1 => Some(AppMode::Logs),\n            _ => None,\n        }\n    }\n}\n
+use std::sync::mpsc;
+use ratatui::Terminal;
+use ratatui::backend::{Backend, TermionBackend};
+use ratatui::widgets::{Block, Borders};
+use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode};
+use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
+use crate::chat::{Chat, ChatState};
+use crate::error::Result;
+use crate::store::Store;
+use crate::event::{UIEvent, Command};
+use crate::chat_mode::{on_key, ChatMessagesWidget};
+use crate::frontend::app::{App, AppMode};
+use termion::event::Key;
+use tui::widgets::Tabs;
+use std::io;
+
+impl App {
+    pub fn run(&mut self) -> Result<()> {
+        let stdout = io::stdout().into_raw_mode()?;
+        let backend = TermionBackend::new(stdout);
+        let mut terminal = Terminal::new(backend)?;
+
+        terminal.clear()?;
+        terminal.enter_alternate_screen()?;
+        crossterm::execute!(io::stdout(), EnableMouseCapture)?;
+
+        let (tx, rx) = mpsc::channel();
+        self.ui_tx = tx.clone();
+        self.ui_rx = Some(rx);
+
+        loop {
+            terminal.draw(|f| self.draw(f))?;
+
+            if event::poll(std::time::Duration::from_millis(200))? {
+                if let Event::Key(key_event) = event::read()? {
+                    if let KeyCode::Char('q') = key_event.code {
+                        break;
+                    }
+                    if key_event.code == KeyCode::Char('q') {
+                        break;
+                    }
+                }
+            }
+
+            self.recv_messages().await;
+
+            if self.mode == AppMode::Quit {
+                break;
+            }
+        }
+
+        terminal.leave_alternate_screen()?;
+        crossterm::execute!(io::stdout(), DisableMouseCapture)?;
+        terminal.show_cursor()?;
+
+        Ok(())
+    }
+}
