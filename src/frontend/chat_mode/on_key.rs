@@ -64,28 +64,29 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
         return;
     }
 
+    if let Some(current_chat) = app.current_chat_mut() {
+        match key.code {
+            KeyCode::End => {
+                app.send_ui_event(UIEvent::ScrollEnd);
+                current_chat.auto_tail = true;
+            }
+            KeyCode::PageDown | KeyCode::Down => {
+                app.send_ui_event(UIEvent::ScrollDown);
+                // Disable auto-tail if user scrolls down manually, but keep enabled if at end
+                if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(1) {
+                    current_chat.auto_tail = false;
+                }
+            }
+            KeyCode::PageUp | KeyCode::Up => {
+                app.send_ui_event(UIEvent::ScrollUp);
+                current_chat.auto_tail = false;
+            }
+            _ => {}
+        }
+    }
+
     match key.code {
         KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
-        KeyCode::End => {
-            app.send_ui_event(UIEvent::ScrollEnd);
-        }
-        KeyCode::PageDown => {
-            app.send_ui_event(UIEvent::ScrollDown);
-        }
-        KeyCode::PageUp => {
-            app.send_ui_event(UIEvent::ScrollUp);
-        }
-        KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right => {
-            if current_input.is_empty() {
-                match key.code {
-                    KeyCode::Up => app.send_ui_event(UIEvent::ScrollUp),
-                    KeyCode::Down => app.send_ui_event(UIEvent::ScrollDown),
-                    _ => {} // Handle other arrow keys if needed
-                }
-            } else {
-                app.text_input.input(*key);
-            }
-        }
         _ => {
             // Hack to get linewrapping to work with tui_textarea
             if let Some(last_line) = app.text_input.lines().last() {
