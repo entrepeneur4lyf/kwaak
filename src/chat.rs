@@ -21,6 +21,9 @@ pub struct Chat {
     pub vertical_scroll_state: ScrollbarState,
     pub vertical_scroll: usize,
     pub num_lines: usize,
+    
+    // Whether to auto-tail the chat on new messages
+    pub auto_tail: bool,
 }
 
 impl Chat {
@@ -46,6 +49,13 @@ impl Chat {
             return;
         }
         self.messages.push(message);
+
+        // Auto-tail if enabled
+        if self.auto_tail {
+            self.vertical_scroll = self.num_lines.saturating_sub(10);
+            self.vertical_scroll_state =
+                self.vertical_scroll_state.position(self.vertical_scroll);
+        }
     }
 
     pub fn transition(&mut self, state: ChatState) {
@@ -87,6 +97,7 @@ impl Default for Chat {
             vertical_scroll_state: ScrollbarState::default(),
             vertical_scroll: 0,
             num_lines: 0,
+            auto_tail: true,
         }
     }
 }
