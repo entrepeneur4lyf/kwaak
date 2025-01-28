@@ -22,6 +22,8 @@ pub struct Chat {
     pub vertical_scroll: usize,
     pub num_lines: usize,
 }
+    // Determines if auto-tailing of new messages is enabled.
+    pub auto_tailing: bool,
 
 impl Chat {
     pub fn add_message(&mut self, message: ChatMessage) {
