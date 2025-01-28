@@ -399,13 +399,14 @@ impl App<'_> {
                 current_chat.auto_tailing = false;
                     .position(current_chat.vertical_scroll);
             }
-            UIEvent::ScrollDown => {
                 let Some(current_chat) = self.current_chat_mut() else {
                     return;
                 };
                 current_chat.vertical_scroll = current_chat.vertical_scroll.saturating_add(2);
                 current_chat.vertical_scroll_state = current_chat
                     .vertical_scroll_state
+                    .position(current_chat.vertical_scroll);
+                current_chat.auto_tailing = false;
                     .position(current_chat.vertical_scroll);
             }
             UIEvent::ScrollEnd => {
