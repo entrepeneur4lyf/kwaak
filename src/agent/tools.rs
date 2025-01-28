@@ -471,9 +471,9 @@ const EDIT_FILE_DESCRIPTION: &str = "Edit a file in plain-text format.
 You can use this tool to do the following:
 
 * Replace lines between a start and end line number (inclusive!)
-* Insert a new line AFTER a specific line number
+* Insert a new line AFTER a specific line number (set end_line to 0)
 * Remove lines by replacing them with an empty string
-* Append to an existing file
+* Append to an existing file (start_line to last line, end_line to 0)
 
 You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace.
 
@@ -497,7 +497,7 @@ To add text without replacing, set the `end_line` to 0. The content will be adde
     ),
     param(
         name = "end_line",
-        description = "End line number of the block to replace. Inclusive! End line will be replaced as well. Leave as 0 to append after the start line."
+        description = "End line number of the block to replace. Inclusive! End line will be replaced as well. Set to 0 to insert new content after the start line."
     ),
     param(name = "content", description = "Replacement content")
 )]

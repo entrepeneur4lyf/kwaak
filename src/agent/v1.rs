@@ -287,6 +287,7 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
         "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file. Do not make changes other than the ones requested.",
         "Prefer using `edit_file` over `write_file`, if possible. This is faster and less error prone. You can only make ONE `edit_file` call at the time. After each `edit_file` you MUST call `read_file_with_line_numbers` again, as the linenumbers WILL have changed..",
         "Before every call to `edit_file`, you MUST read the file content with the line numbers. You are not allowed to count lines yourself.",
+        "If you want to insert content with `edit_file`, it will be added AFTER start_line. Set end_line to 0, otherwise it will replace",
         "If you intend to edit multiple files or multiple edits in a single file, outline your plan first, then call the first tool immediately. Every single edit MUST be preceded by a `read_file_with_line_numbers`",
         "If you create a pull request, you must ensure the tests pass",
         "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
