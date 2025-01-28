@@ -64,37 +64,30 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
         return;
     }
 
-    let auto_tail_update = if let Some(current_chat) = app.current_chat_mut() {
+    let mut update_auto_tail = None;
+
+    if let Some(current_chat) = app.current_chat_mut() {
         match key.code {
             KeyCode::End => {
-                app.send_ui_event(UIEvent::ScrollEnd);
-                Some(true)
+                update_auto_tail = Some(true);
             }
             KeyCode::PageDown | KeyCode::Down => {
-                app.send_ui_event(UIEvent::ScrollDown);
+                // Disable auto-tail if user scrolls down manually, but keep enabled if at end
                 if current_chat.vertical_scroll < current_chat.num_lines.saturating_sub(1) {
-                    Some(false)
-                } else {
-                    None
+                    update_auto_tail = Some(false);
                 }
             }
             KeyCode::PageUp | KeyCode::Up => {
-                app.send_ui_event(UIEvent::ScrollUp);
-                Some(false)
+                update_auto_tail = Some(false);
             }
-            _ => None,
-        }
-    } else {
-        None
-    };
-
-    if let Some(current_chat) = app.current_chat_mut() {
-        if let Some(auto_tail) = auto_tail_update {
-            current_chat.auto_tail = auto_tail;
+            _ => {}
         }
     }
 
     match key.code {
+        KeyCode::End => app.send_ui_event(UIEvent::ScrollEnd),
+        KeyCode::PageDown | KeyCode::Down => app.send_ui_event(UIEvent::ScrollDown),
+        KeyCode::PageUp | KeyCode::Up => app.send_ui_event(UIEvent::ScrollUp),
         KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
         _ => {
             // Hack to get linewrapping to work with tui_textarea
@@ -108,6 +101,10 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
             }
             app.text_input.input(*key);
         }
+    }
+
+    if let (Some(current_chat), Some(auto_tail)) = (app.current_chat_mut(), update_auto_tail) {
+        current_chat.auto_tail = auto_tail;
     }
 }
 
