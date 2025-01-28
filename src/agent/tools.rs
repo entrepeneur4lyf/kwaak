@@ -472,6 +472,8 @@ const REPLACE_LINES_DESCRIPTION: &str = "Replace lines in a file.
 You MUST read the file with line numbers first BEFORE EVERY EDIT, to know the start and end line numbers of the block you want to replace.
 After editing, you MUST read the file again to get the new line numbers.
 
+You MUST use the correct amount of whitespace.
+
 If you want to add lines, use `add_lines` instead
 
 Example:
@@ -513,7 +515,7 @@ Then the result will be:
     ),
     param(
         name = "end_line",
-        description = "End line number of the block to replace. Inclusive! End line will be replaced as well."
+        description = "Last line number of the block to replace."
     ),
     param(name = "content", description = "Replacement content")
 )]
