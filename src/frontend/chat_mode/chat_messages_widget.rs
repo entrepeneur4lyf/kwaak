@@ -1,1 +1,36 @@
-use super::common::format_chat_message;\n// Assuming necessary imports and trait implementations are in place\nuse tui::widgets::{Block, Borders, StatefulWidget};\nuse tui::text::Text;\nuse crate::chat::Chat;\nuse crate::frontend::app::App;\nuse tui::layout::Rect;\nuse tui::Frame;\nuse tui::widgets::Scrollbar;\nuse tui::widgets::ScrollbarOrientation;\n\n/// ChatMessagesWidget represents the rendering component\n/// for displaying chat messages including auto-tailing functionality.\npub struct ChatMessagesWidget;\n\nimpl ChatMessagesWidget {\n    pub fn render<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {\n        if let Some(current_chat) = app.current_chat() {\n            let messages = current_chat.messages.iter().map(format_chat_message).collect::<Vec<_>>();\n            let chat_messages = messages.join(\"\\n\");\n\n            let auto_tailing_enabled = current_chat.auto_tailing_enabled &&\n                current_chat.vertical_scroll >= current_chat.num_lines.saturating_sub(1);\n\n            let chat_widget = Paragraph::new(chat_messages)\n                .block(Block::default().borders(Borders::ALL).title(\"Chat\"))\n                .scroll((current_chat.vertical_scroll as u16, 0));\n\n            f.render_widget(chat_widget, area);\n\n            f.render_stateful_widget(\n                Scrollbar::new(ScrollbarOrientation::VerticalRight)\n                    .begin_symbol(Some(\"\\"     ,
+use super::common::format_chat_message;
+use tui::widgets::{Block, Borders, StatefulWidget};
+use tui::text::Text;
+use crate::chat::Chat;
+use crate::frontend::app::App;
+use tui::layout::Rect;
+use tui::Frame;
+use tui::widgets::Scrollbar;
+use tui::widgets::ScrollbarOrientation;
+
+/// ChatMessagesWidget represents the rendering component
+/// for displaying chat messages including auto-tailing functionality.
+pub struct ChatMessagesWidget;
+
+impl ChatMessagesWidget {
+    pub fn render<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
+        if let Some(current_chat) = app.current_chat() {
+            let messages = current_chat.messages.iter().map(format_chat_message).collect::<Vec<_>>();
+            let chat_messages = messages.join("\n");
+
+            let auto_tailing_enabled = current_chat.auto_tailing_enabled &&
+                current_chat.vertical_scroll >= current_chat.num_lines.saturating_sub(1);
+
+            let chat_widget = Paragraph::new(chat_messages)
+                .block(Block::default().borders(Borders::ALL).title("Chat"))
+                .scroll((current_chat.vertical_scroll as u16, 0));
+
+            f.render_widget(chat_widget, area);
+
+            f.render_stateful_widget(
+                Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                    .begin_symbol(Some("|")
+            );
+        }
+    }
+}
