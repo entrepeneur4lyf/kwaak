@@ -1,56 +1,35 @@
-use crate::chat_message::ChatMessage;
-use std::collections::HashSet;
-use uuid::Uuid;
-
-#[derive(Clone, Default, PartialEq)]
-pub enum ChatState {
-    Loading,
-    LoadingWithMessage(String),
-    Ready,
-}
+use crate::chat::{ChatState, Message};
+use crate::error::Result;
+use crate::store::Store;
+use crate::event::{UIEvent, Command};
+use crate::chat_mode::{on_key, message_formatting};
+use crate::frontend::app::{App, AppMode};
+use termion::event::Key;
+use tui::widgets::Tabs;
 
 #[derive(Clone, Default, PartialEq)]
 pub struct Chat {
-    pub name: String,
-    pub uuid: Uuid,
-    pub branch_name: Option<String>,
-    pub messages: Vec<ChatMessage>,
-    pub state: ChatState,
-    pub new_message_count: usize,
-    pub completed_tool_call_ids: HashSet<String>,
-    pub vertical_scroll_state: ScrollbarState,
+    pub id: String,
+    pub messages: Vec<Message>,
+    pub auto_tailing_enabled: bool,
     pub vertical_scroll: usize,
     pub num_lines: usize,
-}
-
-impl Chat {
-    #[must_use]
-    pub fn is_loading(&self) -> bool {
-        matches!(
-            self.state,
-            ChatState::Loading | ChatState::LoadingWithMessage(_)
-        )
-    }
+    pub vertical_scroll_state: ScrollbarState,
+    // Ensure required imports
     
-    pub fn add_message(&mut self, message: ChatMessage) {
-        self.messages.push(message);
-        self.new_message_count += 1;
-    }
+    pub state: ChatState,
 }
 
 impl Default for Chat {
     fn default() -> Self {
         Self {
-            name: "Chat".to_string(),
-            uuid: Uuid::new_v4(),
-            branch_name: None,
+            id: String::new(),
             messages: Vec::new(),
-            state: ChatState::Ready,
-            new_message_count: 0,
-            completed_tool_call_ids: HashSet::new(),
-            vertical_scroll_state: ScrollbarState::default(),
+            auto_tailing_enabled: true,
             vertical_scroll: 0,
             num_lines: 0,
+            vertical_scroll_state: ScrollbarState::default(),
+            state: ChatState::Ready,
         }
     }
 }
