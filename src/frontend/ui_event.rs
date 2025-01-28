@@ -56,3 +56,20 @@ impl From<KeyEvent> for UIEvent {
         Self::Input(key)
     }
 }
+impl UIEvent {
+    pub fn handle_event(&self, app: &mut App) {
+        match self {
+            UIEvent::ScrollEnd => {
+                if let Some(chat) = app.current_chat_mut() {
+                    chat.is_tail_enabled = true;
+                }
+            }
+            UIEvent::ScrollUp | UIEvent::ScrollDown => {
+                if let Some(chat) = app.current_chat_mut() {
+                    chat.is_tail_enabled = false;
+                }
+            }
+            _ => {}
+        }
+    }
+}
