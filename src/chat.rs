@@ -68,14 +68,7 @@ impl Chat {
         self.completed_tool_call_ids.contains(tool_call_id)
     }
 }
-
-#[derive(Debug, Clone, Default, strum::EnumIs, PartialEq)]
-pub enum ChatState {
-    Loading,
-    LoadingWithMessage(String),
-    #[default]
-    Ready,
-}
+impl Default for Chat {
     fn default() -> Self {
         Self {
             name: "Chat".to_string(),
@@ -91,9 +84,7 @@ pub enum ChatState {
             auto_tail: true, // Auto tail is enabled by default
         }
     }
-    }
 }
-
 #[cfg(test)]
 mod tests {
     use swiftide::chat_completion;
