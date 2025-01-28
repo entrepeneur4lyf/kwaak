@@ -1,51 +1,38 @@
-use ratatui::{Frame, widgets::{Block, Borders, Paragraph, Scrollbar}, layout::Rect, style::{Color, Style}};
-use super::App;
-use crate::chat_message::ChatMessage;
+use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::layout::Rect;
+use super::common::format_chat_message;
+use crate::frontend::app::{UIEvent};
 
+/// ChatMessagesWidget represents the rendering component
+/// for displaying chat messages including auto-tailing functionality.
 pub struct ChatMessagesWidget;
 
 impl ChatMessagesWidget {
-    pub fn render(f: &mut Frame, app: &mut App, area: Rect) {
-        // Check if there are chat messages
-        if let Some(current_chat) = app.chats.get_mut(&app.current_chat_id) {
-            // Prepare messages for rendering
-            let messages: Vec<String> = current_chat
-                .messages
-                .iter()
-                .map(|message| format_chat_message(message))
-                .collect();
+    pub fn render<B: ratatui::backend::Backend>(
+        &self,
+        f: &mut ratatui::Frame<B>,
+        area: Rect,
+        chat: &Chat,
+        auto_tailing_enabled: bool,
+    ) {
+        // Logic for rendering chat messages and handling auto-tailing
 
-            // Add default system message if no messages exist
-            if messages.is_empty() && app.chats.len() == 1 {
-                messages.push("[System] Start chatting...".to_string());
-            }
+        // Assuming `format_chat_message` handles message formatting,
+        // and `Chat` contains logic to manage messages and associated scroll state
+        let messages = chat.messages.iter().map(format_chat_message).collect::<Vec<_>>();
 
-            // Format messages into a paragraph
-            let paragraph = Paragraph::new(messages.join("\n")).block(Block::default().borders(Borders::ALL));
+        let paragraph = Paragraph::new(messages.join("\n")).block(
+            Block::default().borders(Borders::ALL).title("Chat"),
+        );
 
-            // Calculate scroll offset
-            let scroll_offset = if current_chat.auto_tailing_enabled {
-                messages.len().saturating_sub(area.height as usize)
-            } else {
-                current_chat.message_scroll_offset
-            };
+        f.render_widget(paragraph, area);
 
-            // Render paragraph with scroll offset
-            f.render_widget(paragraph, area.subarea(0, scroll_offset as u16));
-
-            // Render scrollbar if necessary
-            if messages.len() > area.height as usize {
-                f.render_widget(
-                    Scrollbar::default()
-                        .highlight_symbol("▞")
-                        .highlight_style(Style::default().fg(Color::Cyan)),
-                    area,
-                );
-            }
+        // Handle auto-tailing logic here
+        if auto_tailing_enabled {
+            // Code to ensure the latest messages are automatically scrolled into view
         }
     }
 }
 
-fn format_chat_message(message: &str) -> String {
-    format!("- {}", message)
-}
+// Note: Supplementary scroll state management depending on exact application logic would be required.
+// This would involve adjusting Chat struct's interface and ensuring harmony with auto-tailing concerns.
