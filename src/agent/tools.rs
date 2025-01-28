@@ -481,9 +481,6 @@ After editing, you MUST read the file again to get the new line numbers.
 
 If you intend to make multiple changes to a single file, you must read -> edit -> read -> edit -> read -> edit, etc.
 
-Prefer this over writing the full file content if you only need to change a small part of the file.
-This avoids unnecessary conflicts.
-
 You MUST respect the exact indentation and formatting of the file you are editing. For instance, Python code breaks if not indenting correctly.
 
 To add text without replacing, set the `end_line` to 0. The content will be added **after** that line.
