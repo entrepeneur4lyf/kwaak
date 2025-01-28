@@ -75,6 +75,7 @@ pub enum ChatState {
     LoadingWithMessage(String),
     #[default]
     Ready,
+}
     fn default() -> Self {
         Self {
             name: "Chat".to_string(),
