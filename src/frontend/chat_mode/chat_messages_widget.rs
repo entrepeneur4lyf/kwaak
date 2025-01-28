@@ -27,10 +27,14 @@ impl ChatMessagesWidget {
 
             f.render_widget(chat_widget, area);
 
-            f.render_stateful_widget(
-                Scrollbar::new(ScrollbarOrientation::VerticalRight)
-                    .begin_symbol(Some("|")
-            );
+            if auto_tailing_enabled {
+                f.render_stateful_widget(
+                    Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                        .begin_symbol(Some("|")),
+                    area,
+                    &mut current_chat.vertical_scroll_state,
+                );
+            }
         }
     }
 }
