@@ -16,7 +16,7 @@ openai_api_key = "{{ openai_api_key}}"
 github_api_key = "{{ github_api_key }}"
 {% else -%}
 #github_api_key = "env:GITHUB_TOKEN"
-{% endif %}
+{% endif -%}
 
 ## Optional: Connect kwaak to tavily to enable it to search the web
 #tavily_api_key = "env:TAVILY_API_KEY"
@@ -100,3 +100,7 @@ vector_size = {{ llm.vector_size }}
 ## If your project already has a Dockerfile and you want to keep it clean, you can specify a different file to use.
 [docker]
 dockerfile = "Dockerfile"
+
+## File Ignore Patterns
+## Specify file glob patterns to ignore when the agent looks to modify files.
+ignore_patterns = ["*.md", "tests/*", "examples/*.rs"] # Add your patterns here.
