@@ -127,7 +127,7 @@ pub async fn start(
 ) -> Result<RunningAgent> {
     let query_provider: Box<dyn ChatCompletion> =
         repository.config().query_provider().try_into()?;
-    let fast_query_provider: Box<dyn SimplePrompt> =
+    let fast_query_provider: Arc<dyn SimplePrompt> =
         repository.config().indexing_provider().try_into()?;
 
     let github_session = match repository.config().github_api_key {
@@ -141,8 +141,8 @@ pub async fn start(
     // Probably nicer to have a `ChatSession` or `AgentSession` that encapsulates all the
     // complexity
     let ((), branch_name, executor, initial_context) = tokio::try_join!(
-        util::rename_chat(&query, &fast_query_provider, &command_responder),
-        util::create_branch_name(&query, &uuid, &fast_query_provider, &command_responder),
+        util::rename_chat(&query, &*fast_query_provider, &command_responder),
+        util::create_branch_name(&query, &uuid, &*fast_query_provider, &command_responder),
         start_tool_executor(uuid, &repository),
         generate_initial_context(&repository, query)
     )?;
@@ -165,18 +165,18 @@ pub async fn start(
     }
 
     let command_responder = Arc::new(command_responder);
-    let tx_2 = command_responder.clone();
-    let tx_3 = command_responder.clone();
-    let tx_4 = command_responder.clone();
+    let tx_2 = Arc::clone(&command_responder);
+    let tx_3 = Arc::clone(&command_responder);
+    let tx_4 = Arc::clone(&command_responder);
 
     let tool_summarizer = ToolSummarizer::new(
-        fast_query_provider,
+        Arc::clone(&fast_query_provider),
         &["run_tests", "run_coverage"],
         &tools,
         &agent_env.start_ref,
     );
     let conversation_summarizer =
-        ConversationSummarizer::new(query_provider.clone(), &tools, &agent_env.start_ref);
+        ConversationSummarizer::new(Arc::clone(&query_provider), &tools, &agent_env.start_ref);
     let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
     let push_to_remote_enabled =
@@ -210,7 +210,7 @@ pub async fn start(
             })
         })
         .on_new_message(move |_, message| {
-            let command_responder = tx_2.clone();
+            let command_responder = Arc::clone(&tx_2);
             let message = message.clone();
 
             Box::pin(async move {
@@ -220,14 +220,14 @@ pub async fn start(
             })
         })
         .before_completion(move |_, _| {
-            let command_responder = tx_3.clone();
+            let command_responder = Arc::clone(&tx_3);
             Box::pin(async move {
                 command_responder.update("running completions");
                 Ok(())
             })
         })
         .before_tool(move |_, tool| {
-            let command_responder = tx_4.clone();
+            let command_responder = Arc::clone(&tx_4);
             let tool = tool.clone();
             Box::pin(async move {
                 command_responder.update(&format!("running tool {}", tool.name()));
@@ -237,8 +237,8 @@ pub async fn start(
         .after_tool(tool_summarizer.summarize_hook())
         .after_each(move |context| {
             let maybe_lint_fix_command = maybe_lint_fix_command.clone();
-            let command_responder = command_responder.clone();
-            let fast_query_provider = fast_query_provider.clone();
+            let command_responder = Arc::clone(&command_responder);
+            let fast_query_provider = Arc::clone(&fast_query_provider);
             Box::pin(async move {
                 if accept_non_zero_exit(
                     context
