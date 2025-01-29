@@ -56,6 +56,7 @@ pub fn available_tools(
     match repository.config().agent_edit_mode {
         AgentEditMode::Whole => {
             tools.push(tools::write_file());
+            tools.push(tools::read_file());
         }
         AgentEditMode::Line => {
             tools.push(tools::read_file_with_line_numbers());
