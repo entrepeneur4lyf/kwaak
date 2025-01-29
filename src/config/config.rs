@@ -87,6 +87,10 @@ pub struct Config {
     /// How the agent will edit files, defaults to whole
     #[serde(default)]
     pub agent_edit_mode: AgentEditMode,
+
+    /// Patterns for files to ignore when editing
+    #[serde(default)]
+    pub ignore_patterns: Option<Vec<String>>,
 }
 
 fn default_otel_enabled() -> bool {
