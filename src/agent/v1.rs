@@ -196,9 +196,15 @@ pub async fn start(
                     .add_message(chat_completion::ChatMessage::new_user(initial_context))
                     .await;
 
-                let top_level_project_overview = context.exec_cmd(&Command::shell("fd -iH -d2 -E '.git/*'"))
-.await?.output;
-                context.add_message(chat_completion::ChatMessage::new_user(format!("The following is a max depth 2, high level overview of the directory structure of the project: \n ```{top_level_project_overview}```")).await;
+                let top_level_project_overview = context
+                    .exec_cmd(&Command::shell("fd -iH -d2 -E '.git/*'"))
+                    .await?
+                    .output;
+                context
+                    .add_message(chat_completion::ChatMessage::new_user(format!(
+                        "The following is a max depth 2, high level overview of the directory structure of the project: \n ```{top_level_project_overview}```"
+                    )))
+                    .await;
 
                 Ok(())
             })
@@ -271,7 +277,7 @@ pub async fn start(
                     .context("Could not commit files to git")?;
                 }
 
-                if  push_to_remote_enabled {
+                if push_to_remote_enabled {
                     accept_non_zero_exit(context.exec_cmd(&Command::shell("git push")).await)
                         .context("Could not push changes to git")?;
                 }
