@@ -65,16 +65,10 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
     }
 
     match key.code {
+        KeyCode::End => app.send_ui_event(UIEvent::ScrollEnd),
+        KeyCode::PageDown => app.send_ui_event(UIEvent::ScrollDown),
+        KeyCode::PageUp => app.send_ui_event(UIEvent::ScrollUp),
         KeyCode::Tab => app.send_ui_event(UIEvent::NextChat),
-        KeyCode::End => {
-            app.send_ui_event(UIEvent::ScrollEnd);
-        }
-        KeyCode::PageDown => {
-            app.send_ui_event(UIEvent::ScrollDown);
-        }
-        KeyCode::PageUp => {
-            app.send_ui_event(UIEvent::ScrollUp);
-        }
         KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right => {
             if current_input.is_empty() {
                 match key.code {
