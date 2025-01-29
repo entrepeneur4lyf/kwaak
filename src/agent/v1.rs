@@ -127,7 +127,7 @@ pub async fn start(
 ) -> Result<RunningAgent> {
     let query_provider: Box<dyn ChatCompletion> =
         repository.config().query_provider().try_into()?;
-    let fast_query_provider: Arc<dyn SimplePrompt> =
+    let fast_query_provider: Box<dyn SimplePrompt> =
         repository.config().indexing_provider().try_into()?;
 
     let github_session = match repository.config().github_api_key {
@@ -141,8 +141,8 @@ pub async fn start(
     // Probably nicer to have a `ChatSession` or `AgentSession` that encapsulates all the
     // complexity
     let ((), branch_name, executor, initial_context) = tokio::try_join!(
-        util::rename_chat(&query, &*fast_query_provider, &command_responder),
-        util::create_branch_name(&query, &uuid, &*fast_query_provider, &command_responder),
+        util::rename_chat(&query, &fast_query_provider, &command_responder),
+        util::create_branch_name(&query, &uuid, &fast_query_provider, &command_responder),
         start_tool_executor(uuid, &repository),
         generate_initial_context(&repository, query)
     )?;
@@ -170,13 +170,13 @@ pub async fn start(
     let tx_4 = Arc::clone(&command_responder);
 
     let tool_summarizer = ToolSummarizer::new(
-        Arc::clone(&fast_query_provider),
+        fast_query_provider.clone(),
         &["run_tests", "run_coverage"],
         &tools,
         &agent_env.start_ref,
     );
     let conversation_summarizer =
-        ConversationSummarizer::new(Arc::clone(&query_provider), &tools, &agent_env.start_ref);
+        ConversationSummarizer::new(query_provider.clone(), &tools, &agent_env.start_ref);
     let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
 
     let push_to_remote_enabled =
@@ -238,7 +238,7 @@ pub async fn start(
         .after_each(move |context| {
             let maybe_lint_fix_command = maybe_lint_fix_command.clone();
             let command_responder = Arc::clone(&command_responder);
-            let fast_query_provider = Arc::clone(&fast_query_provider);
+            let fast_query_provider = fast_query_provider.clone();
             Box::pin(async move {
                 if accept_non_zero_exit(
                     context
