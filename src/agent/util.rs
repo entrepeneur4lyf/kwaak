@@ -64,6 +64,26 @@ pub async fn create_branch_name(
     Ok(branch_name)
 }
 
+// New function to generate commit messages using the LLM
+pub async fn generate_commit_message(
+    change_description: &str,
+    fast_query_provider: &dyn SimplePrompt,
+) -> Result<String> {
+    let message = fast_query_provider
+        .prompt(
+            format!("Generate a concise commit message for the following change description. Only respond with the commit message.:\n{change_description}")
+                .into(),
+        )
+        .await
+        .context("Could not get commit message")?
+        .trim_matches('"')
+        .chars()
+        .take(100)
+        .collect::<String>(); // Limiting to 100 chars for commit message
+
+    Ok(message)
+}
+
 #[cfg(test)]
 mod tests {
     use swiftide_core::MockSimplePrompt;
@@ -145,35 +165,21 @@ mod tests {
         .unwrap();
     }
 
-    // NOTE the prompt is intended to be limited to 30 characters, but the branch name in total
-    // has 15 more characters (total 45): "kwaak/" + "-" + 8 characters from the uuid
     #[tokio::test]
-    async fn test_rename_branch_limits_45() {
-        let query = "This is a query";
+    async fn test_generate_commit_message() {
+        let change_description = "Fixed bug in user login";
         let mut llm_mock = MockSimplePrompt::new();
         llm_mock
             .expect_prompt()
-            .returning(|_| Ok("excellent-name".repeat(100).to_string()));
+            .returning(|_| Ok("Fix user login bug".to_string()));
 
-        let mut mock_responder = MockResponder::default();
-        let fixed_uuid = Uuid::parse_str("936DA01F9ADD4d9d80C702AF85C822A8").unwrap();
-
-        mock_responder
-            .expect_rename_branch()
-            .with(
-                predicate::str::starts_with("kwaak/excellent-name")
-                    .and(predicate::function(|s: &str| s.len() == 45)),
-            )
-            .once()
-            .returning(|_| ());
-
-        create_branch_name(
-            &query,
-            &fixed_uuid,
+        let result = generate_commit_message(
+            &change_description,
             &llm_mock as &dyn SimplePrompt,
-            &mock_responder,
         )
         .await
         .unwrap();
+
+        assert_eq!(result, "Fix user login bug");
     }
 }
