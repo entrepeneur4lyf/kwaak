@@ -10,7 +10,7 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
     let current_input = app.text_input.lines().join("\n");
 
     // `Ctrl-Enter` or `Shift-Enter` or `Ctrl-s` to send the message in the text input
-    if (key.code == KeyCode::Char('s')
+    if ((key.code == KeyCode::Char('s')
         && key
             .modifiers
             .contains(crossterm::event::KeyModifiers::CONTROL))
@@ -21,8 +21,8 @@ pub fn on_key(app: &mut App, key: &KeyEvent) {
         || (key.code == KeyCode::Enter
             && key
                 .modifiers
-                .contains(crossterm::event::KeyModifiers::SHIFT))
-            && !current_input.is_empty()
+                .contains(crossterm::event::KeyModifiers::SHIFT)))
+        && !current_input.trim().is_empty()
     {
         let message = if current_input.starts_with('/') {
             handle_input_command(app)
