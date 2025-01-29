@@ -2,8 +2,8 @@
 #![allow(clippy::missing_panics_doc)]
 use anyhow::Result;
 use ratatui::{backend::TestBackend, Terminal};
-use swiftide::chat_completion::ChatCompletionResponse;
-use swiftide_core::{ChatCompletion, EmbeddingModel, Persist as _, SimplePrompt};
+use swiftide::chat_completion::{ChatCompletion, ChatCompletionResponse};
+use swiftide::traits::{EmbeddingModel, Persist as _, SimplePrompt};
 use tokio_util::task::AbortOnDropHandle;
 use uuid::Uuid;
 

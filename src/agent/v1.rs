@@ -19,8 +19,13 @@ use super::{
     tools, RunningAgent,
 };
 use crate::{
-    agent::util, commands::Responder, config::SupportedToolExecutors, git::github::GithubSession,
-    indexing, repository::Repository, util::accept_non_zero_exit,
+    agent::util,
+    commands::Responder,
+    config::{AgentEditMode, SupportedToolExecutors},
+    git::github::GithubSession,
+    indexing,
+    repository::Repository,
+    util::accept_non_zero_exit,
 };
 use swiftide_docker_executor::DockerExecutor;
 
@@ -30,6 +35,7 @@ async fn generate_initial_context(repository: &Repository, query: &str) -> Resul
     Ok(formatted_context)
 }
 
+// Maybe extract this into a toolbox?
 pub fn available_tools(
     repository: &Repository,
     github_session: Option<&Arc<GithubSession>>,
@@ -38,17 +44,25 @@ pub fn available_tools(
     let query_pipeline = indexing::build_query_pipeline(repository)?;
 
     let mut tools = vec![
-        tools::read_file(),
-        // tools::read_file_with_line_numbers(),
         tools::write_file(),
         tools::search_file(),
         tools::git(),
         tools::shell_command(),
         tools::search_code(),
         tools::fetch_url(),
-        // tools::replace_block(),
         tools::ExplainCode::new(query_pipeline).boxed(),
     ];
+
+    match repository.config().agent_edit_mode {
+        AgentEditMode::Whole => {
+            tools.push(tools::write_file());
+        }
+        AgentEditMode::Line => {
+            tools.push(tools::read_file_with_line_numbers());
+            tools.push(tools::replace_lines());
+            tools.push(tools::add_lines());
+        }
+    }
 
     if let Some(github_session) = github_session {
         if !repository.config().disabled_tools.pull_request {
@@ -166,6 +180,7 @@ pub async fn start(
 
     let push_to_remote_enabled =
         agent_env.remote_enabled && repository.config().git.auto_push_remote;
+    let auto_commit_disabled = repository.config().git.auto_commit_disabled;
 
     let context = Arc::new(context);
     let agent = Agent::builder()
@@ -235,17 +250,19 @@ pub async fn start(
                         .context("Could not run lint and fix")?;
                 };
 
-                accept_non_zero_exit(context.exec_cmd(&Command::shell("git add .")).await)
-                    .context("Could not add files to git")?;
+                if !auto_commit_disabled {
+                    accept_non_zero_exit(context.exec_cmd(&Command::shell("git add .")).await)
+                        .context("Could not add files to git")?;
 
-                accept_non_zero_exit(
-                    context
-                        .exec_cmd(&Command::shell(
-                            "git commit -m \"[kwaak]: Committed changes after completion\"",
-                        ))
-                        .await,
-                )
-                .context("Could not commit files to git")?;
+                    accept_non_zero_exit(
+                        context
+                            .exec_cmd(&Command::shell(
+                                "git commit -m \"[kwaak]: Committed changes after completion\"",
+                            ))
+                            .await,
+                    )
+                    .context("Could not commit files to git")?;
+                }
 
                 if  push_to_remote_enabled {
                     accept_non_zero_exit(context.exec_cmd(&Command::shell("git push")).await)
@@ -284,15 +301,13 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
 
         // Tool usage
         "When writing files, ensure you write and implement everything, everytime. Do NOT leave anything out. Writing a file overwrites the entire file, so it MUST include the full, completed contents of the file. Do not make changes other than the ones requested.",
-        // "Prefer using block replacements over writing files, if possible. This is faster and less error prone. You can only make ONE block replacement at the time. Otherwise you must retrieve the line numbers again.",
-        // "Before replacing a block, you MUST read the file content with the line numbers. You are not allowed to count lines yourself.",
-        "If you intend to edit multiple files or multiple edits in a single file, outline your plan first, then call the first tool immediately",
         "If you create a pull request, you must ensure the tests pass",
         "If you just want to run the tests, prefer running the tests over running coverage, as running tests is faster",
-        "NEVER write a file before having read it",
+        "NEVER write or edit a file before having read it",
 
         // Code writing
         "When writing code or tests, make sure this is idiomatic for the language",
+        "When writing code, make sure you account for edge cases",
         "When writing tests, verify that test coverage has changed. If it hasn't, the tests are not doing anything. This means you _must_ run coverage after creating a new test.",
         "When writing tests, make sure you cover all edge cases",
         "When writing tests, if a specific test continues to be troublesome, think out of the box and try to solve the problem in a different way, or reset and focus on other tests first",
@@ -310,6 +325,15 @@ fn build_system_prompt(repository: &Repository) -> Result<Prompt> {
         "Focus on completing the task fully as requested by the user",
         "Do not repeat your answers, if they are exactly the same you should probably stop",
     ];
+
+    if repository.config().agent_edit_mode.is_line() {
+        constraints = [constraints.as_slice(), &[
+        "Prefer editing files with `replace_lines` and `add_lines` over `write_file`, if possible. This is faster and less error prone. You can only make ONE `replace_lines` or `add_lines` call at the time. After each you MUST call `read_file_with_line_numbers` again, as the linenumbers WILL have changed.",
+        "If you are only adding NEW lines, you MUST use `add_lines`",
+        "Before every call to `replace_lines` or `add_lines`, you MUST read the file content with the line numbers. You are not allowed to count lines yourself.",
+
+        ]].concat();
+    }
 
     if repository.config().endless_mode {
         constraints.push("You cannot ask for feedback and have to try to complete the given task");

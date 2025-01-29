@@ -6,9 +6,9 @@ pub mod tools;
 mod util;
 mod v1;
 use std::sync::Arc;
+use swiftide::chat_completion::Tool;
 
 use anyhow::Result;
-use swiftide_core::Tool;
 
 /// NOTE: On architecture, when more agents are added, it would be nice to have the concept of an
 /// (Agent/Chat) session that wraps all this complexity => Responders then update on the session.

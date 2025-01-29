@@ -1,6 +1,6 @@
 use anyhow::Context as _;
 use anyhow::Result;
-use swiftide_core::SimplePrompt;
+use swiftide::traits::SimplePrompt;
 use uuid::Uuid;
 
 use crate::commands::Responder;

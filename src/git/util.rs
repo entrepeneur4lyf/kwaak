@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use swiftide_core::{Command, ToolExecutor};
+use swiftide::{traits::Command, traits::ToolExecutor};
 
 use crate::util::accept_non_zero_exit;
 

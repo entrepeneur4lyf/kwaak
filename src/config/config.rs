@@ -83,6 +83,10 @@ pub struct Config {
     /// OpenTelemetry tracing feature toggle
     #[serde(default = "default_otel_enabled")]
     pub otel_enabled: bool,
+
+    /// How the agent will edit files, defaults to whole
+    #[serde(default)]
+    pub agent_edit_mode: AgentEditMode,
 }
 
 fn default_otel_enabled() -> bool {
@@ -108,6 +112,15 @@ pub enum SupportedToolExecutors {
     #[default]
     Docker,
     Local,
+}
+
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize, Default, strum_macros::EnumIs)]
+#[serde(rename_all = "kebab-case")]
+pub enum AgentEditMode {
+    #[default]
+    Whole,
+    Line,
+    // i.e. udiff, llm reviewed, etc
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -139,6 +152,10 @@ pub struct GitConfiguration {
     /// Automatically push to the remote after every completion (if changes were made)
     #[serde(default = "default_auto_push_remote")]
     pub auto_push_remote: bool,
+
+    /// Opt out of automatically committing changes after each completion
+    #[serde(default)]
+    pub auto_commit_disabled: bool,
 }
 
 impl FromStr for Config {
