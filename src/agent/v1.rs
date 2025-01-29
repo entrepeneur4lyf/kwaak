@@ -196,8 +196,9 @@ pub async fn start(
                     .add_message(chat_completion::ChatMessage::new_user(initial_context))
                     .await;
 
-                let top_level_project_overview = context.exec_cmd(&Command::shell("fd -iH -d2 -E '.git/*'")).await?.output;
-                context.add_message(chat_completion::ChatMessage::new_user(format!("The following is a max depth 2, high level overview of the directory structure of the project: \n ```{top_level_project_overview}```"))).await;
+                let top_level_project_overview = context.exec_cmd(&Command::shell("fd -iH -d2 -E '.git/*'"))
+.await?.output;
+                context.add_message(chat_completion::ChatMessage::new_user(format!("The following is a max depth 2, high level overview of the directory structure of the project: \n ```{top_level_project_overview}```")).await;
 
                 Ok(())
             })
@@ -231,6 +232,7 @@ pub async fn start(
         .after_each(move |context| {
             let maybe_lint_fix_command = maybe_lint_fix_command.clone();
             let command_responder = command_responder.clone();
+            let fast_query_provider = fast_query_provider.clone();
             Box::pin(async move {
                 if accept_non_zero_exit(
                     context
@@ -255,11 +257,15 @@ pub async fn start(
                     accept_non_zero_exit(context.exec_cmd(&Command::shell("git add .")).await)
                         .context("Could not add files to git")?;
 
+                    // Generate a commit message using the fast_query_provider
+                    let commit_message = util::generate_commit_message(
+                        "Sample change description", // This should be dynamically derived based on actual changes in a real scenario
+                        &fast_query_provider
+                    ).await.context("Failed to generate commit message")?;
+
                     accept_non_zero_exit(
                         context
-                            .exec_cmd(&Command::shell(
-                                "git commit -m \"[kwaak]: Committed changes after completion\"",
-                            ))
+                            .exec_cmd(&Command::shell(&format!("git commit -m \"{}\"", commit_message)))
                             .await,
                     )
                     .context("Could not commit files to git")?;
