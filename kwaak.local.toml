@@ -1,0 +1,33 @@
+language = "rust"
+
+tavily_api_key = "env:TAVILY_API_KEY"
+github_api_key = "env:KWAAK_GITHUB_TOKEN"
+open_router_api_key = "env:KWAAK_OPEN_ROUTER_API_KEY"
+
+tool_executor = "docker"
+otel_enabled = true
+
+[commands]
+test = "RUST_LOG=kwaak=debug,swiftide=debug RUST_BACKTRACE=1 cargo nextest run --no-fail-fast --color=never"
+coverage = "cargo +nightly llvm-cov nextest --no-clean --summary-only"
+# lint_and_fix = "cargo clippy --fix --allow-dirty --allow-staged; cargo fmt"
+
+[git]
+owner = "bosun-ai"
+repository = "kwaak"
+main_branch = "master"
+
+[llm.indexing]
+provider = "OpenRouter"
+prompt_model = "gpt-4o-mini"
+
+[llm.query]
+provider = "OpenRouter"
+prompt_model = "anthropic/claude-3.5-sonnet"
+
+[llm.embedding]
+provider = "OpenAI"
+embedding_model = "text-embedding-3-large"
+
+[docker]
+dockerfile = "Dockerfile"

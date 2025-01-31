@@ -93,6 +93,18 @@ impl Serialize for ApiKey {
     }
 }
 
+impl Into<SecretString> for ApiKey {
+    fn into(self) -> SecretString {
+        self.0
+    }
+}
+
+impl Into<SecretString> for &ApiKey {
+    fn into(self) -> SecretString {
+        self.clone().0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

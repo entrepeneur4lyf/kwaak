@@ -27,6 +27,7 @@ swiftide = { version = "0.17.5", features = [
   "redb",
   "ollama",
   "swiftide-agents",
+  "open-router",
 
 ] }
 swiftide-macros = { version = "0.17.5" }
@@ -139,9 +140,9 @@ default = ["otel"]
 
 
 [patch.crates-io]
-# swiftide = { path = "../swiftide/swiftide" }
-# swiftide-macros = { path = "../swiftide/swiftide-macros" }
-# swiftide-core = { path = "../swiftide/swiftide-core" }
+swiftide = { path = "../swiftide/swiftide" }
+swiftide-macros = { path = "../swiftide/swiftide-macros" }
+swiftide-core = { path = "../swiftide/swiftide-core" }
 
 
 # The profile that 'dist' will build with
