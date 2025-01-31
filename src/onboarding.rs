@@ -205,6 +205,9 @@ fn llm_questions(context: &mut tera::Context) {
     match valid_llm {
         LLMConfiguration::OpenAI { .. } => openai_questions(context),
         LLMConfiguration::Ollama { .. } => ollama_questions(context),
+        LLMConfiguration::OpenRouter { .. } => {
+            println!("{valid_llm} is not yet in the onboarding");
+        }
         #[cfg(debug_assertions)]
         LLMConfiguration::Testing => {
             println!("{valid_llm} is not meant for production use, skipping configuration");

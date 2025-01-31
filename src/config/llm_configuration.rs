@@ -9,6 +9,7 @@ use swiftide::{
     integrations::{
         self,
         ollama::{config::OllamaConfig, Ollama},
+        open_router::{config::OpenRouterConfig, OpenRouter},
     },
     traits::{EmbeddingModel, SimplePrompt},
 };
@@ -53,6 +54,12 @@ pub enum LLMConfiguration {
         #[serde(default)]
         base_url: Option<Url>,
     },
+    OpenRouter {
+        #[serde(default)]
+        api_key: Option<ApiKey>,
+        #[serde(default)]
+        prompt_model: String,
+    },
     #[cfg(debug_assertions)]
     Testing, // Groq {
              //     api_key: SecretString,
@@ -90,6 +97,10 @@ impl LLMConfiguration {
                     .expect("Expected an embedding model for ollama")
                     .vector_size
             }
+            LLMConfiguration::OpenRouter { .. } => {
+                panic!("OpenRouter does not have an embedding model")
+            }
+
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => 1,
         }
@@ -192,6 +203,30 @@ fn build_ollama(llm_config: &LLMConfiguration) -> Result<Ollama> {
     builder.build().context("Failed to build Ollama client")
 }
 
+fn build_open_router(llm_config: &LLMConfiguration) -> Result<OpenRouter> {
+    let LLMConfiguration::OpenRouter {
+        prompt_model,
+        api_key,
+    } = llm_config
+    else {
+        anyhow::bail!("Expected OpenRouter configuration")
+    };
+
+    let api_key = api_key.as_ref().context("Expected an api key")?;
+    let config = OpenRouterConfig::builder()
+        .api_key(api_key)
+        .site_url("https://github.com/bosun-ai/kwaak")
+        .site_name("Kwaak")
+        .build()?;
+
+    OpenRouter::builder()
+        .client(async_openai::Client::with_config(config))
+        .default_prompt_model(prompt_model)
+        .to_owned()
+        .build()
+        .context("Failed to build OpenRouter client")
+}
+
 impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
     type Error = anyhow::Error;
 
@@ -210,6 +245,9 @@ impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
             )?) as Box<dyn EmbeddingModel>,
             LLMConfiguration::Ollama { .. } => {
                 Box::new(build_ollama(self)?) as Box<dyn EmbeddingModel>
+            }
+            LLMConfiguration::OpenRouter { .. } => {
+                panic!("OpenRouter does not have an embedding model")
             }
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn EmbeddingModel>,
@@ -237,6 +275,9 @@ impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
             LLMConfiguration::Ollama { .. } => {
                 Box::new(build_ollama(self)?) as Box<dyn SimplePrompt>
             }
+            LLMConfiguration::OpenRouter { .. } => {
+                Box::new(build_open_router(self)?) as Box<dyn SimplePrompt>
+            }
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn SimplePrompt>,
         };
@@ -262,6 +303,9 @@ impl TryInto<Box<dyn ChatCompletion>> for &LLMConfiguration {
             )?) as Box<dyn ChatCompletion>,
             LLMConfiguration::Ollama { .. } => {
                 Box::new(build_ollama(self)?) as Box<dyn ChatCompletion>
+            }
+            LLMConfiguration::OpenRouter { .. } => {
+                Box::new(build_open_router(self)?) as Box<dyn ChatCompletion>
             }
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn ChatCompletion>,
