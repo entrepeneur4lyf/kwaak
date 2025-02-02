@@ -256,7 +256,46 @@ fn openai_questions(context: &mut tera::Context) {
             "provider": "OpenAI",
             "indexing_model": indexing_model,
             "query_model": query_model,
+            // "embedding_model": embedding_model,
+            "base_url": None::<String>,
+        }),
+    );
+    context.insert(
+        "embed_llm",
+        &json!({
+            "provider": "OpenAI",
             "embedding_model": embedding_model,
+            "base_url": None::<String>,
+        }),
+    );
+}
+
+fn open_router_questions(context: &mut tera::Context) {
+    println!("OpenRouter allows you to use a variety of managed models via a single api. You can find models at https://openrouter.ai/models.");
+    let api_key = prompt_api_key(
+        "Where can we find your OpenRouter api key? (https://openrouter.ai/settings/keys)",
+        Some("env:OPEN_ROUTER_API_KEY"),
+    )
+    .prompt()
+    .unwrap();
+    let indexing_model = prompt_text("Model used for fast operations (like indexing)", None)
+        .prompt()
+        .unwrap();
+    let query_model = prompt_text(
+        "Model used for querying and code generation (i.e. `anthropic/claude-3.5-sonnet`)",
+        None,
+    )
+    .prompt()
+    .unwrap();
+
+    context.insert("open_router_api_key", &api_key);
+
+    context.insert(
+        "llm",
+        &json!({
+            "provider": "OpenRouter",
+            "indexing_model": indexing_model,
+            "query_model": query_model,
             "base_url": None::<String>,
         }),
     );
@@ -308,9 +347,16 @@ fn ollama_questions(context: &mut tera::Context) {
             "provider": "Ollama",
             "indexing_model": indexing_model,
             "query_model": query_model,
+            "base_url": base_url,
+        }),
+    );
+    context.insert(
+        "embed_llm",
+        &json!({
+            "provider": "OpenAI",
+            "base_url": None::<String>,
             "embedding_model": embedding_model,
             "vector_size": vector_size,
-            "base_url": base_url,
         }),
     );
 }
