@@ -192,11 +192,15 @@ fn git_questions(context: &mut tera::Context) {
 }
 
 fn llm_questions(context: &mut tera::Context) {
-    let valid_llms = LLMConfiguration::VARIANTS;
+    let valid_llms = LLMConfiguration::VARIANTS
+        .iter()
+        .map(AsRef::as_ref) // Kinda weird that we need to do this
+        .filter(|v| *v != "FastEmbed")
+        .collect::<Vec<&str>>();
 
     let valid_llm: LLMConfiguration = prompt_select(
         "What LLM would you like to use?",
-        valid_llms.to_vec(),
+        valid_llms,
         Some("OpenAI"),
     )
     .parse()
@@ -206,6 +210,9 @@ fn llm_questions(context: &mut tera::Context) {
         LLMConfiguration::OpenAI { .. } => openai_questions(context),
         LLMConfiguration::Ollama { .. } => ollama_questions(context),
         LLMConfiguration::OpenRouter { .. } => open_router_questions(context),
+        LLMConfiguration::FastEmbed { .. } => {
+            println!("{valid_llm} is not selectable yet, skipping configuration");
+        }
         #[cfg(debug_assertions)]
         LLMConfiguration::Testing => {
             println!("{valid_llm} is not meant for production use, skipping configuration");

@@ -28,8 +28,10 @@ swiftide = { version = "0.18.0", features = [
   "ollama",
   "swiftide-agents",
   "open-router",
+  "fastembed",
 
 ] }
+fastembed = "4.4.0"
 swiftide-macros = { version = "0.18.0" }
 toml = "0.8.19"
 serde = { version = "1.0.217", features = ["derive"] }

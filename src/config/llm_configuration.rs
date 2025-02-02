@@ -3,11 +3,13 @@ use crate::test_utils::NoopLLM;
 
 use super::ApiKey;
 use anyhow::{Context as _, Result};
+use fastembed::{InitOptions, TextEmbedding};
 use serde::{Deserialize, Serialize};
 use swiftide::{
     chat_completion::ChatCompletion,
     integrations::{
         self,
+        fastembed::FastEmbed,
         ollama::{config::OllamaConfig, Ollama},
         open_router::{config::OpenRouterConfig, OpenRouter},
     },
@@ -60,6 +62,11 @@ pub enum LLMConfiguration {
         #[serde(default)]
         prompt_model: String,
     },
+    FastEmbed {
+        // TODO: Currently we only support the default. There is a PR open that adds
+        // serialize/deserialize to all models, making a proper setup a lot easier.
+        embedding_model: FastembedModel,
+    },
     #[cfg(debug_assertions)]
     Testing, // Groq {
              //     api_key: SecretString,
@@ -72,6 +79,48 @@ pub enum LLMConfiguration {
              //     embedding_model: String,
              //     vector_size: usize,
              // },
+}
+
+#[derive(Debug, Clone)]
+pub struct FastembedModel(fastembed::EmbeddingModel);
+
+impl FastembedModel {
+    pub fn vector_size(&self) -> i32 {
+        TextEmbedding::get_model_info(&self.0)
+            .expect("Could not get model info")
+            .dim as i32
+    }
+
+    pub fn inner_text_embedding(&self) -> Result<TextEmbedding> {
+        TextEmbedding::try_new(InitOptions::new(self.0.clone()))
+    }
+}
+
+impl Default for FastembedModel {
+    fn default() -> Self {
+        Self(fastembed::EmbeddingModel::BGESmallENV15)
+    }
+}
+
+/// Currently just does default, as soon as Fastembed has serialize/deserialize support we can do a
+/// proper lookup
+impl<'de> Deserialize<'de> for FastembedModel {
+    fn deserialize<D>(_deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(FastembedModel::default())
+    }
+}
+
+/// Currently just serializes to the default
+impl Serialize for FastembedModel {
+    fn serialize<S>(&self, _serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        "BGESmallENV15".serialize(_serializer)
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -100,6 +149,7 @@ impl LLMConfiguration {
             LLMConfiguration::OpenRouter { .. } => {
                 panic!("OpenRouter does not have an embedding model")
             }
+            LLMConfiguration::FastEmbed { embedding_model } => embedding_model.vector_size(),
 
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => 1,
@@ -249,6 +299,13 @@ impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
             LLMConfiguration::OpenRouter { .. } => {
                 panic!("OpenRouter does not have an embedding model")
             }
+            LLMConfiguration::FastEmbed { embedding_model } => Box::new(
+                FastEmbed::builder()
+                    .embedding_model(embedding_model.inner_text_embedding()?)
+                    .build()?,
+            )
+                as Box<dyn EmbeddingModel>,
+
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn EmbeddingModel>,
         };
@@ -278,6 +335,9 @@ impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
             LLMConfiguration::OpenRouter { .. } => {
                 Box::new(build_open_router(self)?) as Box<dyn SimplePrompt>
             }
+            LLMConfiguration::FastEmbed { .. } => {
+                panic!("FastEmbed does not have a prompt model")
+            }
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn SimplePrompt>,
         };
@@ -306,6 +366,9 @@ impl TryInto<Box<dyn ChatCompletion>> for &LLMConfiguration {
             }
             LLMConfiguration::OpenRouter { .. } => {
                 Box::new(build_open_router(self)?) as Box<dyn ChatCompletion>
+            }
+            LLMConfiguration::FastEmbed { .. } => {
+                panic!("FastEmbed does not have a prompt model")
             }
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn ChatCompletion>,
