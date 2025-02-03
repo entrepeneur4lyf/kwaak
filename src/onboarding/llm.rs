@@ -166,7 +166,7 @@ async fn open_router_questions(context: &mut tera::Context) {
         }),
     );
 
-    println!("\nOpenRouter does not support embeddings yet. Currently we suggest to use FastEmbed. If you want to use a different model you can change it in your config later.");
+    println!("\nOpenRouter does not support embeddings yet. Currently we suggest to use FastEmbed. If you want to use a different provider you can change it in your config later.");
     fastembed_questions(context);
 }
 
