@@ -44,10 +44,10 @@ pub async fn run(file: Option<PathBuf>, dry_run: bool) -> Result<()> {
     println!("We have a few questions to ask you to get started, you can always change these later in the `{}` file.", file.display());
 
     let mut context = tera::Context::new();
-    project_questions(&mut context);
-    git_questions(&mut context);
-    llm_questions(&mut context).await;
-    command_questions(&mut context);
+    project_questions(&mut context)?;
+    git_questions(&mut context)?;
+    llm_questions(&mut context).await?;
+    command_questions(&mut context)?;
 
     let config =
         Templates::render("kwaak.toml", &context).context("Failed to render default config")?;
