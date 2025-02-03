@@ -105,7 +105,11 @@ impl FastembedModel {
     }
 
     pub fn inner_text_embedding(&self) -> Result<TextEmbedding> {
-        TextEmbedding::try_new(InitOptions::new(self.0.clone()))
+        TextEmbedding::try_new(
+            InitOptions::new(self.0.clone())
+                .with_show_download_progress(false)
+                .with_cache_dir(dirs::cache_dir().unwrap_or_default()),
+        )
     }
 
     #[must_use]
@@ -130,7 +134,7 @@ impl std::fmt::Display for FastembedModel {
             .model_code
             .clone();
 
-        write!(f, "{}", model)
+        write!(f, "{model}")
     }
 }
 
