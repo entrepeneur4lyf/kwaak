@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 #[cfg(debug_assertions)]
 use crate::test_utils::NoopLLM;
 
@@ -85,14 +87,33 @@ pub enum LLMConfiguration {
 pub struct FastembedModel(fastembed::EmbeddingModel);
 
 impl FastembedModel {
+    /// Retrieves the vector size of the fastembed model
+    ///
+    /// # Panics
+    ///
+    /// Panics if it cannot get the model info from fastembed.
+    #[must_use]
     pub fn vector_size(&self) -> i32 {
-        TextEmbedding::get_model_info(&self.0)
-            .expect("Could not get model info")
-            .dim as i32
+        i32::try_from(
+            TextEmbedding::get_model_info(&self.0)
+                .expect("Could not get model info")
+                .dim,
+        )
+        .expect(
+            "Could not convert embedding dimensions to i32; this should never happen and is a bug",
+        )
     }
 
     pub fn inner_text_embedding(&self) -> Result<TextEmbedding> {
         TextEmbedding::try_new(InitOptions::new(self.0.clone()))
+    }
+
+    #[must_use]
+    pub fn list_supported_models() -> Vec<String> {
+        TextEmbedding::list_supported_models()
+            .iter()
+            .map(|model| model.model_code.to_string())
+            .collect()
     }
 }
 
@@ -102,24 +123,61 @@ impl Default for FastembedModel {
     }
 }
 
+impl std::fmt::Display for FastembedModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let model = TextEmbedding::get_model_info(&self.0)
+            .map_err(|_| std::fmt::Error)?
+            .model_code
+            .clone();
+
+        write!(f, "{}", model)
+    }
+}
+
 /// Currently just does default, as soon as Fastembed has serialize/deserialize support we can do a
 /// proper lookup
 impl<'de> Deserialize<'de> for FastembedModel {
-    fn deserialize<D>(_deserializer: D) -> std::result::Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        Ok(FastembedModel::default())
+        let string_name: String = Deserialize::deserialize(deserializer)?;
+        let models = TextEmbedding::list_supported_models();
+
+        let retrieved_model = models
+            .iter()
+            .find(|model| model.model_code.to_lowercase() == string_name.to_lowercase())
+            .ok_or(serde::de::Error::custom("Could not find model"))?;
+
+        Ok(FastembedModel(retrieved_model.model.clone()))
+    }
+}
+
+impl FromStr for FastembedModel {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let models = TextEmbedding::list_supported_models();
+
+        let retrieved_model = models
+            .iter()
+            .find(|model| model.model_code.to_lowercase() == s.to_lowercase())
+            .ok_or_else(|| anyhow::anyhow!("Could not find model"))?;
+
+        Ok(FastembedModel(retrieved_model.model.clone()))
     }
 }
 
 /// Currently just serializes to the default
 impl Serialize for FastembedModel {
-    fn serialize<S>(&self, _serializer: S) -> std::result::Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        "BGESmallENV15".serialize(_serializer)
+        let model = TextEmbedding::get_model_info(&self.0)
+            .map_err(|_| serde::ser::Error::custom("Could not find model"))?;
+
+        serializer.serialize_str(&model.model_code)
     }
 }
 
