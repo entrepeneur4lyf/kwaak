@@ -145,6 +145,7 @@ default = ["otel"]
 # swiftide = { path = "../swiftide/swiftide" }
 # swiftide-macros = { path = "../swiftide/swiftide-macros" }
 # swiftide-core = { path = "../swiftide/swiftide-core" }
+swiftide-docker-executor = { path = "../swiftide-docker-executor/swiftide-docker-executor" }
 
 
 # The profile that 'dist' will build with
