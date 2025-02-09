@@ -92,13 +92,22 @@ pub struct Config {
     #[serde(default)]
     pub agent_edit_mode: AgentEditMode,
 
-    /// Additional constraints / instructions for the agent
+      /// Additional constraints / instructions for the agent
     ///
     /// These are passes to the agent in the system prompt and are rendered in a list. If you
     /// intend to use more complicated instructions, consider adding a file to read in the
     /// repository instead.
     #[serde(default)]
     pub agent_custom_constraints: Option<Vec<String>>,
+  
+    #[serde(default)]
+    pub ui: UIConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct UIConfig {
+    pub hide_header: bool,
 }
 
 fn default_otel_enabled() -> bool {
@@ -185,11 +194,7 @@ impl Config {
         let builder = ConfigRs::builder()
             .add_source(File::from(path))
             .add_source(File::with_name("kwaak.local").required(false))
-            .add_source(
-                Environment::with_prefix("KWAAK")
-                    .separator("_")
-                    .convert_case(config::Case::Lower),
-            );
+            .add_source(Environment::with_prefix("KWAAK").separator("__"));
 
         let config = builder.build()?;
 
