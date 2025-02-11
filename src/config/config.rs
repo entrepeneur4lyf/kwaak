@@ -59,6 +59,10 @@ pub struct Config {
     #[serde(default)]
     pub openai_api_key: Option<ApiKey>,
 
+    /// Required if using 'Anthropic'
+    #[serde(default)]
+    pub anthropic_api_key: Option<ApiKey>,
+
     /// Required if using `Open Router`
     #[serde(default)]
     pub open_router_api_key: Option<ApiKey>,
@@ -239,6 +243,7 @@ impl Config {
         match provider {
             LLMConfiguration::OpenAI { .. } => self.openai_api_key.as_ref(),
             LLMConfiguration::OpenRouter { .. } => self.open_router_api_key.as_ref(),
+            LLMConfiguration::Anthropic { .. } => self.anthropic_api_key.as_ref(),
             _ => None,
         }
     }
@@ -282,6 +287,7 @@ impl Config {
             LLMConfiguration::OpenRouter { .. } => num_cpus::get() * 4,
             LLMConfiguration::Ollama { .. } => num_cpus::get(),
             LLMConfiguration::FastEmbed { .. } => num_cpus::get(),
+            LLMConfiguration::Anthropic { .. } => num_cpus::get() * 4,
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => num_cpus::get(),
         }
@@ -298,6 +304,7 @@ impl Config {
             LLMConfiguration::Ollama { .. } => 256,
             LLMConfiguration::OpenRouter { .. } => 12,
             LLMConfiguration::FastEmbed { .. } => 256,
+            LLMConfiguration::Anthropic { .. } => 12,
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => 1,
         }
@@ -319,6 +326,15 @@ fn fill_llm(llm: &mut LLMConfiguration, root_key: Option<&ApiKey>) -> Result<()>
                     *api_key = Some(root.clone());
                 } else {
                     anyhow::bail!("OpenAI config requires an `api_key`, and none was provided or available in the root");
+                }
+            }
+        }
+        LLMConfiguration::Anthropic { api_key, .. } => {
+            if api_key.is_none() {
+                if let Some(root) = root_key {
+                    *api_key = Some(root.clone());
+                } else {
+                    anyhow::bail!("Anthropic config requires an `api_key`, and none was provided or available in the root");
                 }
             }
         }

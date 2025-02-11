@@ -20,7 +20,7 @@ tokio-util = { version = "0.7.13", features = ["rt"] }
 strum = "0.26.3"
 strum_macros = "0.26.4"
 swiftide-docker-executor = "0.5.0"
-swiftide = { version = "0.18.1", features = [
+swiftide = { version = "0.18.2", features = [
   "lancedb",
   "openai",
   "tree-sitter",
@@ -29,6 +29,7 @@ swiftide = { version = "0.18.1", features = [
   "swiftide-agents",
   "open-router",
   "fastembed",
+  "anthropic",
 
 ] }
 fastembed = "4.4.0"
@@ -39,6 +40,7 @@ serde_json = "1.0.138"
 secrecy = { version = "0.10.3", features = ["serde"] }
 tracing = "0.1.41"
 async-openai = "0.27.1"
+async-anthropic = "0.2.1"
 dirs = "6.0.0"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tracing-appender = "0.2.3"
