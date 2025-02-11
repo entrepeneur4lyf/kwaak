@@ -243,6 +243,7 @@ impl Config {
         match provider {
             LLMConfiguration::OpenAI { .. } => self.openai_api_key.as_ref(),
             LLMConfiguration::OpenRouter { .. } => self.open_router_api_key.as_ref(),
+            LLMConfiguration::Anthropic { .. } => self.anthropic_api_key.as_ref(),
             _ => None,
         }
     }
