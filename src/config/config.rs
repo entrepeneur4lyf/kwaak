@@ -59,6 +59,10 @@ pub struct Config {
     #[serde(default)]
     pub openai_api_key: Option<ApiKey>,
 
+    /// Required if using 'Anthropic'
+    #[serde(default)]
+    pub anthropic_api_key: Option<ApiKey>,
+
     /// Required if using `Open Router`
     #[serde(default)]
     pub open_router_api_key: Option<ApiKey>,

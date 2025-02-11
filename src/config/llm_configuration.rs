@@ -11,6 +11,7 @@ use swiftide::{
     chat_completion::ChatCompletion,
     integrations::{
         self,
+        anthropic::Anthropic,
         fastembed::FastEmbed,
         ollama::{config::OllamaConfig, Ollama},
         open_router::{config::OpenRouterConfig, OpenRouter},
@@ -69,6 +70,10 @@ pub enum LLMConfiguration {
         // serialize/deserialize to all models, making a proper setup a lot easier.
         embedding_model: FastembedModel,
     },
+    Anthropic {
+        api_key: Option<ApiKey>,
+        prompt_model: AnthropicModel,
+    },
     #[cfg(debug_assertions)]
     Testing, // Groq {
              //     api_key: SecretString,
@@ -81,6 +86,27 @@ pub enum LLMConfiguration {
              //     embedding_model: String,
              //     vector_size: usize,
              // },
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Deserialize,
+    Serialize,
+    PartialEq,
+    strum_macros::EnumString,
+    strum_macros::Display,
+    strum_macros::VariantNames,
+    Default,
+)]
+pub enum AnthropicModel {
+    #[strum(serialize = "claude-3-5-sonnet-latest")]
+    #[serde(rename = "claude-3-5-sonnet-latest")]
+    #[default]
+    Claude35Sonnet,
+    #[strum(serialize = "claude-3-5-haiku-latest")]
+    #[serde(rename = "claude-3-5-haiku-latest")]
+    Claude35Haiku,
 }
 
 #[derive(Debug, Clone)]
@@ -215,6 +241,9 @@ impl LLMConfiguration {
 
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => 1,
+            LLMConfiguration::Anthropic { .. } => {
+                panic!("Anthropic does not have an embedding model")
+            }
         }
     }
 }
@@ -315,6 +344,25 @@ fn build_ollama(llm_config: &LLMConfiguration) -> Result<Ollama> {
     builder.build().context("Failed to build Ollama client")
 }
 
+fn build_anthropic(llm_config: &LLMConfiguration) -> Result<Anthropic> {
+    let LLMConfiguration::Anthropic {
+        api_key,
+        prompt_model,
+    } = llm_config
+    else {
+        anyhow::bail!("Expected Anthropic configuration")
+    };
+
+    let api_key = api_key.as_ref().context("Expected an api key")?;
+    let client = async_anthropic::Client::from_api_key(api_key);
+
+    Anthropic::builder()
+        .client(client)
+        .default_prompt_model(prompt_model.to_string())
+        .build()
+        .context("Failed to build Anthropic client")
+}
+
 fn build_open_router(llm_config: &LLMConfiguration) -> Result<OpenRouter> {
     let LLMConfiguration::OpenRouter {
         prompt_model,
@@ -359,7 +407,7 @@ impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
                 Box::new(build_ollama(self)?) as Box<dyn EmbeddingModel>
             }
             LLMConfiguration::OpenRouter { .. } => {
-                panic!("OpenRouter does not have an embedding model")
+                anyhow::bail!("OpenRouter does not have an embedding model")
             }
             LLMConfiguration::FastEmbed { embedding_model } => Box::new(
                 FastEmbed::builder()
@@ -368,6 +416,9 @@ impl TryInto<Box<dyn EmbeddingModel>> for &LLMConfiguration {
             )
                 as Box<dyn EmbeddingModel>,
 
+            LLMConfiguration::Anthropic { .. } => {
+                anyhow::bail!("Anthropic does not have an embedding model")
+            }
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn EmbeddingModel>,
         };
@@ -398,7 +449,10 @@ impl TryInto<Box<dyn SimplePrompt>> for &LLMConfiguration {
                 Box::new(build_open_router(self)?) as Box<dyn SimplePrompt>
             }
             LLMConfiguration::FastEmbed { .. } => {
-                panic!("FastEmbed does not have a prompt model")
+                anyhow::bail!("FastEmbed does not have a prompt model")
+            }
+            LLMConfiguration::Anthropic { .. } => {
+                Box::new(build_anthropic(self)?) as Box<dyn SimplePrompt>
             }
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn SimplePrompt>,
@@ -430,7 +484,10 @@ impl TryInto<Box<dyn ChatCompletion>> for &LLMConfiguration {
                 Box::new(build_open_router(self)?) as Box<dyn ChatCompletion>
             }
             LLMConfiguration::FastEmbed { .. } => {
-                panic!("FastEmbed does not have a prompt model")
+                anyhow::bail!("FastEmbed does not have a prompt model")
+            }
+            LLMConfiguration::Anthropic { .. } => {
+                Box::new(build_anthropic(self)?) as Box<dyn ChatCompletion>
             }
             #[cfg(debug_assertions)]
             LLMConfiguration::Testing => Box::new(NoopLLM) as Box<dyn ChatCompletion>,
