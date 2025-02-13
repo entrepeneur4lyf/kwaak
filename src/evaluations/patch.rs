@@ -2,7 +2,6 @@
 //! in large files and/or files with semantic whitespace.
 
 use crate::agent::tools;
-use crate::config::Config;
 use crate::evaluations::{
     logging_responder::LoggingResponder,
     output::{EvalMetrics, EvalOutput},
@@ -10,7 +9,6 @@ use crate::evaluations::{
 };
 use crate::repository::Repository;
 use anyhow::Result;
-use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
@@ -194,13 +192,12 @@ fn get_evaluation_tools() -> Vec<Box<dyn Tool>> {
     tools
 }
 
-async fn run_single_evaluation(iteration: u32) -> Result<(bool, EvalMetrics)> {
+async fn run_single_evaluation(
+    iteration: u32,
+    repository: &Repository,
+) -> Result<(bool, EvalMetrics)> {
     let eval_output = EvalOutput::new("patch", iteration)?;
     let responder = Arc::new(LoggingResponder::new());
-
-    let config_path = Path::new("test-config.toml");
-    let repository =
-        Repository::from_config(Config::load(&config_path).expect("Failed to load config"));
 
     let tools = get_evaluation_tools();
     let agent = start_tool_evaluation_agent(&repository, responder.clone(), tools).await?;
@@ -219,7 +216,7 @@ async fn run_single_evaluation(iteration: u32) -> Result<(bool, EvalMetrics)> {
     Ok((success, metrics))
 }
 
-pub async fn evaluate(iterations: u32) -> Result<()> {
+pub async fn evaluate(iterations: u32, repository: &Repository) -> Result<()> {
     let mut successes = 0;
     let mut total_time = Duration::new(0, 0);
 
@@ -228,7 +225,7 @@ pub async fn evaluate(iterations: u32) -> Result<()> {
 
         reset_file()?;
 
-        match run_single_evaluation(i + 1).await {
+        match run_single_evaluation(i + 1, repository).await {
             Ok((success, metrics)) => {
                 if success {
                     println!("Iteration {} succeeded", i + 1);

@@ -109,7 +109,7 @@ async fn main() -> Result<()> {
             }
             cli::Commands::Eval { eval_type } => match eval_type {
                 cli::EvalCommands::Patch { iterations } => {
-                    evaluations::run_patch_evaluation(*iterations).await
+                    evaluations::run_patch_evaluation(*iterations, &repository).await
                 }
             },
             cli::Commands::Init { .. } => unreachable!(),
