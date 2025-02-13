@@ -8,7 +8,7 @@ use crate::evaluations::{
     start_tool_evaluation_agent,
 };
 use crate::repository::Repository;
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
@@ -196,22 +196,31 @@ async fn run_single_evaluation(
     iteration: u32,
     repository: &Repository,
 ) -> Result<(bool, EvalMetrics)> {
-    let eval_output = EvalOutput::new("patch", iteration)?;
+    let eval_output = EvalOutput::new("patch", iteration).context("Error with eval output")?;
     let responder = Arc::new(LoggingResponder::new());
 
     let tools = get_evaluation_tools();
-    let agent = start_tool_evaluation_agent(&repository, responder.clone(), tools).await?;
+    let agent = start_tool_evaluation_agent(&repository, responder.clone(), tools)
+        .await
+        .context("Error starting agent")?;
 
-    agent.query(&prompt()).await?;
+    agent
+        .query(&prompt())
+        .await
+        .context("Error running agent")?;
     agent.run().await?;
 
-    eval_output.write_agent_log(&responder.get_log())?;
+    eval_output
+        .write_agent_log(&responder.get_log())
+        .context("Error writing log")?;
 
     // Compare the changes
-    let success = compare_changes(&eval_output)?;
+    let success = compare_changes(&eval_output).context("Error comparing changes")?;
 
     let metrics = EvalMetrics::new(eval_output.elapsed_time(), 0, 0);
-    eval_output.write_metrics(&metrics)?;
+    eval_output
+        .write_metrics(&metrics)
+        .context("Error writing metrics")?;
 
     Ok((success, metrics))
 }
@@ -223,7 +232,7 @@ pub async fn evaluate(iterations: u32, repository: &Repository) -> Result<()> {
     for i in 0..iterations {
         println!("Running patch evaluation iteration {}", i + 1);
 
-        reset_file()?;
+        reset_file().context("Error resetting file")?;
 
         match run_single_evaluation(i + 1, repository).await {
             Ok((success, metrics)) => {
@@ -245,7 +254,7 @@ pub async fn evaluate(iterations: u32, repository: &Repository) -> Result<()> {
                     metrics.time_spent.as_secs_f64(),
                 );
             }
-            Err(e) => println!("Iteration {} failed with error: {}", i + 1, e),
+            Err(e) => println!("Iteration {} failed with error: {e:#}", i + 1),
         }
     }
 
