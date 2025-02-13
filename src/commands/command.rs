@@ -37,7 +37,8 @@ pub enum Command {
 
     /// Retry the last chat with the agent
     /// Will reset history to the point of the last chat, then re-run the chat
-    RetryChat,
+    /// Optionally includes a new message to add to the chat
+    RetryChat { message: Option<String> },
 }
 
 #[derive(Debug, Clone, Builder)]
