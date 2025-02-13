@@ -62,6 +62,7 @@ pub fn available_tools(
             tools.push(tools::read_file_with_line_numbers());
             tools.push(tools::replace_lines());
             tools.push(tools::add_lines());
+            tools.push(tools::write_file());
         }
     }
 
