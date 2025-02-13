@@ -18,45 +18,47 @@ Line numbers are 1-indexed, you do not need to subtract 1 for start_line and end
 
 Do not include the line numbers in the content.
 
-You MUST include a couple of lines BEFORE and AFTER the lines you want to replace.
+You MUST include at least one line BEFORE and AFTER the lines you want to replace.
+These lines MUST match the original lines in the file, so that we can validate the region of modification.
 
 The first and last lines of the content MUST NOT be blank (expand accordingly).
-
-For example when making a modification to the following file:
-
-2|def a:
-3|  pass
-4|
-5|def b:
-6|  pass
-
-And you want to change line 3 to return True.
-
-Valid values:
-
-start_line: 2
-end_line: 5
-content:
-```
-def a:
-  return True
-
-def b:
-```
-
-Valid because the region is expanded to include lines 2 and 5. Expanding to just 4 would not be enough as it is blank.
-
-Example of invalid values:
-
-start_line: 3
-end_line: 3
-content:
-```
-  return True
-```
-
-Invalid because the region is not expanded to include lines 2 and 5.
 ";
+
+// For example when making a modification to the following file:
+//
+// 2|def a:
+// 3|  pass
+// 4|
+// 5|def b:
+// 6|  pass
+//
+// And you want to change line 3 to return True.
+//
+// Valid values:
+//
+// start_line: 2
+// end_line: 5
+// content:
+// ```
+// def a:
+//   return True
+//
+// def b:
+// ```
+//
+// Valid because the region is expanded to include lines 2 and 5. Expanding to just 4 would not be enough as it is blank.
+//
+// Example of invalid values:
+//
+// start_line: 3
+// end_line: 3
+// content:
+// ```
+//   return True
+// ```
+//
+// Invalid because the region is not expanded to include lines 2 and 5.
+// ";
 
 // Another invalid pair of values would be old_content:
 
