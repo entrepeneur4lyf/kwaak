@@ -328,6 +328,9 @@ You can mix and match models from different providers for different tasks.
 
 ## Troubleshooting & FAQ
 
+**Q:** I get a lot of failures, errors, or otherwise unexpected behaviour from the agent.
+**A:** Make sure you are _not_ on a Tier 1 account with either OpenAI or Anthropic, the token limits are not enough to run coding agents. Additionally, you can also experiment with different edit modes. See `agent_edit_mode`. If you only have Tier 1 accounts, you can also consider using OpenRouter, which does not have these limits. It is generally a bit slower and less reliable.
+
 **Q:** Kwaak feels very slow
 
 **A:** Try increasing the resources available for docker. For docker desktop this is in Settings -> Resources -> Advanced. On MacOS, adding your terminal and/or kwaak to developer tools can also help.
