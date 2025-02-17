@@ -294,6 +294,29 @@ For both you can provide a `base_url` to use a custom API endpoint.
 
 You can mix and match models from different providers for different tasks.
 
+#### Backoff Configuration
+
+Kwaak uses the exponential backoff strategy to handle retries. Currently, only
+OpenAI and OpenRouter calls will make use of the backoff parameters. You can configure the
+backoff settings in the `kwaak.toml` file under a `[backoff]` section. These
+settings are optional, and default to the following values:
+
+
+- `initial_interval_sec`: Defaults to 15 seconds. This sets the initial waiting time between retries.
+- `multiplier`: Defaults to 2.0. This factor multiplies the interval on each retry attempt.
+- `randomization_factor`: Defaults to 0.05. Introduces randomness to avoid retry storms.
+- `max_elapsed_time_sec`: Defaults to 120 seconds. This total time all attempts are allowed.
+
+Example Configuration:
+
+```toml
+[backoff]
+initial_interval_sec = "15"
+multiplier = 2.0
+randomization_factor = 0.05
+max_elapsed_time_sec = "120"
+```
+
 #### Other configuration
 
 - **`agent_custom_constraints`**: Additional constraints / instructions for the agent.
