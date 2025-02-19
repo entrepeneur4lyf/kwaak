@@ -296,9 +296,10 @@ You can mix and match models from different providers for different tasks.
 #### Backoff Configuration
 
 Kwaak uses the exponential backoff strategy to handle retries. Currently, only
-OpenAI and OpenRouter calls will make use of the backoff parameters. You can configure the
-backoff settings in the `kwaak.toml` file under a `[backoff]` section. These
-settings are optional, and default to the following values:
+OpenAI, OpenRouter, and Anthropic calls will make use of the backoff parameters.
+You can configure the backoff settings in the `kwaak.toml` file under a
+`[backoff]` section. These settings are optional, and default to the following
+values:
 
 - `initial_interval_sec`: Defaults to 15 seconds. This sets the initial waiting time between retries.
 - `multiplier`: Defaults to 2.0. This factor multiplies the interval on each retry attempt.
