@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
+use dyn_clone::DynClone;
 #[cfg(test)]
-use mockall::automock;
+use mockall::mock;
 use swiftide::chat_completion;
 use uuid::Uuid;
 
@@ -46,8 +47,7 @@ impl CommandResponse {
 ///
 /// TODO: Consider, perhaps with the new structure, less concrete methods are needed
 /// and the frontend just uses a oneoff handler for each command
-#[cfg_attr(test, automock)]
-pub trait Responder: std::fmt::Debug + Send + Sync {
+pub trait Responder: std::fmt::Debug + Send + Sync + DynClone {
     /// Generic handler for command responses
     fn send(&self, response: CommandResponse);
 
@@ -65,6 +65,28 @@ pub trait Responder: std::fmt::Debug + Send + Sync {
 
     /// Response to a branch rename request
     fn rename_branch(&self, name: &str);
+}
+
+dyn_clone::clone_trait_object!(Responder);
+
+#[cfg(test)]
+mock! {
+    #[derive(Debug)]
+    pub Responder {}
+
+    impl Responder for Responder {
+        fn send(&self, response: CommandResponse);
+        fn agent_message(&self, message: chat_completion::ChatMessage);
+        fn system_message(&self, message: &str);
+        fn update(&self, state: &str);
+        fn rename_chat(&self, name: &str);
+        fn rename_branch(&self, name: &str);
+    }
+
+    impl Clone for Responder {
+        fn clone(&self) -> Self;
+
+    }
 }
 
 // TODO: Naming should be identical to command response
