@@ -2,160 +2,43 @@ use std::sync::Arc;
 
 use anyhow::{Context as _, Result};
 use swiftide::{
-    agents::{
-        system_prompt::SystemPrompt, tools::local_executor::LocalExecutor, Agent, DefaultContext,
-    },
+    agents::{system_prompt::SystemPrompt, Agent, DefaultContext},
     chat_completion::{self, ChatCompletion, Tool},
     prompt::Prompt,
     traits::{AgentContext, Command, SimplePrompt, ToolExecutor},
 };
-use tavily::Tavily;
-use uuid::Uuid;
 
 use super::{
-    conversation_summarizer::ConversationSummarizer,
-    env_setup::{self, EnvSetup},
-    tool_summarizer::ToolSummarizer,
-    tools, RunningAgent,
+    conversation_summarizer::ConversationSummarizer, env_setup::AgentEnvironment,
+    running_agent::RunningAgent, tool_summarizer::ToolSummarizer, Session,
 };
-use crate::{
-    agent::util,
-    commands::Responder,
-    config::{AgentEditMode, SupportedToolExecutors},
-    git::github::GithubSession,
-    indexing,
-    repository::Repository,
-    util::accept_non_zero_exit,
-};
-use swiftide_docker_executor::DockerExecutor;
-
-async fn generate_initial_context(repository: &Repository, query: &str) -> Result<String> {
-    let retrieved_context = indexing::query(repository, &query).await?;
-    let formatted_context = format!("Additional information:\n\n{retrieved_context}");
-    Ok(formatted_context)
-}
-
-// Maybe extract this into a toolbox?
-pub fn available_tools(
-    repository: &Repository,
-    github_session: Option<&Arc<GithubSession>>,
-    agent_env: Option<&env_setup::AgentEnvironment>,
-) -> Result<Vec<Box<dyn Tool>>> {
-    let query_pipeline = indexing::build_query_pipeline(repository)?;
-
-    let mut tools = vec![
-        tools::write_file(),
-        tools::search_file(),
-        tools::git(),
-        tools::shell_command(),
-        tools::search_code(),
-        tools::fetch_url(),
-        tools::ExplainCode::new(query_pipeline).boxed(),
-    ];
-
-    match repository.config().agent_edit_mode {
-        AgentEditMode::Whole => {
-            tools.push(tools::write_file());
-            tools.push(tools::read_file());
-        }
-        AgentEditMode::Line => {
-            tools.push(tools::read_file_with_line_numbers());
-            tools.push(tools::replace_lines());
-            tools.push(tools::add_lines());
-        }
-    }
-
-    if let Some(github_session) = github_session {
-        if !repository.config().disabled_tools.pull_request {
-            tools.push(tools::CreateOrUpdatePullRequest::new(github_session).boxed());
-        }
-        tools.push(tools::GithubSearchCode::new(github_session).boxed());
-    }
-
-    if let Some(tavily_api_key) = &repository.config().tavily_api_key {
-        let tavily = Tavily::builder(tavily_api_key.expose_secret()).build()?;
-        tools.push(tools::SearchWeb::new(tavily, tavily_api_key.clone()).boxed());
-    };
-
-    if let Some(test_command) = &repository.config().commands.test {
-        tools.push(tools::RunTests::new(test_command).boxed());
-    }
-
-    if let Some(coverage_command) = &repository.config().commands.coverage {
-        tools.push(tools::RunCoverage::new(coverage_command).boxed());
-    }
-
-    if let Some(env) = agent_env {
-        tools.push(tools::ResetFile::new(&env.start_ref).boxed());
-    }
-
-    Ok(tools)
-}
-
-async fn start_tool_executor(uuid: Uuid, repository: &Repository) -> Result<Arc<dyn ToolExecutor>> {
-    let boxed = match repository.config().tool_executor {
-        SupportedToolExecutors::Docker => {
-            let mut executor = DockerExecutor::default();
-            let dockerfile = &repository.config().docker.dockerfile;
-
-            if std::fs::metadata(dockerfile).is_err() {
-                tracing::error!("Dockerfile not found at {}", dockerfile.display());
-                panic!("Running in docker requires a Dockerfile");
-            }
-            let running_executor = executor
-                .with_context_path(&repository.config().docker.context)
-                .with_image_name(repository.config().project_name.to_lowercase())
-                .with_dockerfile(dockerfile)
-                .with_container_uuid(uuid)
-                .to_owned()
-                .start()
-                .await?;
-
-            Arc::new(running_executor) as Arc<dyn ToolExecutor>
-        }
-        SupportedToolExecutors::Local => Arc::new(LocalExecutor::new(".")) as Arc<dyn ToolExecutor>,
-    };
-
-    Ok(boxed)
-}
+use crate::{commands::Responder, repository::Repository, util::accept_non_zero_exit};
 
 pub async fn start(
-    query: &str,
-    uuid: Uuid,
-    repository: &Repository,
-    command_responder: Arc<dyn Responder>,
+    session: &Session,
+    executor: &Arc<dyn ToolExecutor>,
+    tools: &[Box<dyn Tool>],
+    agent_env: &AgentEnvironment,
+    initial_context: String,
 ) -> Result<RunningAgent> {
-    let backoff = repository.config().backoff;
-    let query_provider: Box<dyn ChatCompletion> = repository
+    let backoff = session.repository.config().backoff;
+    let query_provider: Box<dyn ChatCompletion> = session
+        .repository
         .config()
         .query_provider()
         .get_chat_completion_model(backoff)?;
-    let fast_query_provider: Box<dyn SimplePrompt> = repository
+    let fast_query_provider: Box<dyn SimplePrompt> = session
+        .repository
         .config()
         .indexing_provider()
         .get_simple_prompt_model(backoff)?;
-
-    let github_session = match repository.config().github_api_key {
-        Some(_) => Some(Arc::new(GithubSession::from_repository(&repository)?)),
-        None => None,
-    };
 
     // TODO: Feels a bit off to have EnvSetup return an Env, just to pass it to tool creation to
     // get the ref/branch name
     //
     // Probably nicer to have a `ChatSession` or `AgentSession` that encapsulates all the
     // complexity
-    let ((), branch_name, executor, initial_context) = tokio::try_join!(
-        util::rename_chat(&query, &fast_query_provider, &command_responder),
-        util::create_branch_name(&query, &uuid, &fast_query_provider, &command_responder),
-        start_tool_executor(uuid, &repository),
-        generate_initial_context(&repository, query)
-    )?;
-    let env_setup = EnvSetup::new(&repository, github_session.as_deref(), &*executor);
-    let agent_env = env_setup.exec_setup_commands(branch_name).await?;
-    let system_prompt = build_system_prompt(&repository)?;
-
-    let tools = available_tools(&repository, github_session.as_ref(), Some(&agent_env))?;
+    let system_prompt = build_system_prompt(&session.repository)?;
 
     let mut context = DefaultContext::from_executor(Arc::clone(&executor));
 
@@ -165,11 +48,11 @@ pub async fn start(
         .output;
     tracing::debug!(top_level_project_overview = ?top_level_project_overview, "Top level project overview");
 
-    if repository.config().endless_mode {
+    if session.repository.config().endless_mode {
         context.with_stop_on_assistant(false);
     }
 
-    let command_responder = Arc::new(command_responder);
+    let command_responder = Arc::new(session.default_responder.clone());
     let tx_2 = command_responder.clone();
     let tx_3 = command_responder.clone();
     let tx_4 = command_responder.clone();
@@ -184,19 +67,19 @@ pub async fn start(
         query_provider.clone(),
         &tools,
         &agent_env.start_ref,
-        repository.config().num_completions_for_summary,
+        session.repository.config().num_completions_for_summary,
     );
-    let maybe_lint_fix_command = repository.config().commands.lint_and_fix.clone();
+    let maybe_lint_fix_command = session.repository.config().commands.lint_and_fix.clone();
 
     let push_to_remote_enabled =
-        agent_env.remote_enabled && repository.config().git.auto_push_remote;
-    let auto_commit_disabled = repository.config().git.auto_commit_disabled;
+        agent_env.remote_enabled && session.repository.config().git.auto_push_remote;
+    let auto_commit_disabled = session.repository.config().git.auto_commit_disabled;
 
     let context = Arc::new(context);
     let agent = Agent::builder()
         .context(Arc::clone(&context) as Arc<dyn AgentContext>)
         .system_prompt(system_prompt)
-        .tools(tools)
+        .tools(tools.to_vec())
         .before_all(move |agent| {
             let initial_context = initial_context.clone();
 
@@ -288,8 +171,6 @@ pub async fn start(
 
     RunningAgent::builder()
         .agent(agent)
-        .executor(executor)
-        .agent_environment(agent_env)
         .agent_context(context as Arc<dyn AgentContext>)
         .build()
 }

@@ -16,17 +16,9 @@ pub struct RunningAgent {
     /// The agent that is running
     #[builder(setter(custom))]
     pub agent: Arc<Mutex<Agent>>,
-    /// A copy of the running tool executor the agent is using
-    pub executor: Arc<dyn ToolExecutor>,
     /// The content the agent is running with
     #[builder(setter(into))]
     pub agent_context: Arc<dyn AgentContext>,
-    /// Used to kill the agent
-    #[builder(default)]
-    pub cancel_token: CancellationToken,
-    /// Information about the environment the agent is running in
-    #[builder(setter(into))]
-    pub agent_environment: Arc<AgentEnvironment>,
 }
 
 impl RunningAgent {
@@ -44,7 +36,6 @@ impl RunningAgent {
     }
 
     pub async fn stop(&self) {
-        self.cancel_token.cancel();
         self.agent.lock().await.stop();
     }
 }

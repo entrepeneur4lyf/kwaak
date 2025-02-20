@@ -156,7 +156,7 @@ impl Responder for Arc<dyn Responder> {
 }
 
 // Debug responder that logs all messages to stderr
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DebugResponder;
 
 impl Responder for DebugResponder {

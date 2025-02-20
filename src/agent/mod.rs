@@ -1,15 +1,14 @@
-mod agent_session;
 mod conversation_summarizer;
 mod delegating_agent;
 pub mod env_setup;
-mod env_setup;
-mod running_agent;
+pub mod running_agent;
+pub mod session;
 mod tool_summarizer;
 pub mod tools;
 mod util;
 pub mod v1;
+use session::{RunningSession, Session};
 use std::sync::Arc;
-use swiftide::chat_completion::Tool;
 
 use anyhow::Result;
 
@@ -19,34 +18,23 @@ use anyhow::Result;
 /// executor, etc
 
 #[tracing::instrument(skip(repository, command_responder))]
-pub async fn start_agent(
+pub async fn start_session(
     uuid: Uuid,
     repository: &Repository,
     initial_query: &str,
     command_responder: Arc<dyn Responder>,
-) -> Result<RunningAgent> {
+) -> Result<RunningSession> {
     command_responder.update("starting up agent for the first time, this might take a while");
 
-    match repository.config().agent {
-        crate::config::SupportedAgents::V1 => {
-            v1::start(initial_query, uuid, repository, command_responder).await
-        }
-    }
+    Session::builder()
+        .session_id(uuid)
+        .repository(repository.clone())
+        .default_responder(command_responder)
+        .initial_query(initial_query.to_string())
+        .start()
+        .await
 }
 
-pub fn available_tools(
-    repository: &Repository,
-    github_session: Option<&Arc<GithubSession>>,
-    agent_env: Option<&env_setup::AgentEnvironment>,
-) -> Result<Vec<Box<dyn Tool>>> {
-    match repository.config().agent {
-        crate::config::SupportedAgents::V1 => {
-            v1::available_tools(repository, github_session, agent_env)
-        }
-    }
-}
-
-pub use running_agent::RunningAgent;
 use uuid::Uuid;
 
 use crate::{commands::Responder, git::github::GithubSession, repository::Repository};
