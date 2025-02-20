@@ -3,15 +3,11 @@ use std::sync::{Arc, Mutex};
 use anyhow::{Context as _, Result};
 use derive_builder::Builder;
 use swiftide::{
-    agents::{
-        system_prompt::SystemPrompt, tools::local_executor::LocalExecutor, Agent, DefaultContext,
-    },
-    chat_completion::{self, errors::ToolError, ChatCompletion, Tool, ToolOutput},
-    prompt::Prompt,
-    traits::{AgentContext, Command, SimplePrompt, ToolExecutor},
+    agents::tools::local_executor::LocalExecutor,
+    chat_completion::Tool,
+    traits::{SimplePrompt, ToolExecutor},
 };
 use swiftide_docker_executor::DockerExecutor;
-use swiftide_macros::Tool;
 use tavily::Tavily;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -146,18 +142,22 @@ pub struct RunningSession {
 }
 
 impl RunningSession {
+    #[must_use]
     pub fn active_agent(&self) -> &RunningAgent {
         &self.active_agent
     }
 
+    #[must_use]
     pub fn executor(&self) -> &dyn ToolExecutor {
         &self.executor
     }
 
+    #[must_use]
     pub fn agent_environment(&self) -> &AgentEnvironment {
         &self.agent_environment
     }
 
+    #[must_use]
     pub fn cancel_token(&self) -> CancellationToken {
         self.cancel_token.lock().unwrap().clone()
     }

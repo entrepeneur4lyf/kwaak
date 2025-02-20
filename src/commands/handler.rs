@@ -1,15 +1,11 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use tokio::{
-    sync::{mpsc, RwLock},
+    sync::mpsc,
     task::{self},
 };
-use tokio_util::{sync::CancellationToken, task::AbortOnDropHandle};
+use tokio_util::task::AbortOnDropHandle;
 use uuid::Uuid;
 
 use crate::{

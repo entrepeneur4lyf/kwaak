@@ -37,4 +37,4 @@ pub async fn start_session(
 
 use uuid::Uuid;
 
-use crate::{commands::Responder, git::github::GithubSession, repository::Repository};
+use crate::{commands::Responder, repository::Repository};

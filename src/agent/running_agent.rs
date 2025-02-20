@@ -1,13 +1,10 @@
 use anyhow::Result;
 use derive_builder::Builder;
 use std::sync::Arc;
-use swiftide::traits::{AgentContext, ToolExecutor};
+use swiftide::traits::AgentContext;
 
 use swiftide::agents::Agent;
 use tokio::sync::Mutex;
-use tokio_util::sync::CancellationToken;
-
-use super::env_setup::AgentEnvironment;
 
 /// Defines any agent that is running
 #[derive(Clone, Builder)]
