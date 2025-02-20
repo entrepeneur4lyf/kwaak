@@ -4,7 +4,7 @@ use swiftide_macros::{tool, Tool};
 use uuid::Uuid;
 
 use super::{
-    agent_session::AgentSession,
+    agent_session::Session,
     conversation_summarizer::ConversationSummarizer,
     env_setup::{self, EnvSetup},
     tool_summarizer::ToolSummarizer,
@@ -32,11 +32,11 @@ use super::env_setup::AgentEnvironment;
     )
 )]
 pub struct RunCodingAgent {
-    session: Arc<AgentSession>,
+    session: Arc<Session>,
 }
 
 impl RunCodingAgent {
-    pub fn new(session: Arc<AgentSession>) -> Self {
+    pub fn new(session: Arc<Session>) -> Self {
         Self { session }
     }
 
@@ -56,7 +56,7 @@ impl RunCodingAgent {
     }
 }
 
-pub async fn start(query: &str, session: AgentSession) -> Result<RunningAgent> {
+pub async fn start(query: &str, session: Session) -> Result<RunningAgent> {
     // Ensure the session is set up
     // tools, etc => Session should provide:
     // - providers

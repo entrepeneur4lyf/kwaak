@@ -3861,6 +3861,7 @@ dependencies = [
  "crossterm 0.28.1",
  "derive_builder",
  "dirs 6.0.0",
+ "dyn-clone",
  "fastembed",
  "htmd",
  "ignore",

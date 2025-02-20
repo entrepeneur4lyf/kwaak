@@ -15,24 +15,8 @@ use uuid::Uuid;
 use crate::{commands::Responder, git::github::GithubSession, repository::Repository};
 
 use super::{env_setup::AgentEnvironment, RunningAgent};
-// TODO: No need for this to be an interface, just making it easier to test
-// pub trait AgentSession: Send + Sync {
-//     fn init(&self) -> Result<()>;
-//
-//     fn session_id(&self) -> Uuid;
-//
-//     fn repository(&self) -> &Repository;
-//     fn github_session(&self) -> Option<&GithubSession>;
-//     fn branch_name(&self) -> &str;
-//     fn executor(&self) -> Arc<dyn ToolExecutor>;
-//     fn agent_environment(&self) -> &AgentEnvironment;
-//     fn available_tools(&self) -> &[Box<dyn Tool>];
-//
-//     fn responder(&self) -> &dyn Responder;
-//     fn responder_clone(&self) -> Box<dyn Responder>;
-// }
 
-pub struct AgentSession {
+pub struct Session {
     session_id: Uuid,
     repository: Repository,
     agent_environment: Option<AgentEnvironment>,
@@ -46,7 +30,7 @@ pub struct AgentSession {
     // active_agent: RunningAgent,
 }
 
-impl AgentSession {
+impl Session {
     pub fn new(session_id: Uuid, repository: Repository, responder: Arc<dyn Responder>) -> Self {
         Self {
             session_id,
