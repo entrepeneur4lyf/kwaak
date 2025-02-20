@@ -65,7 +65,10 @@ async fn main() -> Result<()> {
     fs::create_dir_all(repository.config().log_dir()).await?;
 
     let app_result = {
-        let _guard = kwaak::kwaak_tracing::init(&repository)?;
+        // Only enable the tui logger if we're running the tui
+        let tui_logger_enabled = matches!(args.command, Some(cli::Commands::Tui));
+
+        let _guard = kwaak::kwaak_tracing::init(&repository, tui_logger_enabled)?;
 
         let _root_span = tracing::info_span!("main", "otel.name" = "main").entered();
 
