@@ -67,7 +67,9 @@ impl CommandHandler {
     pub fn start(mut self) -> AbortOnDropHandle<()> {
         let repository = Arc::clone(&self.repository);
         let mut rx = self.rx.take().expect("Expected a receiver");
-        let this_handler = Arc::new(self);
+        // Arguably we're spawning a single task and moving it once, the arc mutex should not be
+        // needed.
+        let this_handler = Arc::new(tokio::sync::Mutex::new(self));
 
         AbortOnDropHandle::new(task::spawn(async move {
             // Handle spawned commands gracefully on quit
@@ -88,7 +90,7 @@ impl CommandHandler {
                 let this_handler = Arc::clone(&this_handler);
 
                 joinset.spawn(async move {
-                    let result = this_handler.handle_command_event(&repository, &event, &event.command()).await;
+                    let result = this_handler.lock().await.handle_command_event(&repository, &event, &event.command()).await;
                     event.responder().send(CommandResponse::Completed(event.uuid()));
 
                     if let Err(error) = result {
@@ -141,7 +143,7 @@ impl CommandHandler {
                 }?;
             }
             Command::Diff => {
-                let Some(session) = self.find_agent_by_uuid(event.uuid()).await else {
+                let Some(session) = self.find_agent_by_uuid(event.uuid()) else {
                     event
                         .responder()
                         .system_message("No agent found (yet), is it starting up?");
@@ -154,7 +156,7 @@ impl CommandHandler {
                 event.responder().system_message(&diff);
             }
             Command::Exec { cmd } => {
-                let Some(session) = self.find_agent_by_uuid(event.uuid()).await else {
+                let Some(session) = self.find_agent_by_uuid(event.uuid()) else {
                     event
                         .responder()
                         .system_message("No agent found (yet), is it starting up?");
@@ -166,7 +168,7 @@ impl CommandHandler {
                 event.responder().system_message(&output);
             }
             Command::RetryChat => {
-                let Some(session) = self.find_agent_by_uuid(event.uuid()).await else {
+                let Some(session) = self.find_agent_by_uuid(event.uuid()) else {
                     event
                         .responder()
                         .system_message("No agent found (yet), is it starting up?");
@@ -228,10 +230,9 @@ impl CommandHandler {
         Ok(cloned)
     }
 
-    async fn find_agent_by_uuid(&self, uuid: Uuid) -> Option<RunningSession> {
-        if let Some(agent) = self.agent_sessions.get(&uuid) {
-            // Ensure we always send a fresh cancellation token
-            return Some(agent.clone());
+    fn find_agent_by_uuid(&self, uuid: Uuid) -> Option<RunningSession> {
+        if let Some(session) = self.agent_sessions.get(&uuid) {
+            return Some(session.clone());
         }
         None
     }

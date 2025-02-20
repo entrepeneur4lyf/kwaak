@@ -35,10 +35,10 @@ use super::{
 ///
 /// TODO: The command responder will instead receive generic session updates
 #[derive(Clone, Builder)]
-#[builder(build_fn(private))]
+#[builder(build_fn(private), setter(into))]
 pub struct Session {
     pub session_id: Uuid,
-    pub repository: Repository,
+    pub repository: Arc<Repository>,
     pub default_responder: Arc<dyn Responder>,
     pub initial_query: String,
     // available_tools: Vec<Box<dyn Tool>>,
@@ -51,6 +51,7 @@ pub struct Session {
 }
 
 impl Session {
+    #[must_use]
     pub fn builder() -> SessionBuilder {
         SessionBuilder::default()
     }
@@ -68,11 +69,6 @@ impl SessionBuilder {
         };
 
         let backoff = session.repository.config().backoff;
-        let query_provider: Box<dyn ChatCompletion> = session
-            .repository
-            .config()
-            .query_provider()
-            .get_chat_completion_model(backoff)?;
         let fast_query_provider: Box<dyn SimplePrompt> = session
             .repository
             .config()
@@ -125,7 +121,6 @@ impl SessionBuilder {
             executor,
             agent_environment,
             available_tools: available_tools.into(),
-            // cancel_token: Arc::new(Mutex::new(CancellationToken::new())),
             cancel_token: Arc::new(Mutex::new(CancellationToken::new())),
         })
     }
@@ -137,6 +132,7 @@ impl SessionBuilder {
 /// References a running session
 /// Meant to be cloned
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct RunningSession {
     session: Arc<Session>,
     active_agent: RunningAgent,
@@ -150,8 +146,8 @@ pub struct RunningSession {
 }
 
 impl RunningSession {
-    pub fn active_agent(&self) -> RunningAgent {
-        self.active_agent.clone()
+    pub fn active_agent(&self) -> &RunningAgent {
+        &self.active_agent
     }
 
     pub fn executor(&self) -> &dyn ToolExecutor {

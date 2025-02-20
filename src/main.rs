@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::config::Config;
-use agent::v1::available_tools;
+use agent::session::available_tools;
 use anyhow::{Context as _, Result};
 use clap::Parser;
 use commands::CommandResponse;
@@ -183,7 +183,7 @@ async fn start_agent(mut repository: repository::Repository, initial_message: &s
     let query = initial_message.to_string();
     let agent = agent::start_session(Uuid::new_v4(), &repository, &query, Arc::new(tx)).await?;
 
-    agent.query(&query).await?;
+    agent.active_agent().query(&query).await?;
     handle.abort();
     Ok(())
 }
