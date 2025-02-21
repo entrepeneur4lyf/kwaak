@@ -111,7 +111,7 @@ impl SessionBuilder {
         }?;
 
         Ok(RunningSession {
-            active_agent,
+            active_agent: Arc::new(Mutex::new(active_agent)),
             session: session.into(),
             github_session,
             executor,
@@ -127,11 +127,12 @@ impl SessionBuilder {
 
 /// References a running session
 /// Meant to be cloned
+// TODO: Merge with session?
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct RunningSession {
     session: Arc<Session>,
-    active_agent: RunningAgent,
+    active_agent: Arc<Mutex<RunningAgent>>,
 
     github_session: Option<Arc<GithubSession>>,
     executor: Arc<dyn ToolExecutor>,
@@ -142,9 +143,25 @@ pub struct RunningSession {
 }
 
 impl RunningSession {
+    /// Get a cheap copy of the active agent
     #[must_use]
-    pub fn active_agent(&self) -> &RunningAgent {
-        &self.active_agent
+    pub fn active_agent(&self) -> RunningAgent {
+        self.active_agent.lock().unwrap().clone()
+    }
+
+    /// Run an agent with a query
+    pub async fn query_agent(&self, query: &str) -> Result<()> {
+        self.active_agent().query(query).await
+    }
+
+    /// Run an agent without a query
+    pub async fn run_agent(&self) -> Result<()> {
+        self.active_agent().run().await
+    }
+
+    pub fn swap_agent(&self, running_agent: RunningAgent) {
+        let mut lock = self.active_agent.lock().unwrap();
+        *lock = running_agent;
     }
 
     #[must_use]
@@ -170,7 +187,8 @@ impl RunningSession {
     pub async fn stop(&self) {
         // When sessions have multiple agents, they should be stopped here
         self.reset_cancel_token();
-        self.active_agent.stop().await;
+        let lock = self.active_agent.lock().unwrap().clone();
+        lock.stop().await;
     }
 }
 

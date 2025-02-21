@@ -134,7 +134,7 @@ impl CommandHandler {
 
                 tokio::select! {
                     () = token.cancelled() => Ok(()),
-                    result = session.active_agent().query(&message) => result,
+                    result = session.query_agent(&message) => result,
 
                 }?;
             }
@@ -182,7 +182,7 @@ impl CommandHandler {
                 session.active_agent().agent_context.redrive().await;
                 tokio::select! {
                     () = token.cancelled() => Ok(()),
-                    result = session.active_agent().run() => result,
+                    result = session.run_agent() => result,
 
                 }?;
             }

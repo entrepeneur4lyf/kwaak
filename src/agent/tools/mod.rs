@@ -1,3 +1,4 @@
+mod delegate_agent;
 mod replace_lines;
 
 pub use replace_lines::replace_lines;
