@@ -1,22 +1,17 @@
+pub mod agents;
 mod conversation_summarizer;
-mod delegating_agent;
 pub mod env_setup;
 pub mod running_agent;
 pub mod session;
 mod tool_summarizer;
 pub mod tools;
 mod util;
-pub mod v1;
 use session::{RunningSession, Session};
 use std::sync::Arc;
 
 use anyhow::Result;
 
-/// NOTE: On architecture, when more agents are added, it would be nice to have the concept of an
-/// (Agent/Chat) session that wraps all this complexity => Responders then update on the session.
-/// Makes everything a lot simpler. The session can then also references the running agent,
-/// executor, etc
-
+/// Starts a new chat session based on the repository, its configuration, and the initial user query
 #[tracing::instrument(skip(repository, command_responder))]
 pub async fn start_session(
     uuid: Uuid,

@@ -15,16 +15,17 @@ use uuid::Uuid;
 use crate::{
     agent::util,
     commands::Responder,
-    config::{AgentEditMode, SupportedToolExecutors},
+    config::{self, AgentEditMode, SupportedToolExecutors},
     git::github::GithubSession,
     indexing,
     repository::Repository,
 };
 
 use super::{
+    agents,
     env_setup::{self, AgentEnvironment, EnvSetup},
     running_agent::RunningAgent,
-    tools, v1,
+    tools,
 };
 
 /// Session represents the abstract state of an ongoing agent interaction (i.e. in a chat)
@@ -98,8 +99,19 @@ impl SessionBuilder {
         )?;
 
         let active_agent = match session.repository.config().agent {
-            crate::config::SupportedAgents::V1 => {
-                v1::start(
+            config::SupportedAgentConfigurations::Coding => {
+                agents::coding::start(
+                    &session,
+                    &executor,
+                    &available_tools,
+                    &agent_environment,
+                    initial_context,
+                )
+                .await
+            }
+            // TODO: Strip tools for delegate agent and add tool for delegate
+            config::SupportedAgentConfigurations::PlanAct => {
+                agents::delegate::start(
                     &session,
                     &executor,
                     &available_tools,

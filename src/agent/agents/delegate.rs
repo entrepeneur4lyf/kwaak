@@ -1,3 +1,7 @@
+//! The delegate agent is meant to delegate tasks to other agents
+//!
+//! Additionally, it can answer simple questions
+
 // use anyhow::{Context as _, Result};
 // use std::sync::Arc;
 // use swiftide_macros::{tool, Tool};
@@ -66,11 +70,15 @@ use swiftide::{
     traits::{AgentContext, Command, SimplePrompt, ToolExecutor},
 };
 
-use super::{
-    conversation_summarizer::ConversationSummarizer, env_setup::AgentEnvironment,
-    running_agent::RunningAgent, tool_summarizer::ToolSummarizer, Session,
+use crate::{
+    agent::{
+        conversation_summarizer::ConversationSummarizer, env_setup::AgentEnvironment,
+        running_agent::RunningAgent, session::Session, tool_summarizer::ToolSummarizer,
+    },
+    commands::Responder,
+    repository::Repository,
+    util::accept_non_zero_exit,
 };
-use crate::{commands::Responder, repository::Repository, util::accept_non_zero_exit};
 
 pub async fn start(
     session: &Session,

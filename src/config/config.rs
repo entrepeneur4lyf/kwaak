@@ -31,7 +31,7 @@ pub struct Config {
 
     /// The agent model to use by default in chats
     #[serde(default)]
-    pub agent: SupportedAgents,
+    pub agent: SupportedAgentConfigurations,
 
     #[serde(default)]
     /// Concurrency for indexing
@@ -149,10 +149,16 @@ pub struct DisabledTools {
     pub pull_request: bool,
 }
 
+/// Agent session configurations supported by Kwaak
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize, Default)]
-pub enum SupportedAgents {
+pub enum SupportedAgentConfigurations {
+    /// Single looping agent that has all tools available
     #[default]
-    V1,
+    #[serde(alias = "V1")]
+    Coding,
+    /// A two stage agent, starting with a planning agent that delegates to the coding
+    /// agent
+    PlanAct,
 }
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize, Default)]

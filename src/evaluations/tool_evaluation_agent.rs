@@ -4,8 +4,8 @@ use swiftide::agents::{Agent, DefaultContext};
 use swiftide::chat_completion::{ChatCompletion, Tool};
 use swiftide::traits::AgentContext;
 
+use crate::agent::agents;
 use crate::agent::running_agent::RunningAgent;
-use crate::agent::v1;
 use crate::commands::Responder;
 use crate::repository::Repository;
 
@@ -16,7 +16,7 @@ pub async fn start_tool_evaluation_agent(
     tools: Vec<Box<dyn Tool>>,
 ) -> Result<RunningAgent> {
     // Create agent with simplified tools
-    let system_prompt = v1::build_system_prompt(repository)?;
+    let system_prompt = agents::coding::build_system_prompt(repository)?;
     let agent_context: Arc<dyn AgentContext> =
         Arc::new(DefaultContext::default()) as Arc<dyn AgentContext>;
 
