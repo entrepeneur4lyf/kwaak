@@ -4,19 +4,21 @@ use swiftide::agents::{Agent, DefaultContext};
 use swiftide::chat_completion::{ChatCompletion, Tool};
 use swiftide::traits::AgentContext;
 
-use crate::agent::{env_setup::AgentEnvironment, v1, RunningAgent};
+use crate::agent::agents;
+use crate::agent::running_agent::RunningAgent;
 use crate::commands::Responder;
 use crate::repository::Repository;
 
+// Note that this uses a local executor
 pub async fn start_tool_evaluation_agent(
     repository: &Repository,
     responder: Arc<dyn Responder>,
     tools: Vec<Box<dyn Tool>>,
 ) -> Result<RunningAgent> {
     // Create agent with simplified tools
-    let system_prompt = v1::build_system_prompt(repository)?;
-    let agent_context: Arc<dyn AgentContext> = Arc::new(DefaultContext::default());
-    let executor = Arc::new(swiftide::agents::tools::local_executor::LocalExecutor::default());
+    let system_prompt = agents::coding::build_system_prompt(repository)?;
+    let agent_context: Arc<dyn AgentContext> =
+        Arc::new(DefaultContext::default()) as Arc<dyn AgentContext>;
 
     let backoff = repository.config().backoff;
 
@@ -53,9 +55,7 @@ pub async fn start_tool_evaluation_agent(
 
     let agent = RunningAgent::builder()
         .agent(agent)
-        .executor(executor)
         .agent_context(agent_context)
-        .agent_environment(Arc::new(AgentEnvironment::default()))
         .build()?;
 
     Ok(agent)

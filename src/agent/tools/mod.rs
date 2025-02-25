@@ -1,5 +1,7 @@
+mod delegate_agent;
 mod replace_lines;
 
+pub use delegate_agent::DelegateAgent;
 pub use replace_lines::replace_lines;
 
 use std::sync::Arc;

@@ -1,16 +1,16 @@
 use crate::commands::{CommandResponse, Responder};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use swiftide::chat_completion::ChatMessage;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LoggingResponder {
-    messages: Mutex<Vec<String>>,
+    messages: Arc<Mutex<Vec<String>>>,
 }
 
 impl LoggingResponder {
     pub fn new() -> Self {
         Self {
-            messages: Mutex::new(Vec::new()),
+            messages: Arc::new(Mutex::new(Vec::new())),
         }
     }
 

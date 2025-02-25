@@ -2,14 +2,14 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use tokio::{
-    sync::{mpsc, RwLock},
+    sync::mpsc,
     task::{self},
 };
-use tokio_util::{sync::CancellationToken, task::AbortOnDropHandle};
+use tokio_util::task::AbortOnDropHandle;
 use uuid::Uuid;
 
 use crate::{
-    agent::{self, RunningAgent},
+    agent::{self, session::RunningSession},
     frontend::App,
     git, indexing,
     repository::Repository,
@@ -33,8 +33,8 @@ pub struct CommandHandler {
     /// Repository to interact with
     repository: Arc<Repository>,
 
-    /// TODO: Fix this, too tired to think straight
-    agents: Arc<RwLock<HashMap<Uuid, RunningAgent>>>,
+    // agent_sessions: Arc<RwLock<HashMap<Uuid, RunningSession>>>,
+    agent_sessions: HashMap<Uuid, RunningSession>,
 }
 
 impl CommandHandler {
@@ -45,7 +45,8 @@ impl CommandHandler {
             rx: Some(rx),
             tx,
             repository: Arc::new(repository.into()),
-            agents: Arc::new(RwLock::new(HashMap::new())),
+            // agent_sessions: Arc::new(RwLock::new(HashMap::new())),
+            agent_sessions: HashMap::new(),
         }
     }
 
@@ -62,7 +63,9 @@ impl CommandHandler {
     pub fn start(mut self) -> AbortOnDropHandle<()> {
         let repository = Arc::clone(&self.repository);
         let mut rx = self.rx.take().expect("Expected a receiver");
-        let this_handler = Arc::new(self);
+        // Arguably we're spawning a single task and moving it once, the arc mutex should not be
+        // needed.
+        let this_handler = Arc::new(tokio::sync::Mutex::new(self));
 
         AbortOnDropHandle::new(task::spawn(async move {
             // Handle spawned commands gracefully on quit
@@ -83,7 +86,7 @@ impl CommandHandler {
                 let this_handler = Arc::clone(&this_handler);
 
                 joinset.spawn(async move {
-                    let result = this_handler.handle_command_event(&repository, &event, &event.command()).await;
+                    let result = this_handler.lock().await.handle_command_event(&repository, &event, &event.command()).await;
                     event.responder().send(CommandResponse::Completed(event.uuid()));
 
                     if let Err(error) = result {
@@ -102,7 +105,7 @@ impl CommandHandler {
 
     #[tracing::instrument(skip_all, fields(otel.name = %cmd.to_string(), uuid = %event.uuid()), err)]
     async fn handle_command_event(
-        &self,
+        &mut self,
         repository: &Repository,
         event: &CommandEvent,
         cmd: &Command,
@@ -124,61 +127,62 @@ impl CommandHandler {
                 .system_message(&toml::to_string_pretty(repository.config())?),
             Command::Chat { ref message } => {
                 let message = message.clone();
-                let agent = self
+                let session = self
                     .find_or_start_agent_by_uuid(event.uuid(), &message, event.clone_responder())
                     .await?;
-                let token = agent.cancel_token.clone();
+                let token = session.cancel_token().clone();
 
                 tokio::select! {
                     () = token.cancelled() => Ok(()),
-                    result = agent.query(&message) => result,
+                    result = session.query_agent(&message) => result,
 
                 }?;
             }
             Command::Diff => {
-                let Some(agent) = self.find_agent_by_uuid(event.uuid()).await else {
+                let Some(session) = self.find_agent_by_uuid(event.uuid()) else {
                     event
                         .responder()
                         .system_message("No agent found (yet), is it starting up?");
                     return Ok(());
                 };
 
-                let base_sha = &agent.agent_environment.start_ref;
-                let diff = git::util::diff(agent.executor.as_ref(), &base_sha, true).await?;
+                let base_sha = &session.agent_environment().start_ref;
+                let diff = git::util::diff(session.executor(), &base_sha, true).await?;
 
                 event.responder().system_message(&diff);
             }
             Command::Exec { cmd } => {
-                let Some(agent) = self.find_agent_by_uuid(event.uuid()).await else {
+                let Some(session) = self.find_agent_by_uuid(event.uuid()) else {
                     event
                         .responder()
                         .system_message("No agent found (yet), is it starting up?");
                     return Ok(());
                 };
 
-                let output = accept_non_zero_exit(agent.executor.exec_cmd(cmd).await)?.output;
+                let output = accept_non_zero_exit(session.executor().exec_cmd(cmd).await)?.output;
 
                 event.responder().system_message(&output);
             }
             Command::RetryChat => {
-                let Some(agent) = self.find_agent_by_uuid(event.uuid()).await else {
+                let Some(session) = self.find_agent_by_uuid(event.uuid()) else {
                     event
                         .responder()
                         .system_message("No agent found (yet), is it starting up?");
                     return Ok(());
                 };
-                let mut token = agent.cancel_token.clone();
+                let mut token = session.cancel_token().clone();
                 if token.is_cancelled() {
-                    if let Some(agent) = self.agents.write().await.get_mut(&event.uuid()) {
-                        agent.cancel_token = CancellationToken::new();
-                        token = agent.cancel_token.clone();
+                    // if let Some(session) = self.agent_sessions.write().await.get_mut(&event.uuid())
+                    if let Some(session) = self.agent_sessions.get_mut(&event.uuid()) {
+                        session.reset_cancel_token();
+                        token = session.cancel_token().clone();
                     }
                 }
 
-                agent.agent_context.redrive().await;
+                session.active_agent().agent_context.redrive().await;
                 tokio::select! {
                     () = token.cancelled() => Ok(()),
-                    result = agent.run() => result,
+                    result = session.run_agent() => result,
 
                 }?;
             }
@@ -203,49 +207,46 @@ impl CommandHandler {
     }
 
     async fn find_or_start_agent_by_uuid(
-        &self,
+        &mut self,
         uuid: Uuid,
         query: &str,
         responder: Arc<dyn Responder>,
-    ) -> Result<RunningAgent> {
-        if let Some(agent) = self.find_agent_by_uuid(uuid).await {
-            if let Some(agent) = self.agents.write().await.get_mut(&uuid) {
-                agent.cancel_token = CancellationToken::new();
-            }
-            return Ok(agent);
+    ) -> Result<RunningSession> {
+        if let Some(session) = self.agent_sessions.get_mut(&uuid) {
+            session.reset_cancel_token();
+
+            return Ok(session.clone());
         }
 
-        let running_agent = agent::start_agent(uuid, &self.repository, query, responder).await?;
+        let running_agent = agent::start_session(uuid, &self.repository, query, responder).await?;
         let cloned = running_agent.clone();
 
-        self.agents.write().await.insert(uuid, running_agent);
+        self.agent_sessions.insert(uuid, running_agent);
 
         Ok(cloned)
     }
 
-    async fn find_agent_by_uuid(&self, uuid: Uuid) -> Option<RunningAgent> {
-        if let Some(agent) = self.agents.read().await.get(&uuid) {
-            // Ensure we always send a fresh cancellation token
-            return Some(agent.clone());
+    fn find_agent_by_uuid(&self, uuid: Uuid) -> Option<RunningSession> {
+        if let Some(session) = self.agent_sessions.get(&uuid) {
+            return Some(session.clone());
         }
         None
     }
 
     async fn stop_agent(&self, uuid: Uuid, responder: Arc<dyn Responder>) -> Result<()> {
-        let agents = self.agents.read().await;
-        let Some(agent) = agents.get(&uuid) else {
+        let Some(session) = self.agent_sessions.get(&uuid) else {
             responder.system_message("No agent found (yet), is it starting up?");
             return Ok(());
         };
 
-        if agent.cancel_token.is_cancelled() {
+        if session.cancel_token().is_cancelled() {
             responder.system_message("Agent already stopped");
             return Ok(());
         }
 
         // TODO: If this fails inbetween tool calls and responses, the agent will be stuck
         // Perhaps something to re-align it?
-        agent.stop().await;
+        session.stop().await;
 
         responder.system_message("Agent stopped");
         Ok(())

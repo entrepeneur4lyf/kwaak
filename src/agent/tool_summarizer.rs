@@ -55,7 +55,7 @@ impl<'a> ToolSummarizer<'a> {
             if let Ok(output) = tool_output {
                 let git_start_sha = self.git_start_sha.clone();
 
-                let span = tracing::info_span!("summarize_tool", tool = tool.name());
+                let span = tracing::info_span!("summarize_tool", tool = tool.name().as_ref());
                 let prompt = prompt(tool, tool_call, output, self.available_tools.as_slice());
 
                 return Box::pin(
