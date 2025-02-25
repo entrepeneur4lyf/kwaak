@@ -75,6 +75,10 @@ pub struct Config {
     #[serde(default)]
     pub open_router_api_key: Option<ApiKey>,
 
+    /// Required if using `Azure OpenAI`
+    #[serde(default)]
+    pub azure_openai_api_key: Option<ApiKey>,
+
     #[serde(default)]
     pub tool_executor: SupportedToolExecutors,
 
@@ -322,6 +326,7 @@ impl Config {
             LLMConfiguration::OpenAI { .. } => self.openai_api_key.as_ref(),
             LLMConfiguration::OpenRouter { .. } => self.open_router_api_key.as_ref(),
             LLMConfiguration::Anthropic { .. } => self.anthropic_api_key.as_ref(),
+            LLMConfiguration::AzureOpenAI { .. } => self.azure_openai_api_key.as_ref(),
             _ => None,
         }
     }
@@ -362,6 +367,7 @@ impl Config {
 
         match self.indexing_provider() {
             LLMConfiguration::OpenAI { .. } => num_cpus::get() * 4,
+            LLMConfiguration::AzureOpenAI { .. } => num_cpus::get() * 4,
             LLMConfiguration::OpenRouter { .. } => num_cpus::get() * 4,
             LLMConfiguration::Ollama { .. } => num_cpus::get(),
             LLMConfiguration::FastEmbed { .. } => num_cpus::get(),
@@ -379,6 +385,7 @@ impl Config {
 
         match self.indexing_provider() {
             LLMConfiguration::OpenAI { .. } => 12,
+            LLMConfiguration::AzureOpenAI { .. } => 12,
             LLMConfiguration::Ollama { .. } => 256,
             LLMConfiguration::OpenRouter { .. } => 12,
             LLMConfiguration::FastEmbed { .. } => 256,
@@ -404,6 +411,15 @@ fn fill_llm(llm: &mut LLMConfiguration, root_key: Option<&ApiKey>) -> Result<()>
                     *api_key = Some(root.clone());
                 } else {
                     anyhow::bail!("OpenAI config requires an `api_key`, and none was provided or available in the root");
+                }
+            }
+        }
+        LLMConfiguration::AzureOpenAI { api_key, .. } => {
+            if api_key.is_none() {
+                if let Some(root) = root_key {
+                    *api_key = Some(root.clone());
+                } else {
+                    anyhow::bail!("AzureOpenAI config requires an `api_key`, and none was provided or available in the root");
                 }
             }
         }

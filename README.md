@@ -108,7 +108,7 @@ Powered by [Swiftide](https://github.com/bosun-ai/swiftide)
 - Agents operate on code, use tools, and can be interacted with
 - View and pull code changes from an agent; or have it create a pull request
 - Sandboxed execution in docker
-- OpenAI, Ollama, Anthropic, and many other models via [OpenRouter](https://openrouter.ai)
+- OpenAI, Ollama, Anthropic, Azure, and many other models via [OpenRouter](https://openrouter.ai)
 - Python, TypeScript/Javascript, Go, Java, Ruby, Solidity, and Rust
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -251,6 +251,7 @@ Supported providers:
 - OpenAI
 - Ollama
 - Anthropic
+- Azure (`AzureOpenAI`)
 - OpenRouter (no embeddings)
 - FastEmbed (embeddings only)
 
@@ -287,6 +288,35 @@ prompt_model = "llama3.3"
 [llm.embedding]
 provider = "Ollama"
 embedding_model = { name = "bge-m3", vector_size = 1024 }
+```
+
+**Azure Configuration**:
+
+```toml
+azure_openai_api_key = "env:KWAAK_AZURE_OPENAI_API_KEY"
+
+[llm.indexing]
+# or override it per provider
+# api_key = "env:KWAAK_AZURE_OPENAI_API_KEY"
+base_url = "https://your.base.url"
+deployment_id = "your-deployment-id"
+api_version = "version"
+provider = "AzureOpenAI"
+prompt_model = "gpt-4-mini"
+
+[llm.query]
+base_url = "https://your.base.url"
+deployment_id = "your-deployment-id"
+api_version = "version"
+provider = "AzureOpenAI"
+prompt_model = "gpt-4o"
+
+[llm.embedding]
+base_url = "https://your.base.url"
+deployment_id = "your-deployment-id"
+api_version = "version"
+provider = "AzureOpenAI"
+embedding_model = "text-embedding-3-large"
 ```
 
 For both you can provide a `base_url` to use a custom API endpoint. The `api_key` can be set per provider, or globally.
@@ -334,9 +364,9 @@ max_elapsed_time_sec = 120
 - **`git.auto_commit_disabled`**: Opt-out of automatic commits after each chat completion.
 - **`disabled_tools.pull_request`**: Enables or disables the pull request tool. Defaults to `false`.
 - **`ui.hide_header`**: Optionally hide the top header in the UI. Defaults to `false`.
-- **`num_completions_for_summary`**: Number of completions before the agent summarizes the conversation. Defaults to 10; 
+- **`num_completions_for_summary`**: Number of completions before the agent summarizes the conversation. Defaults to 10;
 - **`git.agent_user_name`**: Name which the kwaak agent will make commands with.
-  Defaults to "kwaak"` 
+  Defaults to "kwaak"`
 - **`git.agent_user_email`**: Email which the kwaak agent will make commits
   with. Defaults to "kwaak@bosun.ai"
 

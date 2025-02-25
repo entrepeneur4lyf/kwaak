@@ -51,6 +51,19 @@ pub enum LLMConfiguration {
         #[serde(default)]
         base_url: Option<Url>,
     },
+    AzureOpenAI {
+        api_key: Option<ApiKey>,
+        #[serde(default)]
+        prompt_model: OpenAIPromptModel,
+        #[serde(default)]
+        embedding_model: OpenAIEmbeddingModel,
+        #[serde(default)]
+        base_url: Option<Url>,
+        #[serde(default)]
+        api_version: Option<String>,
+        #[serde(default)]
+        deployment_id: Option<String>,
+    },
     Ollama {
         #[serde(default)]
         prompt_model: Option<String>,
@@ -271,6 +284,12 @@ impl LLMConfiguration {
                 OpenAIEmbeddingModel::TextEmbedding3Small => 1536,
                 OpenAIEmbeddingModel::TextEmbedding3Large => 3072,
             },
+            LLMConfiguration::AzureOpenAI {
+                embedding_model, ..
+            } => match embedding_model {
+                OpenAIEmbeddingModel::TextEmbedding3Small => 1536,
+                OpenAIEmbeddingModel::TextEmbedding3Large => 3072,
+            },
             LLMConfiguration::Ollama {
                 embedding_model, ..
             } => {
@@ -290,6 +309,43 @@ impl LLMConfiguration {
                 panic!("Anthropic does not have an embedding model")
             }
         }
+    }
+
+    fn build_azure_openai(
+        &self,
+        backoff: BackoffConfiguration,
+    ) -> Result<integrations::openai::OpenAI<async_openai::config::AzureConfig>> {
+        let LLMConfiguration::AzureOpenAI {
+            api_key,
+            embedding_model,
+            prompt_model,
+            base_url,
+            api_version,
+            deployment_id,
+        } = self
+        else {
+            anyhow::bail!("Expected AzureOpenAI configuration")
+        };
+
+        let api_key = api_key.as_ref().context("Expected an api key")?;
+        let base_url = base_url.as_ref().context("Expected a base url")?;
+        let api_version = api_version.as_ref().context("Expected an api version")?;
+        let deployment_id = deployment_id.as_ref().context("Expected a deployment id")?;
+
+        let config = async_openai::config::AzureConfig::default()
+            .with_api_key(api_key.expose_secret())
+            .with_api_base(base_url.to_string())
+            .with_api_version(api_version)
+            .with_deployment_id(deployment_id);
+
+        let client = async_openai::Client::with_config(config).with_backoff(backoff.into());
+
+        integrations::openai::OpenAIBuilder::<async_openai::config::AzureConfig>::default()
+            .client(client)
+            .default_prompt_model(prompt_model.to_string())
+            .default_embed_model(embedding_model.to_string())
+            .build()
+            .context("Failed to build OpenAI client")
     }
 
     fn build_openai(&self, backoff: BackoffConfiguration) -> Result<integrations::openai::OpenAI> {
@@ -407,6 +463,9 @@ impl LLMConfiguration {
             LLMConfiguration::OpenAI { .. } => {
                 Box::new(self.build_openai(backoff_config)?) as Box<dyn EmbeddingModel>
             }
+            LLMConfiguration::AzureOpenAI { .. } => {
+                Box::new(self.build_azure_openai(backoff_config)?) as Box<dyn EmbeddingModel>
+            }
             LLMConfiguration::Ollama { .. } => {
                 Box::new(self.build_ollama()?) as Box<dyn EmbeddingModel>
             }
@@ -438,6 +497,9 @@ impl LLMConfiguration {
             LLMConfiguration::OpenAI { .. } => {
                 Box::new(self.build_openai(backoff)?) as Box<dyn SimplePrompt>
             }
+            LLMConfiguration::AzureOpenAI { .. } => {
+                Box::new(self.build_azure_openai(backoff)?) as Box<dyn SimplePrompt>
+            }
             LLMConfiguration::Ollama { .. } => {
                 Box::new(self.build_ollama()?) as Box<dyn SimplePrompt>
             }
@@ -461,6 +523,9 @@ impl LLMConfiguration {
         backoff: BackoffConfiguration,
     ) -> Result<Box<dyn ChatCompletion>> {
         let boxed = match self {
+            LLMConfiguration::AzureOpenAI { .. } => {
+                Box::new(self.build_azure_openai(backoff)?) as Box<dyn ChatCompletion>
+            }
             LLMConfiguration::OpenAI { .. } => {
                 Box::new(self.build_openai(backoff)?) as Box<dyn ChatCompletion>
             }
