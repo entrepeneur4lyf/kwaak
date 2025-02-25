@@ -119,7 +119,7 @@ Powered by [Swiftide](https://github.com/bosun-ai/swiftide)
 
 ## How is Kwaak different from other tools?
 
-Kwaak focusses on out-of-your-way autonomous agents. There are great tools available to utilize AI in your own coding workflow, Kwaak does the opposite. Throw your backlog at Kwaak, so you can work on the cool stuff.
+Kwaak focuses on out-of-your-way autonomous agents. There are great tools available to utilize AI in your own coding workflow, Kwaak does the opposite. Throw your backlog at Kwaak, so you can work on the cool stuff.
 
 ## Latest updates on our blog :fire:
 
