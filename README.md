@@ -5,9 +5,12 @@
 
 - [What is Kwaak?](#what-is-kwaak)
 - [High level features](#high-level-features)
+- [How is Kwaak different from other tools?](#how-is-kwaak-different-from-other-tools)
 - [Latest updates on our blog :fire:](#latest-updates-on-our-blog-fire)
 - [Getting started](#getting-started)
   - [Requirements](#requirements)
+    - [Docker](#docker)
+    - [Api keys](#api-keys)
   - [Installation and setup](#installation-and-setup)
     - [Homebrew](#homebrew)
     - [Linux and MacOS (using curl)](#linux-and-macos-using-curl)
@@ -21,7 +24,8 @@
     - [API Key Management](#api-key-management)
     - [Docker and GitHub Configuration](#docker-and-github-configuration)
     - [LLM Configuration](#llm-configuration)
-    - [Other integrations](#other-integrations)
+    - [Backoff Configuration](#backoff-configuration)
+    - [Other configuration](#other-configuration)
 - [Upcoming](#upcoming)
 - [Troubleshooting & FAQ](#troubleshooting-faq)
 - [Community](#community)
@@ -112,6 +116,10 @@ Powered by [Swiftide](https://github.com/bosun-ai/swiftide)
 - Python, TypeScript/Javascript, Go, Java, Ruby, Solidity, and Rust
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## How is Kwaak different from other tools?
+
+Kwaak focusses on out-of-your-way autonomous agents. There are great tools available to utilize AI in your own coding workflow, Kwaak does the opposite. Throw your backlog at Kwaak, so you can work on the cool stuff.
 
 ## Latest updates on our blog :fire:
 
@@ -432,11 +440,7 @@ If you have a great idea, please fork the repo and create a pull request.
 
 Don't forget to give the project a star! Thanks again!
 
-<<<<<<< HEAD
 See also `ARCHITECTURE.md`.
-=======
-Testing agents is not a trivial matter. We have benchmarks to verify agent behaviour across larger datasets. Check out the [Evaluations](EVALUATIONS.md) page for more information as well as the [SWE-Bench](benchmarks/swe/README.md) benchmark page for more information.
->>>>>>> master
 
 If you just want to contribute (bless you!), see [our issues](https://github.com/bosun-ai/kwaak/issues) or join us on Discord.
 
