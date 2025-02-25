@@ -29,26 +29,31 @@ use super::{
     tools,
 };
 
-/// Session represents the abstract state of an ongoing agent interaction (i.e. in a chat)
-///
-/// Consider the implementation 'emergent architecture' (an excuse for an isolated mess)
-///
-/// Some future ideas:
-///     - Session configuration from a file
-///     - A registry pattern for agents, so you could in theory run multiple concurrent
+/// Represents the state of an ongoing agent interaction.
+/// The `Session` struct is responsible for maintaining the session id,
+/// repository details, responder for session queries, and managing messages
+/// to the running session.
 #[derive(Clone, Builder)]
 #[builder(build_fn(private), setter(into))]
 pub struct Session {
+    /// Unique identifier for the session
     pub session_id: Uuid,
+
+    /// Repository associated with the session
     pub repository: Arc<Repository>,
+
+    /// Default responder for handling session queries
     pub default_responder: Arc<dyn Responder>,
+
+    /// Initial query used for session setup
     pub initial_query: String,
 
-    /// Handle to send messages to the running session
+    /// Channel for sending messages to the running session
     running_session_tx: UnboundedSender<SessionMessage>,
 }
 
-/// Messages that can be send from i.e. a tool to an active session
+/// Enum for messages that can be sent to an active session,
+/// such as swapping the current agent.
 #[derive(Clone)]
 pub enum SessionMessage {
     SwapAgent(RunningAgent),
@@ -63,12 +68,13 @@ impl std::fmt::Debug for SessionMessage {
 }
 
 impl Session {
+    /// Creates a new builder for `Session`
     #[must_use]
     pub fn builder() -> SessionBuilder {
         SessionBuilder::default()
     }
 
-    /// Inform the running session that the agent has been swapped
+    /// Sends a message to swap the current agent in the running session
     pub fn swap_agent(&self, agent: RunningAgent) -> Result<()> {
         self.running_session_tx
             .send(SessionMessage::SwapAgent(agent))
@@ -77,7 +83,7 @@ impl Session {
 }
 
 impl SessionBuilder {
-    /// Starts a session
+    /// Starts a session with an initialized `RunningSession`
     pub async fn start(&mut self) -> Result<RunningSession> {
         let (running_session_tx, running_session_rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -171,7 +177,7 @@ impl SessionBuilder {
     }
 }
 
-/// Spawns a small task to handle messages sent to the active session
+/// Handles messages sent to the active session
 async fn running_message_handler(
     running_session: RunningSession,
     mut running_session_rx: tokio::sync::mpsc::UnboundedReceiver<SessionMessage>,
@@ -244,65 +250,83 @@ async fn start_plan_and_act(
     .await
 }
 
-/// References a running session
-/// Meant to be cloned
-// TODO: Merge with session?
+/// Manages an active interaction with agents.
+/// `RunningSession` handles tasks such as executing tools,
+/// managing the agent environment, and handling session cancellation.
+/// It is designed to be cloned and references an active session.
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct RunningSession {
+    /// Reference to the session
     session: Arc<Session>,
+
+    /// The current active agent in session, wrapped in a mutex for synchronization
     active_agent: Arc<Mutex<RunningAgent>>,
 
+    /// Optional GitHub session for managing repositories
     github_session: Option<Arc<GithubSession>>,
+
+    /// Executor for running tools
     executor: Arc<dyn ToolExecutor>,
+
+    /// Environment setup for the agent
     agent_environment: AgentEnvironment,
+
+    /// Tools available for the session, stored in a thread-safe manner
     available_tools: Arc<Vec<Box<dyn Tool>>>,
 
+    /// Token used to cancel the session
     cancel_token: Arc<Mutex<CancellationToken>>,
 }
 
 impl RunningSession {
-    /// Get a cheap copy of the active agent
+    /// Retrieves a copy of the active agent
     #[must_use]
     pub fn active_agent(&self) -> RunningAgent {
         self.active_agent.lock().unwrap().clone()
     }
 
-    /// Run an agent with a query
+    /// Executes a query on the active agent
     pub async fn query_agent(&self, query: &str) -> Result<()> {
         self.active_agent().query(query).await
     }
 
-    /// Run an agent without a query
+    /// Runs the active agent without a query
     pub async fn run_agent(&self) -> Result<()> {
         self.active_agent().run().await
     }
 
+    /// Swaps the current active agent
     pub fn swap_agent(&self, running_agent: RunningAgent) {
         let mut lock = self.active_agent.lock().unwrap();
         *lock = running_agent;
     }
 
+    /// Returns a reference to the tool executor
     #[must_use]
     pub fn executor(&self) -> &dyn ToolExecutor {
         &self.executor
     }
 
+    /// Provides access to the agent environment
     #[must_use]
     pub fn agent_environment(&self) -> &AgentEnvironment {
         &self.agent_environment
     }
 
+    /// Clones the cancellation token for the session
     #[must_use]
     pub fn cancel_token(&self) -> CancellationToken {
         self.cancel_token.lock().unwrap().clone()
     }
 
+    /// Resets the session cancellation token
     pub fn reset_cancel_token(&self) {
         let mut lock = self.cancel_token.lock().unwrap();
         *lock = CancellationToken::new();
     }
 
+    /// Stops all agents in the session
     pub async fn stop(&self) {
         // When sessions have multiple agents, they should be stopped here
         self.reset_cancel_token();
