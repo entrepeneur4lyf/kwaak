@@ -4,16 +4,17 @@ use anyhow::{Context as _, Result};
 use derive_builder::Builder;
 use swiftide::{
     agents::tools::local_executor::LocalExecutor,
-    chat_completion::Tool,
+    chat_completion::{ParamSpec, Tool, ToolSpec},
     traits::{SimplePrompt, ToolExecutor},
 };
 use swiftide_docker_executor::DockerExecutor;
 use tavily::Tavily;
+use tokio::sync::mpsc::UnboundedSender;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::{
-    agent::util,
+    agent::{tools::DelegateAgent, util},
     commands::Responder,
     config::{self, AgentEditMode, SupportedToolExecutors},
     git::github::GithubSession,
@@ -30,7 +31,11 @@ use super::{
 
 /// Session represents the abstract state of an ongoing agent interaction (i.e. in a chat)
 ///
-/// TODO: The command responder will instead receive generic session updates
+/// Consider the implementation 'emergent architecture' (an excuse for an isolated mess)
+///
+/// Some future ideas:
+///     - Session configuration from a file
+///     - A registry pattern for agents, so you could in theory run multiple concurrent
 #[derive(Clone, Builder)]
 #[builder(build_fn(private), setter(into))]
 pub struct Session {
@@ -38,13 +43,23 @@ pub struct Session {
     pub repository: Arc<Repository>,
     pub default_responder: Arc<dyn Responder>,
     pub initial_query: String,
-    // available_tools: Vec<Box<dyn Tool>>,
-    //
-    // branch name
-    // chat name
-    // After calling init
-    // The agent that is currently running
-    // active_agent: RunningAgent,
+
+    /// Handle to send messages to the running session
+    running_session_tx: UnboundedSender<SessionMessage>,
+}
+
+/// Messages that can be send from i.e. a tool to an active session
+#[derive(Clone)]
+pub enum SessionMessage {
+    SwapAgent(RunningAgent),
+}
+
+impl std::fmt::Debug for SessionMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SwapAgent(_) => f.debug_tuple("SwapAgent").finish(),
+        }
+    }
 }
 
 impl Session {
@@ -52,11 +67,25 @@ impl Session {
     pub fn builder() -> SessionBuilder {
         SessionBuilder::default()
     }
+
+    /// Inform the running session that the agent has been swapped
+    pub fn swap_agent(&self, agent: RunningAgent) -> Result<()> {
+        self.running_session_tx
+            .send(SessionMessage::SwapAgent(agent))
+            .map_err(Into::into)
+    }
 }
 
 impl SessionBuilder {
+    /// Starts a session
     pub async fn start(&mut self) -> Result<RunningSession> {
-        let session = self.build().context("Failed to build session")?;
+        let (running_session_tx, running_session_rx) = tokio::sync::mpsc::unbounded_channel();
+
+        let session = Arc::new(
+            self.running_session_tx(running_session_tx)
+                .build()
+                .context("Failed to build session")?,
+        );
 
         let github_session = match session.repository.config().github_api_key {
             Some(_) => Some(Arc::new(GithubSession::from_repository(
@@ -111,31 +140,109 @@ impl SessionBuilder {
             }
             // TODO: Strip tools for delegate agent and add tool for delegate
             config::SupportedAgentConfigurations::PlanAct => {
-                agents::delegate::start(
+                start_plan_and_act(
                     &session,
                     &executor,
                     &available_tools,
                     &agent_environment,
-                    initial_context,
+                    &initial_context,
                 )
                 .await
             }
         }?;
 
-        Ok(RunningSession {
+        let running_session = RunningSession {
             active_agent: Arc::new(Mutex::new(active_agent)),
-            session: session.into(),
+            session,
             github_session,
             executor,
             agent_environment,
             available_tools: available_tools.into(),
             cancel_token: Arc::new(Mutex::new(CancellationToken::new())),
-        })
+        };
+
+        // TODO: Consider how this might be dropped
+        tokio::spawn(running_message_handler(
+            running_session.clone(),
+            running_session_rx,
+        ));
+
+        Ok(running_session)
     }
 }
 
-// TODO: A session could have multiple agents, with one (or more!) active
-// Also, maybe full inner mutability?
+/// Spawns a small task to handle messages sent to the active session
+async fn running_message_handler(
+    running_session: RunningSession,
+    mut running_session_rx: tokio::sync::mpsc::UnboundedReceiver<SessionMessage>,
+) {
+    while let Some(message) = running_session_rx.recv().await {
+        tracing::debug!(?message, "Session received message");
+        match message {
+            SessionMessage::SwapAgent(agent) => {
+                running_session.swap_agent(agent);
+            }
+        }
+    }
+}
+
+static BLACKLIST_DELEGATE_TOOLS: &[&str] = &[
+    "write_file",
+    "shell_command",
+    "write_file",
+    "replace_lines",
+    "add_lines",
+];
+
+async fn start_plan_and_act(
+    session: &Arc<Session>,
+    executor: &Arc<dyn ToolExecutor>,
+    available_tools: &[Box<dyn Tool>],
+    agent_environment: &AgentEnvironment,
+    initial_context: &str,
+) -> Result<RunningAgent> {
+    let coding_agent = agents::coding::start(
+        &session,
+        &executor,
+        &available_tools,
+        &agent_environment,
+        String::new(),
+    )
+    .await?;
+
+    let delegate_tool = DelegateAgent::builder()
+        .session(Arc::clone(&session))
+        .agent(coding_agent)
+        .tool_spec(
+            ToolSpec::builder()
+                .name("delegate_coding_agent")
+                .description("If you have a coding task, delegate to the coding agent. Provide a thorough description of the task and relevant details.")
+                .parameters(vec![ParamSpec::builder()
+                    .name("task")
+                    .description("An in depth description of the task")
+                    .build()?])
+                .build()?,
+        )
+        .build()
+        .context("Failed to build delegate tool")?;
+
+    // Blacklist tools from the list then add the delegate tool
+    let delegate_tools = available_tools
+        .iter()
+        .filter(|tool| !BLACKLIST_DELEGATE_TOOLS.contains(&tool.name().as_ref()))
+        .cloned()
+        .chain(std::iter::once(delegate_tool.boxed()))
+        .collect::<Vec<_>>();
+
+    agents::delegate::start(
+        &session,
+        &executor,
+        &delegate_tools,
+        &agent_environment,
+        initial_context,
+    )
+    .await
+}
 
 /// References a running session
 /// Meant to be cloned

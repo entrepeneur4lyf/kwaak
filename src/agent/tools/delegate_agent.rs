@@ -1,36 +1,29 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use derive_builder::Builder;
+use serde::Deserialize;
 use swiftide::{
-    agents::{
-        system_prompt::SystemPrompt, tools::local_executor::LocalExecutor, Agent, DefaultContext,
-    },
-    chat_completion::{
-        self, errors::ToolError, ChatCompletion, Tool, ToolOutput, ToolSpec, ToolSpecBuilder,
-    },
-    prompt::Prompt,
-    traits::{AgentContext, Command, SimplePrompt, ToolExecutor},
+    chat_completion::{self, errors::ToolError, Tool, ToolOutput, ToolSpec},
+    traits::AgentContext,
 };
-use swiftide_macros::Tool;
 
 use crate::agent::{
     running_agent::RunningAgent,
     session::{RunningSession, Session},
 };
 
-/// A generic tool to delegate the current task to a new or running agent
-// #[derive(Clone, Tool)]
-// #[tool(
-//     description = "Delegate a task to a specialized agent",
-//     param(
-//         name = "task",
-//         description = "A thorough description of the task to be completed"
-//     )
-// )]
+/// A tool that delegates to an agent
+///
+/// For convenience, its assumed the agent is already set up (a `RunningAgent`).
+///
+/// The tool takes a tool spec, agent and session during creating, so that it can be utilized to
+/// delegate to any agent.
+///
+/// After delegation, the agent invoking the tool is stopped, but not destroyed.
 #[derive(Clone, Builder)]
 pub struct DelegateAgent {
-    session: Arc<RunningSession>,
+    session: Arc<Session>,
     // TODO: Can it be just an agent?
     agent: RunningAgent,
 
@@ -38,22 +31,28 @@ pub struct DelegateAgent {
 }
 
 impl DelegateAgent {
+    #[must_use]
     pub fn builder() -> DelegateAgentBuilder {
         DelegateAgentBuilder::default()
     }
 
     pub async fn delegate_agent(
         &self,
-        context: &dyn AgentContext,
+        _context: &dyn AgentContext,
         task: &str,
     ) -> Result<ToolOutput, ToolError> {
         // TODO: Prompting, etc
-        self.session.swap_agent(self.agent.clone());
+        self.session.swap_agent(self.agent.clone())?;
         self.agent.query(task).await?;
 
         tracing::info!("Delegated task to agent");
         Ok(ToolOutput::Stop)
     }
+}
+
+#[derive(Deserialize)]
+struct DelegateArgs {
+    task: String,
 }
 
 #[async_trait]
@@ -63,14 +62,22 @@ impl Tool for DelegateAgent {
         agent_context: &dyn AgentContext,
         raw_args: Option<&str>,
     ) -> Result<ToolOutput, ToolError> {
-        todo!()
+        let Some(args) = raw_args else {
+            return Err(ToolError::MissingArguments(format!(
+                "No arguments provided for {}",
+                self.name()
+            )));
+        };
+
+        let args: DelegateArgs = serde_json::from_str(&args)?;
+        return self.delegate_agent(agent_context, &args.task).await;
     }
 
     fn tool_spec(&self) -> chat_completion::ToolSpec {
         self.tool_spec.clone()
     }
 
-    fn name(&self) -> &'static str {
-        todo!()
+    fn name(&self) -> Cow<'_, str> {
+        self.tool_spec().name.into()
     }
 }
