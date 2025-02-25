@@ -43,7 +43,7 @@ pub fn build_query_pipeline<'b>(
     let lancedb =
         storage::get_lancedb(repository) as Arc<dyn Retrieve<SimilaritySingleEmbedding<()>>>;
     let search_strategy: SimilaritySingleEmbedding<()> = SimilaritySingleEmbedding::default()
-        .with_top_k(40)
+        .with_top_k(30)
         .to_owned();
 
     let prompt_template = Templates::from_file("agentic_answer_prompt.md")?;
