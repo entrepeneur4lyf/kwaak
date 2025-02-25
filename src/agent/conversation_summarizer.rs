@@ -94,7 +94,7 @@ impl ConversationSummarizer {
                     let summary = llm.complete(&messages.into()).await?;
 
                     if let Some(summary) = summary.message() {
-                        tracing::debug!(summary = %summary, "Summarized tool output");
+                        tracing::debug!(summary = %summary, "Summarized conversation");
                         agent
                             .context()
                             .add_message(ChatMessage::new_summary(summary))
@@ -133,7 +133,7 @@ impl ConversationSummarizer {
         indoc::formatdoc!(
             "
         # Goal
-        Summarize and review the conversation up to this point
+        Summarize and review the conversation up to this point. An agent has tried to achieve a goal, and you need to help them get there.
             
         ## Requirements
         * Only include the summary in your response and nothing else.
@@ -143,13 +143,15 @@ impl ConversationSummarizer {
         * If a previous solution did not work, include that in your response. If a reason was
             given, include that as well.
         * Include any previous summaries in your response
-        * Include every step so far taken concisely and clearly state where the agent is at,
-            especially in relation to the initial goal.
-        * Be extra detailed on the last step taken
+        * Include every step so far taken and clearly state where the agent is at,
+            especially in relation to the initial goal. Include any observations or information made, and include your own where relevant to achieving the goal.
+        * Be extra detailed on the last steps taken
         * Provide clear instructions on how to proceed. If applicable, include the tools that
             should be used.
         * Identify the bigger goal the user wanted to achieve and clearly restate it
         * If the goal is not yet achieved, reflect on why and provide a clear path forward
+        * In suggested next steps, talk in the future tense. For example: \"You should run the tests\"
+        * Do not provide the actual tool calls the agent should still make, provide the steps and necessary context instead. Assume the agent knows how to use the tools.
 
         {{% if diff -%}}
         ## Current changes made
@@ -173,14 +175,17 @@ impl ConversationSummarizer {
         <Your goal>
 
         ## Previously you did
-        * <concise summary of each step>
+        * <summary of each step>
         * You tried to run the tests but they failed. Here is why <...>
+        * You read a file called `file.txt` and here is what you learned <...>
 
         ## Since then you did
-        * <Summary of steps since the last summary>
+        * <summary of each step>
+        * You tried to run the tests but they failed. Here is why <...>
+        * You read a file called `file.txt` and here is what you learned <...>
 
         ## Reflection
-        <Concise reflection on the steps you took and why you took them>
+        <Reflection on the steps you took and why you took them. What have you observed and what have you learned so far>
         
         ## Suggested next steps
         1. <Suggested step>
@@ -199,16 +204,28 @@ fn filter_messages_since_summary(messages: Vec<ChatMessage>) -> Vec<ChatMessage>
         .into_iter()
         .rev()
         .filter_map(|m| {
+            // If we have found a summary, we are good
             if summary_found {
                 return None;
             }
-            if m.is_tool_output() {
+
+            // Ignore the system prompt, it only misdirects
+            if matches!(m, ChatMessage::System(..)) {
                 return None;
             }
+
+            // Tool outputs are formatted as assistant messages
+            if let ChatMessage::ToolOutput(tool_call,tool_output) = &m {
+                let message = format!("I ran a tool called: {} with the following arguments: {}\n The tool returned:\n{}", tool_call.name(), tool_call.args().unwrap_or("No arguments"), tool_output.content().unwrap_or("No output"));
+                return Some(ChatMessage::Assistant(Some(message), None));
+            }
+
+            // For assistant messages, we only keep those with messages in them
             if let ChatMessage::Assistant(message, Some(..)) = &m {
                 if message.is_some() {
                     return Some(ChatMessage::Assistant(message.clone(), None));
                 }
+                return None;
             }
             if let ChatMessage::Summary(_) = m {
                 summary_found = true;
@@ -242,6 +259,7 @@ mod tests {
     #[test]
     fn test_filter_messages_since_summary_with_summary() {
         let messages = vec![
+            ChatMessage::new_system("System message 1"),
             ChatMessage::new_user("User message 1"),
             ChatMessage::new_assistant(Some("Assistant message 1"), None),
             ChatMessage::new_summary("Summary message"),
@@ -273,7 +291,7 @@ mod tests {
             ChatMessage::new_summary("Summary message"),
             ChatMessage::new_user("User message 2"),
             ChatMessage::new_assistant(Some("Assistant message 2"), Some(vec![tool_call.clone()])),
-            ChatMessage::new_tool_output(tool_call, "Tool output me_ssage"),
+            ChatMessage::new_tool_output(tool_call, "Tool output message"),
         ];
 
         let filtered_messages = filter_messages_since_summary(messages);
@@ -283,6 +301,7 @@ mod tests {
                 ChatMessage::new_summary("Summary message"),
                 ChatMessage::new_user("User message 2"),
                 ChatMessage::new_assistant(Some("Assistant message 2"), None),
+                ChatMessage::new_assistant(Some("I ran a tool called: run_tests with the following arguments: No arguments\n The tool returned:\nTool output message"), None)
             ]
         );
     }
@@ -305,6 +324,33 @@ mod tests {
                 ChatMessage::new_summary("Summary message 2"),
                 ChatMessage::new_user("User message 3"),
                 ChatMessage::new_assistant(Some("Assistant message 3"), None),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_filters_assistant_messages_with_only_tool_outputs() {
+        let tool_call = ToolCallBuilder::default()
+            .name("run_tests")
+            .id("1")
+            .build()
+            .unwrap();
+        let messages = vec![
+            ChatMessage::new_user("User message 1"),
+            ChatMessage::new_assistant(Some("Assistant message 1"), None),
+            ChatMessage::new_summary("Summary message"),
+            ChatMessage::new_user("User message 2"),
+            ChatMessage::new_assistant(None::<String>, Some(vec![tool_call.clone()])),
+            ChatMessage::new_tool_output(tool_call, "Tool output message"),
+        ];
+
+        let filtered_messages = filter_messages_since_summary(messages);
+        assert_eq!(
+            filtered_messages,
+            vec![
+                ChatMessage::new_summary("Summary message"),
+                ChatMessage::new_user("User message 2"),
+                ChatMessage::new_assistant(Some("I ran a tool called: run_tests with the following arguments: No arguments\n The tool returned:\nTool output message"), None)
             ]
         );
     }
