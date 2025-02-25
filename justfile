@@ -44,3 +44,6 @@ build-in-docker PROFILE="release": docker-build
       kwaak \
       bash -c "cargo build --profile {{PROFILE}}"
 
+[working-directory: 'benchmarks/swe']
+benchmark-swe INSTANCE="":
+  uv run kwaak-bench-swe {{ if INSTANCE != "" {"--instance " + INSTANCE } else { ""} }}
