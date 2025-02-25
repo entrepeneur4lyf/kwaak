@@ -133,7 +133,7 @@ impl ConversationSummarizer {
         indoc::formatdoc!(
             "
         # Goal
-        Summarize and review the conversation up to this point
+        Summarize and review the conversation up to this point. An agent has tried to achieve a goal, and you need to help them get there.
             
         ## Requirements
         * Only include the summary in your response and nothing else.
@@ -150,6 +150,8 @@ impl ConversationSummarizer {
             should be used.
         * Identify the bigger goal the user wanted to achieve and clearly restate it
         * If the goal is not yet achieved, reflect on why and provide a clear path forward
+        * In suggested next steps, talk in the future tense. For example: \"You should run the tests\"
+        * Do not provide the actual tool calls the agent should still make, provide the steps and necessary context instead. Assume the agent knows how to use the tools.
 
         {{% if diff -%}}
         ## Current changes made
