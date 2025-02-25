@@ -83,7 +83,7 @@ Burn through tech debt with AI agents!<br />
 
  <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
-Always wanted to run a team of AI agents locally from your own machine? Write code, improve test coverage, update documentation, or improve code quality, while you focus on building the cool stuff? Kwaak enables you to run a team of autonomous AI agents right from your terminal, **in parallel**.
+Always wanted to run a team of AI agents locally from your own machine? Write code, improve test coverage, update documentation, or improve code quality, while you focus on building the cool stuff? Kwaak enables you to run a team of autonomous AI agents right from your terminal, **in parallel**. You interact with Kwaak in a chat-like terminal interface.
 
 Kwaak is free and open-source. You can bring your own API keys, or your own models via Ollama.
 
