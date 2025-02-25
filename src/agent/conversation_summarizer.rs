@@ -202,8 +202,9 @@ fn filter_messages_since_summary(messages: Vec<ChatMessage>) -> Vec<ChatMessage>
             if summary_found {
                 return None;
             }
-            if m.is_tool_output() {
-                return None;
+            if let ChatMessage::ToolOutput(tool_call,tool_output) = &m {
+                let message = format!("You ran a tool called: {} with the following arguments: {}\n The tool returned:\n{}", tool_call.name(), tool_call.args().unwrap_or("No arguments"), tool_output.content().unwrap_or("No output"));
+                return Some(ChatMessage::Assistant(Some(message), None));
             }
             if let ChatMessage::Assistant(message, Some(..)) = &m {
                 if message.is_some() {
@@ -273,7 +274,7 @@ mod tests {
             ChatMessage::new_summary("Summary message"),
             ChatMessage::new_user("User message 2"),
             ChatMessage::new_assistant(Some("Assistant message 2"), Some(vec![tool_call.clone()])),
-            ChatMessage::new_tool_output(tool_call, "Tool output me_ssage"),
+            ChatMessage::new_tool_output(tool_call, "Tool output message"),
         ];
 
         let filtered_messages = filter_messages_since_summary(messages);
@@ -283,6 +284,7 @@ mod tests {
                 ChatMessage::new_summary("Summary message"),
                 ChatMessage::new_user("User message 2"),
                 ChatMessage::new_assistant(Some("Assistant message 2"), None),
+                ChatMessage::new_assistant(Some("You ran a tool called: run_tests with the following arguments: No arguments\n The tool returned:\nTool output message"), None)
             ]
         );
     }
