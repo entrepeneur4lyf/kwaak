@@ -50,6 +50,12 @@ impl CommandHandler {
         }
     }
 
+    /// Returns the sender for commands
+    #[must_use]
+    pub fn command_tx(&self) -> &mpsc::UnboundedSender<CommandEvent> {
+        &self.tx
+    }
+
     pub fn register_ui(&mut self, app: &mut App) {
         app.command_tx = Some(self.tx.clone());
     }
