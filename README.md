@@ -182,6 +182,14 @@ brew install bosun-ai/tap/kwaak
 
 #### Cargo
 
+Install the binary directly with [binstall](https://github.com/cargo-bins/cargo-binstall)
+
+```shell
+cargo binstall kwaak
+```
+
+Or compile from source with Cargo:
+
 ```shell
 cargo install kwaak
 ```
