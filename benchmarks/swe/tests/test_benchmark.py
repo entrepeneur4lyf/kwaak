@@ -10,8 +10,6 @@ from kwaak_bench_swe.swe_bench_instance import SWEBenchInstance
 from kwaak_bench_swe.trial import TrialResult
 
 
-
-
 def test_benchmark_initialization(mock_swe_instance, temp_results_dir):
     """Test benchmark initialization and result loading."""
     # Create a benchmark with a single instance
@@ -42,13 +40,27 @@ def test_benchmark_result_persistence(mock_swe_instance, temp_results_dir):
         validation_failed=False,
         success=True,
         error=None,
-        patch="test patch"
+        patch="test patch",
     )
 
     # Save the result
     benchmark.results[run_name] = result
-    os.makedirs(os.path.join(temp_results_dir, "test-bench", mock_swe_instance.instance_id, "1"), exist_ok=True)
-    with open(os.path.join(temp_results_dir, "test-bench", mock_swe_instance.instance_id, "1", "result.json"), "w") as f:
+    os.makedirs(
+        os.path.join(
+            temp_results_dir, "test-bench", mock_swe_instance.instance_id, "1"
+        ),
+        exist_ok=True,
+    )
+    with open(
+        os.path.join(
+            temp_results_dir,
+            "test-bench",
+            mock_swe_instance.instance_id,
+            "1",
+            "result.json",
+        ),
+        "w",
+    ) as f:
         json.dump(result.to_dict(), f, indent=2)
 
     # Create a new benchmark instance and verify that it loads the existing result
@@ -76,7 +88,7 @@ def test_benchmark_next_run(mock_swe_instance, temp_results_dir):
         validation_failed=False,
         success=True,
         error=None,
-        patch="test patch"
+        patch="test patch",
     )
     benchmark.results[next_run["run_name"]] = result
     assert benchmark.next_run() is None
