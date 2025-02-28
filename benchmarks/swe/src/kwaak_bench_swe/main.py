@@ -34,9 +34,10 @@ from swebench.harness.test_spec.test_spec import (
 DATASET_NAME = "princeton-nlp/SWE-bench_Verified"
 SPLIT = "test"
 
+
 def evaluate_trial(instance_id: str, results_path: str) -> None:
     """Evaluate a specific trial's results.
-    
+
     Args:
         instance_id: The ID of the instance to evaluate
         results_path: Path to the directory containing the trial results and prediction.json
@@ -44,49 +45,58 @@ def evaluate_trial(instance_id: str, results_path: str) -> None:
     # Load the dataset to get the instance
     dataset = load_dataset(DATASET_NAME, split=SPLIT)
     dataset_list = list(dataset)
-    instance_items = [item for item in dataset_list if item["instance_id"] == instance_id]
+    instance_items = [
+        item for item in dataset_list if item["instance_id"] == instance_id
+    ]
     if not instance_items:
         logging.error(f"Instance {instance_id} not found in dataset")
         return
-    
+
     # Create SWEBenchInstance
     instance = SWEBenchInstance.from_dataset([instance_items[0]])[0]
-    
+
     # Create trial
     trial = Trial(instance, instance_id, results_path)
-    
+
     # Load prediction
     prediction_path = os.path.join(results_path, "prediction.json")
     if not os.path.exists(prediction_path):
         logging.error(f"prediction.json not found in {results_path}")
         return
-    
+
     with open(prediction_path, "r") as f:
         prediction = json.load(f)
-    
+
     # Find test results file
     test_results_file = None
     for file in os.listdir(results_path):
-        if file.endswith("-test_results.txt") and not file.endswith("-pre_patch_test_results.txt"):
+        if file.endswith("-test_results.txt") and not file.endswith(
+            "-pre_patch_test_results.txt"
+        ):
             test_results_file = file
             break
-    
+
     if not test_results_file:
         logging.error(f"No test results file found in {results_path}")
         return
-    
+
     # Evaluate results
-    result = trial.evaluate_results(prediction, os.path.join(results_path, test_results_file))
-    
+    result = trial.evaluate_results(
+        prediction, os.path.join(results_path, test_results_file)
+    )
+
     # Print evaluation results
     logging.info(f"Evaluation results for {instance_id}:")
     logging.info(f"Success: {result.success}")
     logging.info(f"Error: {result.error or 'None'}")
     logging.info(f"Validation failed: {result.validation_failed}")
 
-def remove_results(results_dir: str, should_remove: callable, dry_run: bool = False) -> None:
+
+def remove_results(
+    results_dir: str, should_remove: callable, dry_run: bool = False
+) -> None:
     """Remove result directories based on a condition.
-    
+
     Args:
         results_dir: Path to the root results directory
         should_remove: Function that takes a result dict and returns True if the directory should be removed
@@ -96,21 +106,21 @@ def remove_results(results_dir: str, should_remove: callable, dry_run: bool = Fa
         benchmark_path = os.path.join(results_dir, benchmark_dir)
         if not os.path.isdir(benchmark_path):
             continue
-            
+
         for instance_dir in os.listdir(benchmark_path):
             instance_path = os.path.join(benchmark_path, instance_dir)
             if not os.path.isdir(instance_path):
                 continue
-                
+
             for run_dir in os.listdir(instance_path):
                 run_path = os.path.join(instance_path, run_dir)
                 if not os.path.isdir(run_path):
                     continue
-                    
+
                 result_path = os.path.join(run_path, "result.json")
                 if not os.path.exists(result_path):
                     continue
-                    
+
                 with open(result_path, "r") as f:
                     try:
                         result = json.load(f)
@@ -125,6 +135,7 @@ def remove_results(results_dir: str, should_remove: callable, dry_run: bool = Fa
                         logging.error(f"Failed to parse {result_path}")
                         continue
 
+
 def main():
     """Run the SWE-bench benchmark with the Kwaak agent.
 
@@ -135,7 +146,7 @@ def main():
     4. Remove failed trials if --remove-failed is specified
     5. Remove unsuccessful trials if --remove-unsuccessful is specified
 
-    Results are saved in both detailed JSON format and the SWE-bench 
+    Results are saved in both detailed JSON format and the SWE-bench
     submission format (predictions.jsonl).
 
     Environment Requirements:
@@ -157,17 +168,35 @@ def main():
 
     # Configure logging
     logging.basicConfig(level=logging.INFO)
-    
+
     # Set up argument parser
-    parser = argparse.ArgumentParser(description='Run SWE-bench benchmark with Kwaak agent')
-    parser.add_argument('--instance', type=str, help='Instance ID to run a single test case')
-    parser.add_argument('--evaluate', type=str, help='Instance ID to evaluate results for')
-    parser.add_argument('--results-path', type=str, help='Path to directory containing trial results')
-    parser.add_argument('--remove-failed', action='store_true', help='Remove all failed trials')
-    parser.add_argument('--remove-unsuccessful', action='store_true', help='Remove all unsuccessful trials')
-    parser.add_argument('--dry-run', action='store_true', help='Print paths that would be removed without actually removing them')
+    parser = argparse.ArgumentParser(
+        description="Run SWE-bench benchmark with Kwaak agent"
+    )
+    parser.add_argument(
+        "--instance", type=str, help="Instance ID to run a single test case"
+    )
+    parser.add_argument(
+        "--evaluate", type=str, help="Instance ID to evaluate results for"
+    )
+    parser.add_argument(
+        "--results-path", type=str, help="Path to directory containing trial results"
+    )
+    parser.add_argument(
+        "--remove-failed", action="store_true", help="Remove all failed trials"
+    )
+    parser.add_argument(
+        "--remove-unsuccessful",
+        action="store_true",
+        help="Remove all unsuccessful trials",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print paths that would be removed without actually removing them",
+    )
     args = parser.parse_args()
-    
+
     # If evaluating a specific trial
     if args.evaluate:
         if not args.results_path:
@@ -175,7 +204,7 @@ def main():
             return
         evaluate_trial(args.evaluate, args.results_path)
         return
-        
+
     # If removing failed trials
     if args.remove_failed:
         results_dir = os.path.join(os.getcwd(), "results")
@@ -183,7 +212,7 @@ def main():
             results_dir = args.results_path
         remove_results(results_dir, lambda r: r.get("run_failed", False), args.dry_run)
         return
-        
+
     # If removing unsuccessful trials
     if args.remove_unsuccessful:
         results_dir = os.path.join(os.getcwd(), "results")
@@ -191,7 +220,7 @@ def main():
             results_dir = args.results_path
         remove_results(results_dir, lambda r: not r.get("success", False), args.dry_run)
         return
-    
+
     # Load the dataset
     dataset = load_dataset(DATASET_NAME, split=SPLIT)
     logging.info(f"Total items in test split: {len(dataset)}\n")
@@ -200,12 +229,14 @@ def main():
     # Convert dataset to list and sort by instance_id
     dataset_list = list(dataset)
     dataset_list.sort(key=lambda x: x["instance_id"])
-    
+
     # Filter dataset based on command line arguments
     raw_dataset_items = []
     if args.instance:
         # Find the specific instance
-        instance_items = [item for item in dataset_list if item["instance_id"] == args.instance]
+        instance_items = [
+            item for item in dataset_list if item["instance_id"] == args.instance
+        ]
         if not instance_items:
             logging.error(f"Instance {args.instance} not found in dataset")
             return
@@ -221,16 +252,17 @@ def main():
 
     dataset_items = SWEBenchInstance.from_dataset(raw_dataset_items)
 
-    test_specs = get_test_specs_from_dataset(raw_dataset_items, 'swebench', 'latest')
+    test_specs = get_test_specs_from_dataset(raw_dataset_items, "swebench", "latest")
     for spec in test_specs:
-        spec.arch = 'x86_64'
- 
+        spec.arch = "x86_64"
+
     images_to_pull = [
-    #     'swebench/' + spec.base_image_key for spec in test_specs
-    # ] + [
-    #     'swebench/' + spec.env_image_key for spec in test_specs
-    # ] + [
-        spec.instance_image_key for spec in test_specs
+        #     'swebench/' + spec.base_image_key for spec in test_specs
+        # ] + [
+        #     'swebench/' + spec.env_image_key for spec in test_specs
+        # ] + [
+        spec.instance_image_key
+        for spec in test_specs
     ]
 
     docker_client = docker.from_env()
@@ -249,7 +281,6 @@ def main():
     #     "swebench", # namespace
     #     "latest" # tag
     # )
-    
 
     output_path = os.path.join(os.getcwd(), "results")
     os.makedirs(output_path, exist_ok=True)
@@ -262,7 +293,9 @@ def main():
     logging.info(f"Output path: {output_path}\n")
 
     while result := benchmark.run_next_trial():
-        logging.info(f"Done running trial {result.instance.instance_id}: {result.error or 'Success'}")
+        logging.info(
+            f"Done running trial {result.instance.instance_id}: {result.error or 'Success'}"
+        )
 
     for name, result in benchmark.results.items():
         if result.failed():
@@ -272,7 +305,7 @@ def main():
             "instance_id": result.instance.instance_id,
             "model_name_or_path": benchmark_name,
             "model_patch": result.patch,
-            "run_name": name
+            "run_name": name,
         }
 
         predictions.append(prediction)
@@ -283,8 +316,11 @@ def main():
 
     with open("swe_bench_results.json", "w") as f:
         # Convert results to a dictionary of serializable results
-        serializable_results = {name: result.to_dict() for name, result in benchmark.results.items()}
+        serializable_results = {
+            name: result.to_dict() for name, result in benchmark.results.items()
+        }
         json.dump(serializable_results, f, indent=2)
+
 
 if __name__ == "__main__":
     main()

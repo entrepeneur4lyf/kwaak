@@ -20,13 +20,14 @@ from typing import Any
 from .swe_bench_instance import SWEBenchInstance
 from .trial import Trial, TrialResult
 
+
 class Benchmark:
     """Manages the execution and results of SWE-bench trials.
-    
+
     This class orchestrates the execution of trials across multiple SWE-bench
     instances, manages result persistence, and tracks progress. It provides
     functionality to run trials sequentially and maintain their results.
-    
+
     Attributes:
         name: str
             Identifier for this benchmark run
@@ -37,7 +38,7 @@ class Benchmark:
         output_path: str
             Directory path where results are stored
     """
-    
+
     name: str
     instances: list[SWEBenchInstance]
     results: dict[str, TrialResult]
@@ -45,12 +46,12 @@ class Benchmark:
 
     def __init__(self, name: str, instances: list[SWEBenchInstance], results_dir: str):
         """Initialize a new benchmark run.
-        
+
         Args:
             name: Identifier for this benchmark run
             instances: List of SWE-bench instances to evaluate
             results_dir: Base directory for storing results
-        
+
         The constructor will:
         1. Create the benchmark-specific output directory
         2. Load any existing results from previous runs
@@ -62,7 +63,7 @@ class Benchmark:
 
         self.results_dir = os.path.join(results_dir, name)
         os.makedirs(self.results_dir, exist_ok=True)
-        
+
         # Load existing results from JSON files
         for instance_dir in os.listdir(self.results_dir):
             instance_path = os.path.join(self.results_dir, instance_dir)
@@ -70,19 +71,19 @@ class Benchmark:
             for run_dir in os.listdir(instance_path):
                 run_path = os.path.join(instance_path, run_dir)
                 result_path = os.path.join(run_path, "result.json")
-                
+
                 if os.path.exists(result_path):
                     run_name = f"{instance_dir}-{run_dir}"
-                    
+
                     data = json.load(open(result_path, "r"))
-                    if 'instance' in data:
-                        data['instance'] = SWEBenchInstance(**data['instance'])
+                    if "instance" in data:
+                        data["instance"] = SWEBenchInstance(**data["instance"])
 
                     self.results[run_name] = TrialResult(**data)
 
     def next_run(self) -> dict[str, Any] | None:
         """Find the next instance that needs to be evaluated.
-        
+
         Returns:
             A dictionary containing the next instance and its run name,
             or None if all instances have been evaluated. The dictionary
@@ -92,25 +93,21 @@ class Benchmark:
         for instance in self.instances:
             run_name = f"{instance.instance_id}-1"
             if run_name not in self.results:
-                return {
-                    "instance": instance,
-                    "run": 1,
-                    "run_name": run_name
-                }
+                return {"instance": instance, "run": 1, "run_name": run_name}
         return None
 
     def run_next_trial(self) -> TrialResult | None:
         """Execute the next pending trial in the benchmark.
-        
+
         This method:
         1. Finds the next unevaluated instance
         2. Creates and executes a trial for that instance
         3. Stores the result
-        
+
         Returns:
             The result of the trial execution, or None if all trials
             have been completed
-            
+
         This method is typically used in a while loop to process
         all remaining trials sequentially.
         """
