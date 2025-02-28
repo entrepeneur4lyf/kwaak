@@ -1,7 +1,7 @@
 [package]
 name = "kwaak"
-version = "0.11.0"
-edition = "2024"
+version = "0.11.1"
+edition = "2021"
 categories = ["development-tools", "command-line-utilities"]
 readme = "README.md"
 repository = "https://github.com/bosun-ai/kwaak"
