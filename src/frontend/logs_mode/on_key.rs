@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use tui_logger::TuiWidgetEvent;
 
-use crate::frontend::{App, app::AppMode};
+use crate::frontend::{app::AppMode, App};
 
 pub fn on_key(app: &mut App, key: &KeyEvent) {
     let state = &mut app.log_state;

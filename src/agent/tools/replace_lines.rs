@@ -3,7 +3,7 @@ use swiftide::traits::CommandError;
 
 use anyhow::Result;
 use swiftide::{
-    chat_completion::{ToolOutput, errors::ToolError},
+    chat_completion::{errors::ToolError, ToolOutput},
     traits::{AgentContext, Command},
 };
 use swiftide_macros::tool;

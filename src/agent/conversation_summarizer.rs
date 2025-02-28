@@ -11,7 +11,7 @@
 //! and the current diff
 //!
 //! The agent completes messages since the last summary.
-use std::sync::{Arc, atomic::AtomicUsize};
+use std::sync::{atomic::AtomicUsize, Arc};
 
 use swiftide::{
     agents::hooks::AfterEachFn,

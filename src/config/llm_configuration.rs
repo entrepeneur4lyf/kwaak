@@ -10,8 +10,8 @@ use swiftide::{
         self,
         anthropic::Anthropic,
         fastembed::FastEmbed,
-        ollama::{Ollama, config::OllamaConfig},
-        open_router::{OpenRouter, config::OpenRouterConfig},
+        ollama::{config::OllamaConfig, Ollama},
+        open_router::{config::OpenRouterConfig, OpenRouter},
     },
     traits::{EmbeddingModel, SimplePrompt},
 };

@@ -18,15 +18,15 @@ use kwaak::{
     onboarding, repository, storage,
 };
 use ratatui::{
-    Terminal,
     backend::{Backend, CrosstermBackend},
+    Terminal,
 };
 
 use ::tracing::instrument;
 use crossterm::{
     event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use swiftide::{agents::DefaultContext, chat_completion::Tool, traits::AgentContext};
 use tokio::{fs, sync::mpsc};

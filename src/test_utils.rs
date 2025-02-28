@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use ratatui::{Terminal, backend::TestBackend};
+use ratatui::{backend::TestBackend, Terminal};
 use swiftide::agents::tools::local_executor::LocalExecutor;
 use swiftide::agents::{Agent, DefaultContext};
 use swiftide::chat_completion::{ChatCompletion, ChatCompletionResponse};

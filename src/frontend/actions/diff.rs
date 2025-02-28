@@ -5,7 +5,7 @@ use tokio::io::AsyncWriteExt as _;
 use crate::{
     chat_message::ChatMessage,
     commands::{Command, CommandEvent, CommandResponse, Responder},
-    frontend::{App, ui_event::UIEvent},
+    frontend::{ui_event::UIEvent, App},
     git,
 };
 
