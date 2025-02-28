@@ -462,6 +462,12 @@ See [CONTRIBUTING](https://github.com/bosun-ai/swiftide/blob/master/CONTRIBUTING
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## Evaluation and benchmarks
+
+### SWE-Bench
+
+In `benchmarks/swe` are several scripts to benchmark kwaak against SWE. See the README there for instructions. For convenience, there are also some shorthands in the `Justfile`. If a run fails, you might need to clean it up manually. There is also a script that does a best effort.
+
 <!-- LICENSE -->
 
 ## License
