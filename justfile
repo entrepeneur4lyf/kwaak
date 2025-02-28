@@ -44,6 +44,14 @@ build-in-docker PROFILE="release": docker-build
       kwaak \
       bash -c "cargo build --profile {{PROFILE}}"
 
+# Runs all or a single instance of a swe benchmark. Only runs benchmarks that are not in the results directory
+[group('benchmarks')]
 [working-directory: 'benchmarks/swe']
 benchmark-swe INSTANCE="":
   uv run kwaak-bench-swe {{ if INSTANCE != "" {"--instance " + INSTANCE } else { ""} }}
+
+# Cleans up all failed benchmarks
+[group('benchmarks')]
+[working-directory: 'benchmarks/swe']
+benchmark-swe-remove-results:
+  uv run kwaak-bench-swe --remove-failed
