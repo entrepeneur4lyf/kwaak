@@ -285,7 +285,7 @@ class Trial:
 
         # check if cross is installed
         if subprocess.run(["cross", "--version"], check=False).returncode != 0:
-            subprocess.run(
+            result = subprocess.run(
                 [
                     "cargo",
                     "install",
@@ -304,10 +304,13 @@ class Trial:
         if not os.path.exists(agent_path):
             # we use cargo build to ensure the agent is built for the x96_64 architecture
             logging.info(f"Building agent in {agent_root}")
-            subprocess.run(
+            result = subprocess.run(
                 ["cross", "build", "--target", "x86_64-unknown-linux-gnu", "--release"],
                 cwd=agent_root,
             )
+            if result.returncode != 0:
+                logging.error(f"Failed to build agent: {result}")
+                return
 
         self.container.exec("apt-get update")
         self.container.exec("apt-get install -y ripgrep fd-find")

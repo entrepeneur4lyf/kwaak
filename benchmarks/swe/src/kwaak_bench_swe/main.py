@@ -105,11 +105,13 @@ def remove_results(
     for benchmark_dir in os.listdir(results_dir):
         benchmark_path = os.path.join(results_dir, benchmark_dir)
         if not os.path.isdir(benchmark_path):
+            logging.warning(f"Skipping non-directory {benchmark_path}")
             continue
 
         for instance_dir in os.listdir(benchmark_path):
             instance_path = os.path.join(benchmark_path, instance_dir)
             if not os.path.isdir(instance_path):
+                logging.warning(f"Skipping non-directory {instance_path}")
                 continue
 
             for run_dir in os.listdir(instance_path):
@@ -119,6 +121,7 @@ def remove_results(
 
                 result_path = os.path.join(run_path, "result.json")
                 if not os.path.exists(result_path):
+                    logging.warning(f"Skipping missing result.json in {run_path}")
                     continue
 
                 with open(result_path, "r") as f:
@@ -130,7 +133,7 @@ def remove_results(
                             else:
                                 logging.info(f"Removing {run_path}")
                                 # sudo rm because the files are owned by their docker containers
-                                subprocess.run(["sudo", "rm", "-rf", run_path])
+                                subprocess.run(["rm", "-rf", run_path])
                     except json.JSONDecodeError:
                         logging.error(f"Failed to parse {result_path}")
                         continue

@@ -111,6 +111,7 @@ class DockerInstance:
         Raises:
             ImageNotFound: If the required Docker image is not available
         """
+        logging.info(f"Preparing container for {self.instance_dir}...")
         os.makedirs(self.instance_dir, exist_ok=True)
 
         try:
@@ -125,37 +126,23 @@ class DockerInstance:
             container = self.client.containers.get(
                 self.instance.get_instance_container_name(run_id)
             )
-            container.remove()
+            logging.info(f"Removing existing container: {container.id}")
+            container.remove(force=True)
         except:  # noqa: E722
             pass
 
         self.container = self.client.containers.create(
             image=self.instance.instance_image_key,
             name=self.instance.get_instance_container_name(run_id),
-            user="root",
             detach=True,
+            user="root",
             command="tail -f /dev/null",
             platform="linux/x86_64",
-            mounts=[
-                {
-                    "type": "bind",
-                    "source": self.instance_dir,
-                    "target": "/swe",
-                    "bind": {"create_host_path": True},
-                },
-                {
-                    "type": "bind",
-                    "source": self.cache_dir,
-                    "target": "/root/.cache/kwaak",
-                    "bind": {"create_host_path": True},
-                },
-                {
-                    "type": "bind",
-                    "source": self.log_dir,
-                    "target": "/root/.cache/kwaak/logs",
-                    "bind": {"create_host_path": True},
-                },
-            ],
+            volumes={
+                self.instance_dir: {"bind": "/swe", "mode": "rw"},
+                self.cache_dir: {"bind": "/root/.cache/kwaak", "mode": "rw"},
+                self.log_dir: {"bind": "/root/.cache/kwaak/logs", "mode": "rw"},
+            },
         )
         logging.info(
             f"Container for {self.instance.instance_id} created: {self.container.id}"
@@ -164,7 +151,6 @@ class DockerInstance:
         logging.info(
             f"Container for {self.instance.instance_id} started: {self.container.id}"
         )
-
         return self
 
     def write_string_to_file(self, string: str, filepath: str) -> None:
