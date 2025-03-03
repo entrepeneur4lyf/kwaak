@@ -3,11 +3,12 @@ use std::{path::PathBuf, time::Duration};
 use strum::IntoEnumIterator as _;
 use tui_logger::TuiWidgetState;
 use tui_textarea::TextArea;
+use update_informer::{registry, Check};
 use uuid::Uuid;
 
 use ratatui::{
     prelude::*,
-    widgets::{Block, Borders, ListState, Padding, Paragraph, Tabs},
+    widgets::{Block, ListState, Padding, Paragraph, Tabs},
 };
 
 use crossterm::event::{self, KeyCode, KeyEvent};
@@ -29,7 +30,7 @@ use super::{
 };
 
 const TICK_RATE: u64 = 250;
-const HEADER: &str = include_str!("ascii_logo");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Handles user and TUI interaction
 pub struct App<'a> {
@@ -90,6 +91,9 @@ pub struct App<'a> {
 
     /// User configuration for the UI
     pub ui_config: UIConfig,
+
+    /// Informs the user if there is an update available
+    pub update_available: Option<update_informer::Version>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -145,6 +149,13 @@ impl Default for App<'_> {
 
         let command_responder = AppCommandResponder::spawn_for(ui_tx.clone());
 
+        // Actual api checks are done only once every 24 hours, with the first happening after 24
+        let update_available = update_informer::new(registry::Crates, "kwaak", VERSION)
+            // .interval(Duration::ZERO) // Uncomment me to test the update informer
+            .check_version()
+            .ok()
+            .flatten();
+
         Self {
             workdir: ".".into(),
             splash: splash::Splash::default(),
@@ -169,6 +180,7 @@ impl Default for App<'_> {
             input_width: None,
             chat_messages_max_lines: 0,
             ui_config: UIConfig::default(),
+            update_available,
         }
     }
 }
@@ -288,7 +300,7 @@ impl App<'_> {
         loop {
             // Draw the UI
             terminal.draw(|f| {
-                if self.has_indexed_on_boot && self.splash.is_rendered() {
+                if self.has_indexed_on_boot {
                     self.render_tui(f);
                 } else {
                     self.splash.render(f);
@@ -499,28 +511,33 @@ impl App<'_> {
         }
 
         let [top_area, main_area] =
-            Layout::vertical([Constraint::Length(6), Constraint::Min(0)]).areas(f.area());
+            Layout::vertical([Constraint::Length(2), Constraint::Min(0)]).areas(f.area());
 
         // Hardcoded tabs length for now to right align
         let [header_area, tabs_area] =
             Layout::horizontal([Constraint::Fill(1), Constraint::Length(24)]).areas(top_area);
 
         Tabs::new(self.tab_names.iter().copied())
-            .block(
-                Block::default()
-                    .borders(Borders::BOTTOM)
-                    .padding(Padding::top(top_area.height - 2)),
-            )
+            .block(Block::default().padding(Padding::new(0, 1, 1, 0)))
             .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
             .select(self.selected_tab)
             .render(tabs_area, f.buffer_mut());
 
-        Paragraph::new(HEADER)
-            .block(
-                Block::default()
-                    .borders(Borders::BOTTOM)
-                    .padding(Padding::new(1, 0, 1, 0)),
-            )
+        let duck = Span::styled("󰇥", Style::default().fg(Color::Yellow));
+        let header = Span::styled("  kwaak  ", Style::default().bold());
+
+        // If the version is outdated, show it in red. The version is checked every 24 hours.
+        // update_informer caches the version in the cache folder.
+        let mut version = Span::styled(VERSION, Style::default().dim());
+        if let Some(new_version) = &self.update_available {
+            version = Span::styled(
+                format!("new version available: {new_version}"),
+                Style::default().fg(Color::Red).dim(),
+            );
+        }
+
+        Paragraph::new(duck + header + version)
+            .block(Block::default().padding(Padding::new(1, 0, 1, 0)))
             .render(header_area, f.buffer_mut());
 
         main_area
