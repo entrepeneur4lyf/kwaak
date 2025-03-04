@@ -310,7 +310,7 @@ impl App<'_> {
             if let Some(event) = self.recv_messages().await {
                 self.handle_single_event(&event).await;
             }
-            if !self.splash.is_rendered() {
+            if !self.splash.is_rendered() && !self.has_indexed_on_boot {
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
 
