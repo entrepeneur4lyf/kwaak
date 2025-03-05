@@ -9,11 +9,11 @@ use anyhow::{Context as _, Result};
 use serde::{Deserialize, Serialize};
 use swiftide::integrations::treesitter::SupportedLanguages;
 
-use super::api_key::ApiKey;
 use super::defaults::{
     default_auto_push_remote, default_cache_dir, default_docker_context, default_dockerfile,
     default_log_dir, default_main_branch, default_project_name,
 };
+use super::{api_key::ApiKey, tools::Tools};
 use super::{CommandConfiguration, LLMConfiguration, LLMConfigurations};
 
 // TODO: Improving parsing by enforcing invariants
@@ -82,8 +82,12 @@ pub struct Config {
     #[serde(default)]
     pub tool_executor: SupportedToolExecutors,
 
+    /// A list of tool name and whether it is enabled or disabled
+    ///
+    /// This allows the user to disable tools that are not needed for their workflow. Or enable
+    /// tools that are disabled by default
     #[serde(default)]
-    pub disabled_tools: Vec<String>,
+    pub tools: Tools,
 
     /// By default the agent stops if the last message was its own and there are no new
     /// completions.
@@ -418,6 +422,26 @@ impl Config {
     pub fn is_github_enabled(&self) -> bool {
         self.github_api_key.is_some() && self.git.owner.is_some() && self.git.repository.is_some()
     }
+
+    /// Tools enabled by the user
+    #[must_use]
+    pub fn enabled_tools(&self) -> Vec<&str> {
+        self.tools
+            .iter()
+            .filter(|(_, &enabled)| enabled)
+            .map(|(key, _)| key.as_str())
+            .collect()
+    }
+
+    /// Tools disabled by the user
+    #[must_use]
+    pub fn disabled_tools(&self) -> Vec<&str> {
+        self.tools
+            .iter()
+            .filter(|(_, &enabled)| !enabled)
+            .map(|(key, _)| key.as_str())
+            .collect()
+    }
 }
 
 fn fill_llm(llm: &mut LLMConfiguration, root_key: Option<&ApiKey>) -> Result<()> {
@@ -653,7 +677,11 @@ mod tests {
         let toml = r#"
             language = "rust"
 
-            disabled_tools = ["git", "shell_command", "write_file"]
+            [tools]
+            git = false
+            shell_command = false
+            write_file = false
+            run_tests = true
             
             [commands]
             test = "cargo test"
@@ -683,9 +711,11 @@ mod tests {
         let config: Config = Config::from_str(toml).unwrap();
 
         // Verify the disabled_tools list is correctly parsed
-        assert_eq!(config.disabled_tools.len(), 3);
-        assert!(config.disabled_tools.contains(&"git".to_string()));
-        assert!(config.disabled_tools.contains(&"shell_command".to_string()));
-        assert!(config.disabled_tools.contains(&"write_file".to_string()));
+        assert_eq!(config.disabled_tools().len(), 3);
+        assert!(config.disabled_tools().contains(&"git"));
+        assert!(config.disabled_tools().contains(&"shell_command"));
+        assert!(config.disabled_tools().contains(&"write_file"));
+        assert!(config.enabled_tools().contains(&"run_tests"));
+        assert_eq!(config.enabled_tools().len(), 1);
     }
 }
