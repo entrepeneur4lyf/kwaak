@@ -83,7 +83,7 @@ pub struct Config {
     pub tool_executor: SupportedToolExecutors,
 
     #[serde(default)]
-    pub disabled_tools: DisabledTools,
+    pub disabled_tools: Vec<String>,
 
     /// By default the agent stops if the last message was its own and there are no new
     /// completions.
@@ -144,13 +144,6 @@ fn default_otel_enabled() -> bool {
 
 fn default_num_completions_for_summary() -> usize {
     10
-}
-
-/// Opt out of certain tools an agent can use
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DisabledTools {
-    #[serde(default)]
-    pub pull_request: bool,
 }
 
 /// Agent session configurations supported by Kwaak
@@ -641,5 +634,46 @@ mod tests {
 
         assert!(config.cache_dir.ends_with("kwaak/test"));
         assert!(config.log_dir().ends_with("kwaak/logs/test"));
+    }
+
+    #[test]
+    fn test_deserialize_disabled_tools_list() {
+        let toml = r#"
+            language = "rust"
+
+            disabled_tools = ["git", "shell_command", "write_file"]
+            
+            [commands]
+            test = "cargo test"
+            coverage = "cargo tarpaulin"
+            
+            
+            [llm.indexing]
+            provider = "OpenAI"
+            api_key = "text:test-key"
+            prompt_model = "gpt-4o-mini"
+            
+            [llm.query]
+            provider = "OpenAI"
+            api_key = "text:test-key"
+            prompt_model = "gpt-4o-mini"
+            
+            [llm.embedding]
+            provider = "OpenAI"
+            api_key = "text:test-key"
+            embedding_model = "text-embedding-3-small"
+            
+            [git]
+            repository = "kwaak"
+            owner = "bosun-ai"
+        "#;
+
+        let config: Config = Config::from_str(toml).unwrap();
+
+        // Verify the disabled_tools list is correctly parsed
+        assert_eq!(config.disabled_tools.len(), 3);
+        assert!(config.disabled_tools.contains(&"git".to_string()));
+        assert!(config.disabled_tools.contains(&"shell_command".to_string()));
+        assert!(config.disabled_tools.contains(&"write_file".to_string()));
     }
 }

@@ -381,7 +381,6 @@ pub fn available_tools(
     agent_env: Option<&env_setup::AgentEnvironment>,
 ) -> Result<Vec<Box<dyn Tool>>> {
     let query_pipeline = indexing::build_query_pipeline(repository)?;
-
     let mut tools = vec![
         tools::write_file(),
         tools::search_file(),
@@ -392,6 +391,7 @@ pub fn available_tools(
         tools::ExplainCode::new(query_pipeline).boxed(),
     ];
 
+    // agent edit mode specific tools
     match repository.config().agent_edit_mode {
         AgentEditMode::Whole => {
             tools.push(tools::write_file());
@@ -404,18 +404,19 @@ pub fn available_tools(
         }
     }
 
+    // gitHub-related tools
     if let Some(github_session) = github_session {
-        if !repository.config().disabled_tools.pull_request {
-            tools.push(tools::CreateOrUpdatePullRequest::new(github_session).boxed());
-        }
+        tools.push(tools::CreateOrUpdatePullRequest::new(github_session).boxed());
         tools.push(tools::GithubSearchCode::new(github_session).boxed());
     }
 
+    // web search tool
     if let Some(tavily_api_key) = &repository.config().tavily_api_key {
         let tavily = Tavily::builder(tavily_api_key.expose_secret()).build()?;
         tools.push(tools::SearchWeb::new(tavily, tavily_api_key.clone()).boxed());
     };
 
+    // test-related tools
     if let Some(test_command) = &repository.config().commands.test {
         tools.push(tools::RunTests::new(test_command).boxed());
     }
@@ -424,9 +425,18 @@ pub fn available_tools(
         tools.push(tools::RunCoverage::new(coverage_command).boxed());
     }
 
+    // reset file tool
     if let Some(env) = agent_env {
         tools.push(tools::ResetFile::new(&env.start_ref).boxed());
     }
+
+    tools.retain(|tool| {
+        !repository
+            .config()
+            .disabled_tools
+            .iter()
+            .any(|s| s == tool.name().as_ref())
+    });
 
     Ok(tools)
 }
