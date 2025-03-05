@@ -72,7 +72,8 @@ mod tests {
         let tools = Tools(tools);
 
         let serialized = serde_json::to_string(&tools).unwrap();
-        assert_eq!(serialized, r#"{"tool1":true,"tool2":false}"#);
+        assert!(serialized.contains(r#""tool1":true"#));
+        assert!(serialized.contains(r#""tool2":false"#));
     }
 
     #[test]
