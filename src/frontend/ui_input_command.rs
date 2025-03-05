@@ -10,6 +10,7 @@ use crate::commands::Command;
 use anyhow::{Context as _, Result};
 
 use super::ui_event::UIEvent;
+use uuid::Uuid;
 
 #[derive(
     Debug,
@@ -49,6 +50,35 @@ pub enum UserInputCommand {
     Retry,
     /// Print help
     Help,
+    /// Github commands
+    ///
+    /// Usage:
+    ///     /github fix [number] - Fetch, analyze, and fix a github issue
+    #[strum(serialize = "github", serialize = "gh")]
+    Github(GithubVariant),
+}
+
+#[derive(
+    Debug,
+    Clone,
+    strum_macros::Display,
+    strum_macros::EnumIs,
+    strum_macros::AsRefStr,
+    strum_macros::EnumString,
+    strum_macros::EnumIter,
+    PartialEq,
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum GithubVariant {
+    /// Fix the issue at the given number
+    Fix(u64),
+}
+
+// Default is required for strum_macros::EnumString, strum_macros::EnumIter on UserInputCommand
+impl Default for GithubVariant {
+    fn default() -> Self {
+        Self::Fix(0)
+    }
 }
 
 #[derive(
@@ -89,7 +119,7 @@ impl UserInputCommand {
     ///
     /// Not all user input commands can be turned into a `UIEvent`
     #[must_use]
-    pub fn to_ui_event(&self) -> Option<UIEvent> {
+    pub fn to_ui_event(&self, uuid: Uuid) -> Option<UIEvent> {
         match self {
             UserInputCommand::NextChat => Some(UIEvent::NextChat),
             UserInputCommand::NewChat => Some(UIEvent::NewChat),
@@ -100,6 +130,9 @@ impl UserInputCommand {
             UserInputCommand::Diff(diff_variant) => match diff_variant {
                 DiffVariant::Show => Some(UIEvent::DiffShow),
                 DiffVariant::Pull => Some(UIEvent::DiffPull),
+            },
+            UserInputCommand::Github(github_variable) => match github_variable {
+                GithubVariant::Fix(number) => Some(UIEvent::GithubFixIssue(uuid, *number)),
             },
             _ => None,
         }
@@ -116,7 +149,6 @@ impl UserInputCommand {
         let cmd_parts = input.split_whitespace().collect::<Vec<_>>();
 
         let input = cmd_parts.first().unwrap();
-        let subcommand = cmd_parts.get(1);
 
         let input_cmd = input[1..]
             .parse::<UserInputCommand>()
@@ -124,6 +156,7 @@ impl UserInputCommand {
 
         match input_cmd {
             UserInputCommand::Diff(_) => {
+                let subcommand = cmd_parts.get(1);
                 let Some(subcommand) = subcommand else {
                     return Ok(UserInputCommand::Diff(DiffVariant::default()));
                 };
@@ -131,6 +164,29 @@ impl UserInputCommand {
                     .parse()
                     .with_context(|| format!("failed to parse diff subcommand {subcommand}"))?;
                 Ok(UserInputCommand::Diff(diff_variant))
+            }
+            UserInputCommand::Github(_) => {
+                let subcommand = cmd_parts.get(1);
+                let Some(subcommand) = subcommand else {
+                    return Err(anyhow::anyhow!("no subcommand provided for github command"));
+                };
+                let github_variant = subcommand
+                    .parse()
+                    .with_context(|| format!("failed to parse github subcommand {subcommand}"))?;
+                match github_variant {
+                    GithubVariant::Fix(_) => {
+                        let subsubcommand = cmd_parts.get(2);
+                        let Some(subsubcommand) = subsubcommand else {
+                            return Err(anyhow::anyhow!(
+                                "no issue number provided for github fix command"
+                            ));
+                        };
+                        let issue_number = subsubcommand.parse::<u64>().with_context(|| {
+                            format!("failed to parse issue number to fix {subsubcommand}")
+                        })?;
+                        Ok(UserInputCommand::Github(GithubVariant::Fix(issue_number)))
+                    }
+                }
             }
             _ => Ok(input_cmd),
         }
@@ -165,6 +221,28 @@ mod tests {
             ("/diff", UserInputCommand::Diff(DiffVariant::Show)),
             ("/diff show", UserInputCommand::Diff(DiffVariant::Show)),
             ("/diff pull", UserInputCommand::Diff(DiffVariant::Pull)),
+        ];
+
+        for (input, expected_command) in test_cases {
+            let parsed_command = UserInputCommand::parse_from_input(input).unwrap();
+            assert_eq!(
+                parsed_command, expected_command,
+                "expected: {expected_command:?} for: {input:?}",
+            );
+        }
+    }
+
+    #[test]
+    fn test_parse_github_issue_input() {
+        let test_cases = vec![
+            (
+                "/github fix 123",
+                UserInputCommand::Github(GithubVariant::Fix(123)),
+            ),
+            (
+                "/gh fix 456",
+                UserInputCommand::Github(GithubVariant::Fix(456)),
+            ),
         ];
 
         for (input, expected_command) in test_cases {

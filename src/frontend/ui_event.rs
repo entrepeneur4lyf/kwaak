@@ -49,6 +49,8 @@ pub enum UIEvent {
     DiffShow,
     /// Prints a help message
     Help,
+    /// Fetch a GitHub issue and its comments and have the agent analyze and fix it
+    GithubFixIssue(Uuid, u64),
 }
 
 impl From<KeyEvent> for UIEvent {

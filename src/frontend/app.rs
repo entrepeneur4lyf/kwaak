@@ -378,7 +378,16 @@ impl App<'_> {
                 }
             }
             UIEvent::NewChat => {
-                self.add_chat(Chat::default());
+                let chat = Chat {
+                    // add the repo from the current chat to the new chat
+                    // TODO eventually this should be updated for more complex multi-repo setups
+                    repository: self
+                        .current_chat()
+                        .map(|c| c.repository.clone())
+                        .unwrap_or_default(),
+                    ..Default::default()
+                };
+                self.add_chat(chat);
             }
             UIEvent::RenameChat(uuid, name) => {
                 if let Some(chat) = self.find_chat_mut(*uuid) {
@@ -405,7 +414,7 @@ impl App<'_> {
             UIEvent::UserInputCommand(uuid, cmd) => {
                 if let Some(cmd) = cmd.to_command() {
                     self.dispatch_command(*uuid, cmd);
-                } else if let Some(event) = cmd.to_ui_event() {
+                } else if let Some(event) = cmd.to_ui_event(*uuid) {
                     self.send_ui_event(event);
                 } else {
                     tracing::error!(
@@ -421,6 +430,9 @@ impl App<'_> {
             UIEvent::ScrollDown => actions::scroll_down(self),
             UIEvent::ScrollEnd => actions::scroll_end(self),
             UIEvent::Help => actions::help(self),
+            UIEvent::GithubFixIssue(uuid, number) => {
+                actions::github_issue(self, *number, *uuid).await;
+            }
         }
     }
 

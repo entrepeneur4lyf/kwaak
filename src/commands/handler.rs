@@ -92,7 +92,7 @@ impl CommandHandler {
                 let this_handler = Arc::clone(&this_handler);
 
                 joinset.spawn(async move {
-                    let result = this_handler.lock().await.handle_command_event(&repository, &event, &event.command()).await;
+                    let result = Box::pin(this_handler.lock().await.handle_command_event(&repository, &event, &event.command())).await;
                     event.responder().send(CommandResponse::Completed);
 
                     if let Err(error) = result {
