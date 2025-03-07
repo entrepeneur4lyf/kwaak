@@ -1,6 +1,6 @@
 # Always build against latest stable
 ARG RUST_VERSION=1.85
-FROM rust:${RUST_VERSION} AS builder
+FROM rust:${RUST_VERSION}
 
 # Install rust tools
 RUN rustup component add clippy rustfmt
@@ -18,9 +18,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libxcb-xfixes0-dev \
   libxcb1-dev \
   protobuf-compiler \
+  # Faster builds
+  lld \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Build test binaries so we can get started right away
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 # Build dependencies so they can be cached in a docker layer
 COPY Cargo.toml Cargo.lock ./
@@ -30,5 +35,7 @@ RUN mkdir src \
   && rm -rf src
 
 # Build the actual project
+# Build test binaries so we can get started right away
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 COPY . .
 RUN cargo test --no-run
