@@ -3912,7 +3912,6 @@ dependencies = [
  "inquire",
  "insta",
  "lancedb",
- "lazy_static",
  "log",
  "mockall",
  "num_cpus",
