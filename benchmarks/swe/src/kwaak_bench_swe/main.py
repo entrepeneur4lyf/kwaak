@@ -285,7 +285,7 @@ def main():
     output_path = os.path.join(os.getcwd(), "results")
     os.makedirs(output_path, exist_ok=True)
 
-    kwaak_version = "0.10.0"
+    kwaak_version = "0.14.0"
     benchmark_name = f"swe-bench-kwaak-{kwaak_version}"
     benchmark = Benchmark(benchmark_name, dataset_items, output_path)
 
