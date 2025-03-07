@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
                 tool_args,
             } => test_tool(&repository, tool_name, tool_args.as_deref()).await,
             cli::Commands::Query { query: query_param } => {
-                let result = indexing::query(&repository, query_param).await;
+                let result = indexing::query(&repository, query_param, None).await;
 
                 if let Ok(result) = result.as_deref() {
                     println!("{result}");

@@ -8,10 +8,20 @@ use swiftide::{
     traits::{EmbeddingModel, SimplePrompt},
 };
 
-use crate::{repository::Repository, storage, templates::Templates, util::strip_markdown_tags};
+use crate::{
+    commands::Responder, repository::Repository, storage, templates::Templates,
+    util::strip_markdown_tags,
+};
 
 #[tracing::instrument(skip_all, err)]
-pub async fn query(repository: &Repository, query: impl AsRef<str>) -> Result<String> {
+pub async fn query(
+    repository: &Repository,
+    query: impl AsRef<str>,
+    responder: Option<&dyn Responder>,
+) -> Result<String> {
+    if let Some(responder) = responder {
+        responder.update("analyzing repository for an initial context for the agent");
+    }
     let answer = build_query_pipeline(repository)?
         .query(query.as_ref())
         .await?

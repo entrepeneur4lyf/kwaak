@@ -108,7 +108,11 @@ impl SessionBuilder {
                 &fast_query_provider,
                 &session.default_responder
             ),
-            start_tool_executor(session.session_id, &session.repository),
+            start_tool_executor(
+                session.session_id,
+                &session.repository,
+                &session.default_responder
+            ),
             // TODO: Below should probably be agent specific
             util::create_branch_name(
                 &session.initial_query,
@@ -116,7 +120,11 @@ impl SessionBuilder {
                 &fast_query_provider,
                 &session.default_responder
             ),
-            generate_initial_context(&session.repository, &session.initial_query)
+            generate_initial_context(
+                &session.repository,
+                &session.initial_query,
+                &session.default_responder
+            )
         )?;
 
         let env_setup = EnvSetup::new(&session.repository, github_session.as_deref(), &*executor);
@@ -341,7 +349,11 @@ impl RunningSession {
 }
 
 #[tracing::instrument(skip_all)]
-async fn start_tool_executor(uuid: Uuid, repository: &Repository) -> Result<Arc<dyn ToolExecutor>> {
+async fn start_tool_executor(
+    uuid: Uuid,
+    repository: &Repository,
+    responder: &dyn Responder,
+) -> Result<Arc<dyn ToolExecutor>> {
     let boxed = match repository.config().tool_executor {
         SupportedToolExecutors::Docker => {
             let mut executor = DockerExecutor::default();
@@ -351,6 +363,7 @@ async fn start_tool_executor(uuid: Uuid, repository: &Repository) -> Result<Arc<
                 tracing::error!("Dockerfile not found at {}", dockerfile.display());
                 return Err(anyhow::anyhow!("Dockerfile not found"));
             }
+            responder.update("Starting up a docker container for the agent");
             let running_executor = executor
                 .with_context_path(&repository.config().docker.context)
                 .with_image_name(repository.config().project_name.to_lowercase())
@@ -359,6 +372,8 @@ async fn start_tool_executor(uuid: Uuid, repository: &Repository) -> Result<Arc<
                 .to_owned()
                 .start()
                 .await?;
+
+            responder.update("Docker container started");
 
             Arc::new(running_executor) as Arc<dyn ToolExecutor>
         }
@@ -369,8 +384,13 @@ async fn start_tool_executor(uuid: Uuid, repository: &Repository) -> Result<Arc<
 }
 
 #[tracing::instrument(skip_all)]
-async fn generate_initial_context(repository: &Repository, query: &str) -> Result<String> {
-    let retrieved_context = indexing::query(repository, &query).await?;
+async fn generate_initial_context(
+    repository: &Repository,
+    query: &str,
+    responder: &dyn Responder,
+) -> Result<String> {
+    let retrieved_context = indexing::query(repository, &query, Some(responder)).await?;
+    responder.update("Agent received initial context");
     let formatted_context = format!("Additional information:\n\n{retrieved_context}");
     Ok(formatted_context)
 }
