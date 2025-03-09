@@ -1,4 +1,3 @@
-#![recursion_limit = "256"] // Temporary fix so tracing plays nice with lancedb
 use std::{
     io::{self, stdout},
     panic::{self, set_hook, take_hook},
