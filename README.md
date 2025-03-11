@@ -310,6 +310,7 @@ prompt_model = "llama3.2"
 [llm.query]
 provider = "Ollama"
 prompt_model = "llama3.3"
+base_url = "http://localhost:11434/v1" # optional; this is the default
 
 [llm.embedding]
 provider = "Ollama"
