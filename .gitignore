@@ -2,3 +2,12 @@
 /target
 evals
 kwaak.local.toml
+
+logs
+results
+.venv
+predictions.jsonl
+swe_bench_results.json
+
+__pycache__
+*.egg-info
