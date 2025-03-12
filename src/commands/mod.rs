@@ -3,7 +3,7 @@ mod command;
 mod handler;
 mod responder;
 
-pub use command::{Command, CommandEvent};
+pub use command::{Command, CommandEvent, CommandEventBuilder, CommandEventBuilderError};
 pub use handler::CommandHandler;
 pub use responder::{CommandResponse, DebugResponder, Responder};
 
