@@ -181,10 +181,10 @@ pub enum SupportedToolExecutors {
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize, Default, strum_macros::EnumIs)]
 #[serde(rename_all = "kebab-case")]
 pub enum AgentEditMode {
-    #[default]
     Whole,
     Line,
-    // i.e. udiff, llm reviewed, etc
+    #[default]
+    Patch,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,7 +1,7 @@
 //! The patch module is meant to reveal problems in agents when making modifications to the source code. Specifically
 //! in large files and/or files with semantic whitespace.
 
-use crate::agent::tools;
+use crate::agent::session::available_tools;
 use crate::config::Config;
 use crate::evaluations::{
     logging_responder::LoggingResponder,
@@ -10,11 +10,9 @@ use crate::evaluations::{
 };
 use crate::repository::Repository;
 use anyhow::Result;
-use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
-use swiftide::chat_completion::Tool;
 
 const EXPECTED_REMOVALS: &[&str] = &["            self._content_consumed = True"];
 
@@ -31,21 +29,34 @@ fn prompt() -> String {
     indoc::formatdoc! {"
         There is a bug in the `src/evaluations/fixtures/swebench_2148/models.py` file in the `iter_content` method.
 
-        To fix it add an additional exception handler to the nested try block that looks like this (but adjusted for indentation):
+        To fix it add an additional exception handler, below the handling of `DecodeError`, to the nested try block that looks like this ( additional lines for context):
 
         ```
-        except socket.error as e:
-            raise ConnectionError(e)
+                 except DecodeError as e:
+                     raise ContentDecodingError(e)
+                 except socket.error as e:
+                     raise ConnectionError(e)
+             except AttributeError:
         ```
 
-        And also move the content consumed setter to a new finally clause on the outer try block that looks like this (but adjusted for indentation):
+        And also move the `self._content_consumed` setter into a finally clause on the try block that `self._content_consumed` currently is in. The result should look like this (additional lines for context):
 
         ```
-        finally:
-            self._content_consumed = True
+                     if not chunk:
+                         break
+                     yield chunk
+             finally:
+                 self._content_consumed = True
+ 
+         # simulate reading small chunks of the content
+         reused_chunks = iter_slices(self._content, chunk_size)
         ```
 
-        Apply only these fixes, do not make any other changes to the code. The file is long and the modifications are small.
+        Note that the edit should result in valid python code.
+
+        Apply only these fixes, do not make any other changes to the code. The file is long and the modifications are small. Start by reading the file.
+
+        After the file has been successfully updated you are done. When you are, call the stop tool.
     "}.to_string()
 }
 
@@ -69,6 +80,7 @@ fn compare_changes(eval_output: &EvalOutput) -> Result<bool> {
     let output = Command::new("git")
         .args([
             "diff",
+            "--default-prefix",
             "--",
             "src/evaluations/fixtures/swebench_2148/models.py",
         ])
@@ -80,13 +92,17 @@ fn compare_changes(eval_output: &EvalOutput) -> Result<bool> {
 
     let diff = String::from_utf8(output.stdout)?;
 
+    if diff.is_empty() {
+        return Ok(false);
+    }
+
     eval_output.write_diff(&diff)?;
 
     let mut success = true;
 
     let changes_diff = diff
         .split_once("+++ b/src/evaluations/fixtures/swebench_2148/models.py")
-        .ok_or(anyhow::anyhow!("Failed to split diff"))?
+        .ok_or(anyhow::anyhow!("Failed to split diff, actual:\n{diff}"))?
         .1;
 
     let additions = changes_diff
@@ -182,31 +198,32 @@ fn write_failure_info(
     Ok(())
 }
 
-fn get_evaluation_tools() -> Vec<Box<dyn Tool>> {
-    let tools: Vec<Box<dyn Tool>> = vec![
-        tools::search_file(),
-        tools::read_file(),
-        tools::write_file(),
-        tools::read_file_with_line_numbers(),
-        tools::replace_lines(),
-    ];
-
-    tools
-}
-
 async fn run_single_evaluation(iteration: u32) -> Result<(bool, EvalMetrics)> {
     let eval_output = EvalOutput::new("patch", iteration)?;
     let responder = Arc::new(LoggingResponder::new());
 
-    let config_path = Path::new("test-config.toml");
-    let repository =
-        Repository::from_config(Config::load(Some(&config_path)).expect("Failed to load config"));
+    let mut config = Config::load(None)?;
 
-    let tools = get_evaluation_tools();
-    let agent = start_tool_evaluation_agent(&repository, responder.clone(), tools).await?;
+    // Blacklist a bunch of tools we don't want the agent to use
+    for blacklisted_tool in [
+        "git",
+        "shell_command",
+        "fetch_url",
+        "explain_code",
+        "run_tests",
+        "run_coverage",
+        "reset_file",
+    ] {
+        config.tools.insert(blacklisted_tool.to_string(), false);
+    }
+
+    let repository = Repository::from_config(config);
+
+    let tools = available_tools(&repository, None, None)?;
+    let agent =
+        start_tool_evaluation_agent(&repository, responder.clone(), tools, &prompt()).await?;
 
     agent.query(&prompt()).await?;
-    agent.run().await?;
 
     eval_output.write_agent_log(&responder.get_log())?;
 
@@ -248,7 +265,7 @@ pub async fn evaluate(iterations: u32) -> Result<()> {
                     metrics.time_spent.as_secs_f64(),
                 );
             }
-            Err(e) => println!("Iteration {} failed with error: {}", i + 1, e),
+            Err(e) => println!("Iteration {} failed with error: {:?}", i + 1, e),
         }
     }
 

@@ -96,6 +96,7 @@ update-informer = { version = "1.2.0", features = [
   "ureq",
   "rustls-tls",
 ], default-features = false }
+diffy = "0.4.2"
 
 # Something is still pulling in libssl, this is a quickfix and should be investigated
 [target.'cfg(linux)'.dependencies]
@@ -146,6 +147,7 @@ evaluations = []
 
 
 [patch.crates-io]
+# diffy = { git = "https://github.com/timonv/diffy", branch = "fix/debug-wrong-line" }
 # arrow = { version = "=53.2.0", optional = false }
 # arrow-arith = { version = "=53.2.0", optional = false }
 # swiftide = { path = "../swiftide/swiftide" }

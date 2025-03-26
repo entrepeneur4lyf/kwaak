@@ -316,3 +316,44 @@ async fn test_git() {
     dbg!(&git_output);
     assert!(git_output.contains("On branch") || git_output.contains("HEAD detached"));
 }
+
+#[test_log::test(tokio::test)]
+async fn test_patch_file() {
+    let tool = tools::patch_file();
+    let context = setup_context();
+
+    let tmpfile = tempfile::Builder::new()
+        .prefix("test")
+        .suffix(".txt")
+        .tempfile()
+        .unwrap();
+    std::fs::write(tmpfile.path(), "abc").unwrap();
+    let old_file_content = std::fs::read_to_string(tmpfile.path()).unwrap();
+    assert_eq!(old_file_content, "abc");
+
+    // simple patch to replace abc with abd                            l
+    // spellchecker:off
+    let patch = indoc::formatdoc! {"
+        --- a/{path}
+        +++ b/{path}
+        @@ -3,1 +1,1 @@
+        -abc
+        +abd
+        ", path = tmpfile.path().file_name().unwrap().to_string_lossy()};
+    // spellchecker:on
+
+    let tool_response = invoke!(
+        &tool,
+        &context,
+        json!({
+            "file_name": tmpfile.path().to_string_lossy(),
+            "patch": patch
+        })
+    );
+
+    assert!(tool_response.contains("Patch applied successfully"));
+
+    let new_file_content = std::fs::read_to_string(tmpfile.path()).unwrap();
+
+    assert_eq!(new_file_content, "abd\n");
+}
