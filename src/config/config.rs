@@ -93,9 +93,6 @@ pub struct Config {
     #[serde(default)]
     pub tools: Tools,
 
-    /// By default the agent stops if the last message was its own and there are no new
-    /// completions.
-    ///
     /// When endless mode is enabled, the agent will keep running until it either cannot complete,
     /// did complete or was manually stopped.
     ///
@@ -107,6 +104,17 @@ pub struct Config {
     /// WARN: There currently is _no_ limit for endless mode
     #[serde(default)]
     pub endless_mode: bool,
+
+    /// When stop_on_empty_messages is enabled, the agent will stop if the next completion does not
+    /// contain new messages.
+    ///
+    /// Often, agents return a reasoning completion before calling any tools. Previously this would
+    /// require the user to manually prompt to continue the task. This falls back to that
+    /// behaviour.
+    ///
+    /// When endless mode is enabled this setting has no effect.
+    #[serde(default)]
+    pub stop_on_empty_messages: bool,
 
     /// OpenTelemetry tracing feature toggle
     #[serde(default = "default_otel_enabled")]

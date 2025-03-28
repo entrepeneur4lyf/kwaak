@@ -50,7 +50,9 @@ pub async fn start(
         .output;
     tracing::debug!(top_level_project_overview = ?top_level_project_overview, "Top level project overview");
 
-    if session.repository.config().endless_mode {
+    if session.repository.config().endless_mode
+        || !session.repository.config().stop_on_empty_messages
+    {
         context.with_stop_on_assistant(false);
     }
 
