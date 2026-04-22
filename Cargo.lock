@@ -398,7 +398,7 @@ dependencies = [
  "base64 0.21.7",
  "derive_builder 0.12.0",
  "futures",
- "rand 0.8.5",
+ "rand 0.8.6",
  "reqwest 0.11.27",
  "reqwest-eventsource 0.4.0",
  "serde",
@@ -423,7 +423,7 @@ dependencies = [
  "derive_builder 0.20.2",
  "eventsource-stream",
  "futures",
- "rand 0.8.5",
+ "rand 0.8.6",
  "reqwest 0.12.20",
  "reqwest-eventsource 0.6.0",
  "secrecy",
@@ -569,7 +569,7 @@ dependencies = [
  "getrandom 0.2.16",
  "instant",
  "pin-project-lite",
- "rand 0.8.5",
+ "rand 0.8.6",
  "tokio",
 ]
 
@@ -2220,7 +2220,7 @@ dependencies = [
  "libc",
  "log",
  "native-tls",
- "rand 0.8.5",
+ "rand 0.8.6",
  "reqwest 0.12.20",
  "serde",
  "serde_json",
@@ -4214,7 +4214,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c80231409c20246a13fddb31776fb942c38553c51e871f8cbd687a4cfb5843d"
 dependencies = [
  "phf_shared",
- "rand 0.8.5",
+ "rand 0.8.6",
 ]
 
 [[package]]
@@ -4630,9 +4630,9 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "rand"
-version = "0.8.5"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
+checksum = "5ca0ecfa931c29007047d1bc58e623ab12e5590e8c7cc53200d5202b69266d8a"
 dependencies = [
  "libc",
  "rand_chacha 0.3.1",
@@ -4745,7 +4745,7 @@ dependencies = [
  "once_cell",
  "paste",
  "profiling",
- "rand 0.8.5",
+ "rand 0.8.6",
  "rand_chacha 0.3.1",
  "simd_helpers",
  "system-deps",
@@ -5222,7 +5222,7 @@ dependencies = [
  "borsh",
  "bytes",
  "num-traits",
- "rand 0.8.5",
+ "rand 0.8.6",
  "rkyv",
  "serde",
  "serde_json",
@@ -6388,7 +6388,7 @@ dependencies = [
  "percent-encoding",
  "pest",
  "pest_derive",
- "rand 0.8.5",
+ "rand 0.8.6",
  "regex",
  "serde",
  "serde_json",
@@ -6498,7 +6498,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d36b5738d666a2b4c91b7c24998a8588db724b3107258343ebf8824bf55b06d"
 dependencies = [
- "rand 0.8.5",
+ "rand 0.8.6",
  "ratatui",
 ]
 
@@ -6621,7 +6621,7 @@ dependencies = [
  "monostate",
  "onig",
  "paste",
- "rand 0.8.5",
+ "rand 0.8.6",
  "rayon",
  "rayon-cond",
  "regex",
