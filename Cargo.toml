@@ -108,7 +108,7 @@ libduckdb-sys = { version = "=1.3.0", features = ["bundled"], optional = true }
 
 # Something is still pulling in libssl, this is a quickfix and should be investigated
 [target.'cfg(linux)'.dependencies]
-openssl = { version = "0.10.72", features = ["vendored"] }
+openssl = { version = "0.10.78", features = ["vendored"] }
 openssl-sys = { version = "0.9.107", features = ["vendored"] }
 
 [dev-dependencies]
